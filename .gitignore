@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------
+# .NET
+# ---------------------------------------------------------------------------
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+*.user
+*.suo
+*.userprefs
+*.dotCover
+*.coverage
+*.trx
+TestResults/
+.vs/
+.vscode/
+.idea/
+*.received.*
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+
+# ---------------------------------------------------------------------------
+# Node
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Application data (DEC-022 — never in source control)
+# ---------------------------------------------------------------------------
+data/
+
+# Front bundle copied into the API web root at container build time (A.6).
+# The directory itself is tracked so the static file middleware has a web root.
+src/Pawnsmith.Api/wwwroot/*
+!src/Pawnsmith.Api/wwwroot/.gitkeep
+
+# ---------------------------------------------------------------------------
+# Environment and secrets (DEC-012, MEN-006)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# OS noise
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
