@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- A.4 — Build settings applied to every project in the repository.
+       Kept here rather than duplicated in each .csproj so that a single edit
+       moves the whole solution. TargetFramework stays per-project: it is the
+       one setting a project may legitimately need to differ on. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>
