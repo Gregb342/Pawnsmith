@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Pawnsmith.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pawnsmith.Application\Pawnsmith.Application.csproj" />
+    <ProjectReference Include="..\Pawnsmith.Domain\Pawnsmith.Domain.csproj" />
+    <ProjectReference Include="..\Pawnsmith.Infrastructure\Pawnsmith.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

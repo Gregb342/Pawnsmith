@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Pawnsmith.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <!-- A.3 — Domain references nothing. Neither a project, nor a NuGet package.
+       This emptiness is the invariant; do not add an ItemGroup here. -->
+
+</Project>
