@@ -1,0 +1,52 @@
+# A.7 — Front build, .NET build, tests. Nothing else at this stage: no publish,
+# no static analysis, no coverage.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      # --- Front ---------------------------------------------------------
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/Pawnsmith.Web/package-lock.json
+
+      - name: Install front dependencies
+        working-directory: src/Pawnsmith.Web
+        # `npm ci` rather than `npm install`: it fails on a lockfile that has
+        # drifted from package.json instead of quietly reconciling the two.
+        run: npm ci
+
+      - name: Build front
+        working-directory: src/Pawnsmith.Web
+        run: npm run build
+
+      # --- .NET ----------------------------------------------------------
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore .NET dependencies
+        run: dotnet restore Pawnsmith.sln
+
+      - name: Build solution
+        run: dotnet build Pawnsmith.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test Pawnsmith.sln --configuration Release --no-build
