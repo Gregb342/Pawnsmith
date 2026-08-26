@@ -28,6 +28,22 @@ Aucun projet de `src/` ni de `tools/` ne référence de paquet NuGet à ce stade
 
 ---
 
+## Front — `src/Pawnsmith.Web`
+
+| Paquet | Version | Licence | Rôle |
+|---|---|---|---|
+| [react](https://github.com/facebook/react) | 19.2.x | MIT | Bibliothèque d'interface (DEC-018) |
+| [react-dom](https://github.com/facebook/react) | 19.2.x | MIT | Rendu DOM de React |
+| [i18next](https://github.com/i18next/i18next) | 25.x | MIT | Moteur de localisation, socle de `react-i18next` |
+| [react-i18next](https://github.com/i18next/react-i18next) | 16.x | MIT | Liaison React de i18next (A.5, chapitre 10 de la bible) |
+| [vite](https://github.com/vitejs/vite) | 7.x | MIT | Outillage de compilation du front (A.1) |
+| [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) | 5.x | MIT | Prise en charge de JSX et du rafraîchissement à chaud |
+| [typescript](https://github.com/microsoft/TypeScript) | 5.9.x | Apache-2.0 | Compilateur TypeScript (A.1) |
+| [@types/react](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React |
+| [@types/react-dom](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React DOM |
+
+---
+
 ## Dépendances prévues, pas encore introduites
 
 Annoncées en A.1 mais absentes du code tant qu'aucun code ne les utilise. Elles

@@ -1,0 +1,14 @@
+{
+  "app": {
+    "name": "Pawnsmith",
+    "documentTitle": "Pawnsmith",
+    "tagline": "Cardboard miniature sheets, calibrated for home printing."
+  },
+  "language": {
+    "label": "Language",
+    "names": {
+      "fr": "Français",
+      "en": "English"
+    }
+  }
+}

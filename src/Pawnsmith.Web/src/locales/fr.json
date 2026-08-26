@@ -1,0 +1,14 @@
+{
+  "app": {
+    "name": "Pawnsmith",
+    "documentTitle": "Pawnsmith",
+    "tagline": "Planches de figurines en carton, calibrées pour l'impression domestique."
+  },
+  "language": {
+    "label": "Langue",
+    "names": {
+      "fr": "Français",
+      "en": "English"
+    }
+  }
+}
