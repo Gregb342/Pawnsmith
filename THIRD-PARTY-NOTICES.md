@@ -44,6 +44,16 @@ Aucun projet de `src/` ni de `tools/` ne référence de paquet NuGet à ce stade
 
 ---
 
+## Images de base des conteneurs
+
+| Image | Licence |
+|---|---|
+| `mcr.microsoft.com/dotnet/sdk:10.0` | MIT (composants .NET), voir la licence de l'image |
+| `mcr.microsoft.com/dotnet/aspnet:10.0` | MIT (composants .NET), voir la licence de l'image |
+| `node:22-alpine` | MIT (Node.js), voir la licence de l'image |
+
+---
+
 ## Dépendances prévues, pas encore introduites
 
 Annoncées en A.1 mais absentes du code tant qu'aucun code ne les utilise. Elles

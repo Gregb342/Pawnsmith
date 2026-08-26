@@ -1,0 +1,21 @@
+# Build outputs must be produced inside the image, never copied from the host:
+# a stale host artefact silently shadowing a fresh build is a long debugging
+# session waiting to happen.
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+src/Pawnsmith.Api/wwwroot/
+
+# Never part of the image.
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+docs/
+tests/
+tools/
+data/
+**/*.user
+**/TestResults/
