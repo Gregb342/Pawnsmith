@@ -1,0 +1,2 @@
+Populated at container build time with the Vite output of Pawnsmith.Web (A.6).
+Kept in source control so that the static file middleware always finds a web root.
