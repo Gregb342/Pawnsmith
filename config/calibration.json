@@ -1,0 +1,32 @@
+{
+  "versionSchema": 1,
+  "sizes": {
+    "Moyenne":     { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 50.0 },
+    "Grande":      { "gridFootprintMm": 50.8,  "pawnWidthMm": 50.8,  "pawnHeightMm": 75.0 },
+    "TresGrande":  { "gridFootprintMm": 76.2,  "pawnWidthMm": 76.2,  "pawnHeightMm": 100.0 },
+    "Gigantesque": { "gridFootprintMm": 101.6, "pawnWidthMm": 101.6, "pawnHeightMm": 125.0 }
+  },
+  "geometry": {
+    "tentePliee":  { "flapHeightMm": 8.0 },
+    "pionASocle":  { "tabWidthMm": 12.0, "tabHeightMm": 10.0 }
+  },
+  "layout": {
+    "pageMarginMm": 10.0,
+    "gutterMm": 3.0,
+    "silhouetteMarginMm": 1.5,
+    "calibrationZoneHeightMm": 14.0
+  },
+  "print": {
+    "scaleCorrectionFactor": 1.0
+  },
+  "strokes": {
+    "cutWidthMm": 0.25,
+    "foldWidthMm": 0.25,
+    "colorHex": "#B0B0B0",
+    "foldDashPatternMm": [2.0, 2.0]
+  },
+  "paperFormats": {
+    "A4":     { "widthMm": 210.0, "heightMm": 297.0 },
+    "Letter": { "widthMm": 216.0, "heightMm": 279.0 }
+  }
+}
