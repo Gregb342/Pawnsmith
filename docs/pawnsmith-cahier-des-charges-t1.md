@@ -2,10 +2,12 @@
  
 | | |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 29 août 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.3 — à lire en premier |
 | **Portée** | Squelette du dépôt, chaîne de compilation, puis moteur de mise en page et rendu PDF |
+ 
+> **Changements depuis la v1.2** — Deux encadrés au §B.5.2 renvoyant vers DEC-035 (marges uniformes, gain abandonné chiffré) et DEC-036 (le paysage est une entrée de `paperFormats`, pas un paramètre du moteur). Aucun changement de formule ni de périmètre.
  
 > **Changements depuis la v1.1** — Correction de l'arborescence §A.3 (nom réel du fichier de spécification, ajout de `CLAUDE.md`). Précision §A.2 sur le contenu de `THIRD-PARTY-NOTICES.md`. Ajout de la taille `Petite` au fichier de calibration (DEC-031). **Correction de `Gigantesque.pawnHeightMm`, dont la valeur provisoire produisait une capacité de page nulle sur A4 comme sur US Letter** (DEC-032) ; ajout du §B.5.6 sur le plafond de hauteur et de deux tests dédiés. Le CLI de B.7 devient l'outil de tirage de T0b (DEC-033). Aucun changement de périmètre.
  
@@ -323,6 +325,10 @@ lignes   = floor((hauteurUtile + gutterMm) / (hauteurCellule + gutterMm))
 capacite = colonnes × lignes
 ```
  
+> **Le `2 ×` des deux premières lignes est arbitré, pas subi** (DEC-035). La marge est uniforme sur les quatre côtés, alors qu'une imprimante domestique a rarement une zone non imprimable symétrique : une marge unique doit donc prendre le pire des quatre côtés. Le gain abandonné est chiffré dans la fiche — sur A4, +2 pions par page en `Petite` et `Moyenne` pour une imprimante tolérant 5 mm sur les côtés. Ne pas « améliorer » cette formule en marges indépendantes sans rouvrir la décision.
+
+> **L'orientation n'apparaît pas dans ce calcul**, et c'est voulu : le paysage est une entrée de `paperFormats` avec largeur et hauteur échangées (DEC-016, DEC-036), pas un paramètre du moteur. Corollaire à ne pas trouver surprenant : un format paysage rend `TresGrande` et `Gigantesque` de capacité nulle, ce que la règle ci-dessous traite déjà.
+
 La grille est **centrée horizontalement** dans la largeur utile, et **calée en haut** de la hauteur utile.
  
 Remplissage de gauche à droite, puis de haut en bas. Une quantité qui dépasse la fin d'une ligne continue naturellement sur la ligne suivante, puis sur la page suivante.
