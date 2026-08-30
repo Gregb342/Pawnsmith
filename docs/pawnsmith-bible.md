@@ -1,36 +1,39 @@
 # Pawnsmith — Bible du projet
-
+ 
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.1 |
-| **Date** | 26 août 2026 |
+| **Version du document** | 0.3 |
+| **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
-
+ 
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
-
+ 
+> **Changements depuis la v0.2** — Ajout du **chapitre 14**, table de référence des grilles de jeu et des tailles de créature, sourcée. DEC-031 (six tailles nommées d'après les règles, emprise et hauteur découplées ; rejet de l'échelle S/M/L/XL/XXL). DEC-032 (la loi de progression des hauteurs est une décision de conception, bornée par le format de papier — la valeur provisoire de `Gigantesque` rendait la capacité de page nulle). DEC-033 (T0 scindée en T0a et T0b ; le CLI de T1 remplace le script de gabarit jetable). EVO-011 (taille Minuscule). Tableau des tailles du §3.1 étendu, §5.6 borné, chapitre 12 réordonné.
+ 
+> **Changements depuis la v0.1** — DEC-028, DEC-029 et DEC-030 ajoutées (composition du prompt en trois clauses, désalignement à la place du verrouillage). Suppression des « cotes de l'encoche », résidu de la piste d'impression externe abandonnée. Ajout de la tranche Fondations au chapitre 12. Ajout d'EVO-010 (import d'images externes), décidé mais jamais consigné. Vocabulaire du chapitre 2 étendu : clause sujet, clause style, clause cadrage, désaligné.
+ 
 ---
-
+ 
 ## 1. Vision et périmètre
-
+ 
 ### 1.1 Le problème
-
+ 
 Les figurines de jeu de rôle en carton 2D (« pions », « standees ») sont la solution la plus accessible pour matérialiser des créatures sur une carte de bataille. Trois briques existent aujourd'hui, mais aucune chaîne ne les relie :
-
+ 
 - des modèles de diffusion capables de produire l'illustration d'un personnage ;
 - des modèles de segmentation capables de détourer une image ;
 - des outils de mise en page rudimentaires, qui n'acceptent qu'une image à la fois.
-
 L'assemblage est manuel, fastidieux, et surtout il ne garantit aucune **cohérence visuelle** entre les figurines d'une même planche — ce qui est le critère de qualité principal du résultat imprimé.
-
+ 
 ### 1.2 Proposition de valeur
-
+ 
 Pawnsmith est une application web auto-hébergée qui produit, à partir de paramètres de haut niveau (race, classe, équipement), une **planche PDF calibrée pour l'impression domestique**, dont toutes les figurines partagent un style visuel imposé structurellement.
-
+ 
 ### 1.3 Dans le périmètre de la v1
-
+ 
 - Univers fantasy uniquement.
 - Génération d'images via un modèle de diffusion **local**, piloté par l'API HTTP de ComfyUI.
 - Composition de prompts déterministe par templates.
@@ -38,78 +41,85 @@ Pawnsmith est une application web auto-hébergée qui produit, à partir de para
 - Détourage local et systématique.
 - Deux géométries de pion : tente pliée et pion à onglet avec socle.
 - Mise en page en grille uniforme, une taille de pion par page, plusieurs pages par projet.
+- **Cinq tailles** calées sur les emprises de la grille de jeu : Petite, Moyenne, Grande, Très Grande, Gigantesque (DEC-031).
 - Export PDF, formats A4 et US Letter.
 - Sauvegarde et rechargement de projets, export et import d'archives.
 - Interface bilingue français / anglais.
-
 ### 1.4 Hors périmètre de la v1 (différé, voir chapitre 13)
-
+ 
 - Fournisseur d'images distant (API en ligne).
 - Composition de prompts assistée par modèle de langage.
+- Import d'images externes déjà détourées.
 - Univers autres que fantasy.
 - Troisième géométrie (pièces séparées collées sur âme carton).
 - Mélange de plusieurs tailles de pions sur une même page.
+- **Taille Minuscule** (emprise de 12,7 mm), dont la faisabilité physique n'est pas établie — voir EVO-011.
+- Grilles hexagonales.
 - Langues au-delà du français et de l'anglais.
-
 ### 1.5 Non-objectifs permanents
-
+ 
 Ces points ne sont pas « plus tard », ils sont **hors sujet**. Les inscrire ici évite d'y revenir tous les trois mois.
-
+ 
 - Pawnsmith ne fournit ni ne distribue de modèle de diffusion. Il fournit l'interface pour s'y brancher ; l'obtention, l'installation et la conformité du modèle relèvent de l'utilisateur.
 - Pawnsmith n'est pas multi-utilisateur : pas de comptes, pas d'authentification, pas de cloisonnement. C'est une application mono-utilisateur auto-hébergée.
 - Pawnsmith ne produit pas de modèles 3D et ne commande pas d'impression auprès d'un prestataire.
 - Pawnsmith n'est pas un éditeur d'images. Le retouchage se fait ailleurs.
-
 ---
-
+ 
 ## 2. Glossaire
-
+ 
 Ce vocabulaire est contraignant : il est repris tel quel dans le code, les noms de classes, l'interface et les messages de journalisation. Toute divergence est un défaut.
-
+ 
 | Terme | Définition |
 |---|---|
 | **Projet** | Unité de travail persistante. Contient un style, une géométrie, un univers, un ensemble de gabarits, et produit une ou plusieurs planches. |
 | **Univers** | Registre esthétique global du projet (fantasy en v1). Détermine quel jeu de templates de prompts est utilisé. |
-| **Style** | Ensemble figé (rendu, palette, formulation littérale) verrouillé à la création du projet. Garantit la cohérence visuelle. |
-| **Géométrie** | Mode de construction physique du pion. Verrouillée au niveau du projet. |
-| **Gabarit** | *Ce que l'utilisateur veut* : une créature définie par ses paramètres (race, classe, taille, équipement, détails), sa quantité, et son prompt résolu. Persistant et stable. |
+| **Style** | Ensemble (rendu, palette, formulation littérale) défini au niveau du projet, jamais au niveau du gabarit. Garantit la cohérence visuelle. |
+| **Géométrie** | Mode de construction physique du pion. Uniforme pour tout le projet. |
+| **Gabarit** | *Ce que l'utilisateur veut* : une créature définie par ses paramètres (race, classe, taille, équipement, détails), sa quantité, et sa clause sujet. Persistant et stable. |
 | **Candidat** | *Ce que le modèle a produit* : une tentative concrète pour un gabarit, identifiée par une graine. Un gabarit peut avoir N candidats ; un seul est élu. |
+| **Clause cadrage** | Segment de prompt constant, jamais exposé dans l'interface. Impose ce qui rend l'image découpable et détourable. Voir §4.1 et DEC-029. |
+| **Clause sujet** | Segment de prompt propre au gabarit, produit par le composeur à partir de ses paramètres. **Seul segment éditable par l'utilisateur.** |
+| **Clause style** | Segment de prompt propre au projet, appliqué identiquement à tous les gabarits. |
+| **Prompt résolu** | Assemblage des trois clauses. Valeur **dérivée** : ni stockée sur le gabarit, ni éditable. |
+| **Désaligné** | État **calculé** d'un candidat dont le `promptUtilise` figé diffère du prompt résolu que produirait le composeur aujourd'hui. Orthogonal au statut. Voir DEC-030. |
 | **Couple recto/verso** | Paire d'images indissociable attachée à un candidat : la vue de face et la vue de dos du même personnage. La validation porte sur le couple, jamais sur une face isolée. |
-| **Taille** | Emprise du pion sur la grille de jeu (Moyenne, Grande, Très Grande, Gigantesque). Sert de clé de regroupement en pages. |
+| **Taille** | Catégorie de créature, nommée d'après les règles de jeu (Petite, Moyenne, Grande, Très Grande, Gigantesque). Porte **deux dimensions indépendantes** : l'emprise sur la grille et la hauteur du pion. Sert de clé de regroupement en pages. Voir DEC-031 et le chapitre 14. |
+| **Emprise** | Côté du carré occupé par la créature sur la grille de jeu, en millimètres. Fait documenté, issu des règles (chapitre 14). |
 | **Planche** | Une page PDF, contenant les pions d'une seule taille, disposés en grille uniforme, avec les repères d'impression. |
 | **Catalogue** | Listes de valeurs proposées dans l'interface pour les paramètres d'un gabarit (armes, armures, etc.). Éditable par l'utilisateur. |
 | **Job** | Unité d'exécution asynchrone traçable (génération d'un lot, détourage, export). Porte un identifiant propagé dans toute la journalisation. |
-
+ 
 ---
-
+ 
 ## 3. Modèle de données
-
+ 
 ### 3.1 Entités
-
+ 
 **Projet** — racine d'agrégat.
-
+ 
 | Champ | Type | Notes |
 |---|---|---|
 | `versionSchema` | entier | Obligatoire dès la v1. Permet la migration des projets anciens. |
 | `nom` | texte | |
-| `univers` | énumération | `Fantasy` en v1. Champ présent pour l'extension. |
-| `style` | Style | Verrouillé après création. |
-| `geometrie` | énumération | `TentePliee` \| `PionASocle`. Verrouillée après création. |
-| `formatPapier` | FormatPapier | Référence vers une entrée du catalogue de formats. |
+| `univers` | énumération | `Fantasy` en v1. Champ présent pour l'extension. Modifiable ; désaligne les candidats existants (DEC-030). |
+| `style` | Style | Modifiable ; désaligne les candidats existants (DEC-030). |
+| `geometrie` | énumération | `TentePliee` \| `PionASocle`. Modifiable sans conséquence sur les candidats : paramètre de rendu. |
+| `formatPapier` | FormatPapier | Référence vers une entrée du catalogue de formats. Modifiable sans conséquence sur les candidats. |
 | `gabarits` | liste de Gabarit | |
 | `creeLe`, `modifieLe` | horodatage | |
-
-**Style** — figé à la création.
-
+ 
+**Style** — propriété de projet, jamais de gabarit.
+ 
 | Champ | Type | Notes |
 |---|---|---|
 | `nom` | texte | |
-| `clauseStyle` | texte | Chaîne littérale injectée dans chaque prompt. **Jamais réécrite, ni par l'utilisateur au niveau du gabarit, ni par un modèle de langage.** |
+| `clauseStyle` | texte | Chaîne littérale injectée dans chaque prompt résolu. **Jamais réécrite au niveau du gabarit, ni par un modèle de langage.** Modifiable au niveau du projet (DEC-030). |
 | `clauseNegative` | texte | Prompt négatif commun. |
 | `palette` | texte | Descripteur libre, intégré à la clause style. |
-
+ 
 **Gabarit**
-
+ 
 | Champ | Type | Notes |
 |---|---|---|
 | `id` | identifiant | |
@@ -117,49 +127,56 @@ Ce vocabulaire est contraignant : il est repris tel quel dans le code, les noms 
 | `classe` | texte | Obligatoire. |
 | `taille` | Taille | Obligatoire. Clé de regroupement en pages. |
 | `parametresOptionnels` | dictionnaire | Clés du catalogue (arme, armure, vêtement, couleur…). Une clé absente signifie « non contraint », **pas** « absent de l'illustration ». |
-| `details` | texte | Champ libre, concaténé à la clause sujet. |
-| `promptResolu` | texte | Produit par le composeur, **stocké et éditable**. Ne se régénère pas tout seul. |
+| `details` | texte | Champ libre, intégré à la clause sujet lors de sa composition. |
+| `clauseSujet` | texte | Produite par le composeur à partir des champs ci-dessus. **Stockée et éditable.** Seul segment du prompt que l'utilisateur peut modifier (DEC-028). Ne se régénère pas toute seule après édition. |
+| `promptResolu` | *(dérivé)* | `clauseCadrage + clauseSujet + clauseStyle`. **Non persisté, non éditable.** Affiché en lecture seule. |
 | `quantite` | entier ≥ 1 | Nombre d'exemplaires du même pion sur la planche. |
 | `candidats` | liste de Candidat | |
 | `idCandidatElu` | identifiant nullable | |
-
+ 
 **Candidat**
-
+ 
 | Champ | Type | Notes |
 |---|---|---|
 | `id` | identifiant | |
 | `graine` | entier | |
-| `promptUtilise` | texte | Copie figée du prompt au moment de la génération. Permet de comprendre a posteriori pourquoi un candidat diffère. |
+| `promptUtilise` | texte | Copie figée du prompt résolu au moment de la génération. Permet de comprendre a posteriori pourquoi un candidat diffère, et sert de base au calcul du désalignement. |
 | `statut` | énumération | `Brouillon` \| `Valide` \| `Rejete` |
+| `desaligne` | *(calculé)* | Vrai si `promptUtilise` diffère du prompt résolu actuel du gabarit. **Jamais persisté.** |
 | `fichierJumelee` | chemin | Image brute contenant les deux vues, conservée pour diagnostic. |
 | `fichierRectoDetoure` | chemin | PNG à fond transparent. |
 | `fichierVersoDetoure` | chemin | PNG à fond transparent. |
 | `genereLe` | horodatage | |
-
-**Taille** — table de référence, valeurs par défaut surchargeables dans les réglages.
-
-| Nom | Emprise grille | Largeur pion | Hauteur pion |
-|---|---|---|---|
-| Moyenne | 1 × 1 case | 25,4 mm | `À CALIBRER` |
-| Grande | 2 × 2 cases | 50,8 mm | `À CALIBRER` |
-| Très Grande | 3 × 3 cases | 76,2 mm | `À CALIBRER` |
-| Gigantesque | 4 × 4 cases | 101,6 mm | `À CALIBRER` |
-
+ 
+> **Piège de conception.** `desaligne` n'est **pas** une valeur de `statut`. Un candidat `Valide` peut devenir désaligné sans cesser d'être validé : ce sont deux axes indépendants. Les fusionner en une seule énumération est l'erreur naturelle à cet endroit, et elle rend impossible de distinguer « rejeté par l'utilisateur » de « produit sous un style qui n'est plus celui du projet ».
+ 
+**Taille** — table de référence, valeurs par défaut surchargeables dans les réglages. Les emprises sont des **faits documentés** (chapitre 14) ; les hauteurs sont des **décisions de conception** bornées par le papier (DEC-032).
+ 
+| Nom | Catégorie de règles | Emprise grille | Largeur pion | Hauteur pion |
+|---|---|---|---|---|
+| Petite | Small | 1 × 1 case | 25,4 mm | `À CALIBRER` |
+| Moyenne | Medium | 1 × 1 case | 25,4 mm | `À CALIBRER` |
+| Grande | Large | 2 × 2 cases | 50,8 mm | `À CALIBRER` |
+| Très Grande | Huge | 3 × 3 cases | 76,2 mm | `À CALIBRER` |
+| Gigantesque | Gargantuan | 4 × 4 cases | 101,6 mm | `À CALIBRER` |
+ 
 > **Piège à ne pas manquer** : l'emprise sur la grille et la hauteur visuelle du pion sont **deux dimensions indépendantes**. Un humanoïde de taille Moyenne occupe une case de 25,4 mm mais mesure environ le double en hauteur. Ne pas déduire l'une de l'autre.
-
+ 
+> **Petite et Moyenne partagent la même emprise.** C'est conforme aux règles : Small et Medium occupent tous deux une case de 5 pieds. Ce qui les distingue est la hauteur du pion, et rien d'autre. Conséquence directe et assumée (DEC-031) : puisque la hauteur détermine la hauteur de cellule, une planche de Petites ne peut pas partager sa page avec des Moyennes. Un seul gnome dans un projet coûte donc une page entière. EVO-005 (mélange de tailles par shelf packing) est la seule résolution propre, et vient de gagner en valeur.
+ 
 **FormatPapier**
-
+ 
 | Nom | Largeur | Hauteur |
 |---|---|---|
 | A4 | 210 mm | 297 mm |
 | US Letter | 216 mm | 279 mm |
-
+ 
 Le moteur de mise en page ne connaît **que des millimètres**. Aucun format n'est codé en dur : ajouter un format est l'ajout d'une entrée de configuration.
-
+ 
 ### 3.2 Persistance sur disque
-
+ 
 Un projet est un **dossier en clair**, jamais une base de données.
-
+ 
 ```
 mon-projet/
 ├── projet.json            # toutes les entités ci-dessus
@@ -170,142 +187,171 @@ mon-projet/
 └── exports/
     └── mon-projet-moyenne.pdf
 ```
-
+ 
 Justification : versionnable, sauvegardable, diffable, et lisible dans plusieurs années même si l'application ne démarre plus.
-
+ 
+Les valeurs dérivées — `promptResolu`, `desaligne` — ne sont **pas** sérialisées. Une valeur calculée qu'on persiste devient une valeur qui ment dès la première modification manquée.
+ 
 L'export produit une archive ZIP de ce dossier. **L'archive ne contient jamais de secret, ni de journal.** Un projet doit pouvoir être partagé sans réflexion préalable — cette propriété est un invariant, pas une bonne pratique.
-
+ 
 ---
-
+ 
 ## 4. Pipeline de production
-
+ 
 Chaque étape est un port distinct (chapitre 7). Le découplage est la propriété centrale du système : **la production d'images ne sait rien de la mise en page, et réciproquement.**
-
+ 
 | # | Étape | Entrée | Sortie | Mode d'échec |
 |---|---|---|---|---|
-| 1 | Composition du prompt | Gabarit + Style + clause cadrage | Prompt résolu, stocké et éditable | Aucun (déterministe) |
+| 1 | Composition du prompt | Gabarit + Style + clause cadrage | Prompt résolu (assemblage de trois clauses) | Aucun (déterministe) |
 | 2 | Génération jumelée | Prompt + graine | Une image contenant vue de face et vue de dos côte à côte | Générateur injoignable, délai dépassé, modèle en erreur |
 | 3 | Découpe | Image jumelée | Deux images indépendantes | Partage vertical incorrect si le modèle n'a pas respecté le cadrage |
 | 4 | Détourage | Deux images | Deux PNG à fond transparent | Image malformée, dimensions hors bornes |
 | 5 | Validation | Couple recto/verso | Candidat élu | Aucun (action utilisateur) |
-| 6 | Mise en page | Gabarits élus + format + géométrie | Modèle de planche (positions en mm) | Capacité de page dépassée |
+| 6 | Mise en page | Gabarits élus + format + géométrie | Modèle de planche (positions en mm) | Capacité de page dépassée ou nulle |
 | 7 | Rendu PDF | Modèle de planche | Fichier PDF | Écriture disque |
-
-### 4.1 Clause de cadrage
-
-L'étape 1 injecte une clause littérale non modifiable par l'utilisateur, qui impose : **planche de rotation, vue de face et vue de dos, corps entier, pieds au bord inférieur, fond uni, aucun élément coupé, ratio portrait**.
-
-Cette clause n'est pas une préférence esthétique : c'est ce qui rend l'étape 3 découpable et l'étape 4 fiable. Un fond de forêt se détoure mal ; un personnage cadré à mi-cuisse est inutilisable.
-
+ 
+### 4.1 Les trois clauses
+ 
+Le prompt résolu est l'assemblage ordonné de trois segments, de portées différentes :
+ 
+| Clause | Portée | Éditable ? |
+|---|---|---|
+| **Cadrage** | Constante de l'application | Non — jamais exposée (DEC-029) |
+| **Sujet** | Le gabarit | **Oui**, seul segment modifiable (DEC-028) |
+| **Style** | Le projet | Au niveau du projet uniquement (DEC-030) |
+ 
+La **clause de cadrage** impose : planche de rotation, vue de face et vue de dos, corps entier, pieds au bord inférieur, fond uni, aucun élément coupé, ratio portrait.
+ 
+Cette clause n'est pas une préférence esthétique : c'est ce qui rend l'étape 3 découpable et l'étape 4 fiable. Un fond de forêt se détoure mal ; un personnage cadré à mi-cuisse est inutilisable. La modifier produit un **défaut fonctionnel**, pas un choix de goût — d'où son absence totale de l'interface. L'utilisateur avancé qui veut un autre cadrage passe par le template de workflow ComfyUI, qui est un fichier de configuration.
+ 
 ### 4.2 Pourquoi la génération jumelée
-
+ 
 Deux générations indépendantes du même personnage ne produisent pas le même personnage. Les modèles de diffusion n'ont pas de permanence d'objet : l'arme change de forme, la cape disparaît, la palette dérive. La cohérence recto/verso est **structurellement garantie** si les deux vues sont dessinées dans la même passe.
-
+ 
 Contrepartie assumée : chaque vue n'occupe que la moitié de la résolution générée.
-
-Cette étape est isolée derrière un port unique (`IPawnPairProducer`). Si la calibration T0 montre que le modèle local ne produit pas de planche de rotation exploitable, on substitue une implémentation dégradée — deux générations indépendantes à graine partagée — **sans toucher au reste du système**.
-
+ 
+Cette étape est isolée derrière un port unique (`IPawnPairProducer`). Si la calibration T0a montre que le modèle local ne produit pas de planche de rotation exploitable, on substitue une implémentation dégradée — deux générations indépendantes à graine partagée — **sans toucher au reste du système**.
+ 
 ---
-
+ 
 ## 5. Géométries, mise en page et impression
-
+ 
 ### 5.1 Contrainte physique fondatrice
-
+ 
 Aucune imprimante domestique n'atteint un repérage recto-verso suffisant pour un pion de 25 mm. En conséquence, **les deux faces sont imprimées sur la même face du papier**, puis pliées et collées. L'épaisseur double obtenue est aussi ce qui donne sa rigidité au pion.
-
+ 
 ### 5.2 Les deux géométries
-
+ 
 **Tente pliée** — les deux vues sont réunies par une ligne de pliage haute. Sous la ligne des pieds, des volets se replient vers l'extérieur, ou le pion tient en V inversé. Aucun socle nécessaire.
-
+ 
 **Pion à onglet et socle** — même construction, mais un onglet rectangulaire dépasse sous la ligne des pieds et coulisse dans un socle du commerce.
-
+ 
 La seule différence entre les deux est **ce qui est ajouté sous la ligne des pieds, et de combien la hauteur dépliée s'allonge**. Tout le reste est commun. L'abstraction correspondante est donc minimale : une fonction qui décrit l'appendice inférieur et la hauteur totale.
-
+ 
 ### 5.3 Règle de placement du verso
-
+ 
 Pour les deux géométries : **le verso est placé au-dessus de la ligne de pliage, tourné à 180°.** Omettre la rotation produit un personnage tête en bas après pliage. Cette règle est vérifiée par un test unitaire.
-
+ 
 ### 5.4 Algorithme de mise en page
-
+ 
 Toutes les figurines d'une page ont la même taille, donc la page est une **grille uniforme**. Pas de bin packing.
-
+ 
 1. Regrouper les gabarits élus par taille.
 2. Pour chaque groupe, émettre une ou plusieurs pages.
 3. Capacité d'une page = `floor((largeurUtile) / largeurCellule) × floor((hauteurUtile) / hauteurCellule)`.
 4. Chaque gabarit occupe `quantite` cellules consécutives.
 5. Le PDF final concatène toutes les pages de tous les groupes.
-
 L'interface expose la capacité restante de la page courante — information réellement utile lors de la composition.
-
+ 
+**Une capacité nulle est un cas normal, pas une anomalie improbable** : il suffit qu'une hauteur de pion dépasse le plafond du §5.7. Elle doit produire une erreur explicite nommant la taille en cause, et un test dédié.
+ 
 ### 5.5 Repères d'impression (obligatoires, non désactivables en v1)
-
+ 
 | Repère | Rôle |
 |---|---|
 | **Trait de calibration** | Segment de 100,0 mm exactement, légendé. Seule protection contre une impression hors échelle. |
 | **Traits de coupe** | Contour de découpe, trait fin gris clair, invisible sur le pion découpé. |
 | **Ligne de pliage** | Trait discontinu à la position du pli haut. |
-
+ 
 Le texte porté sur la planche est localisé : la requête d'export transporte la langue voulue (chapitre 10).
-
-### 5.6 Paramètres à calibrer (tranche T0)
-
+ 
+### 5.6 Paramètres à calibrer (tranche T0b)
+ 
 Ces valeurs ne doivent **pas** être devinées. Elles sortent d'un tirage papier réel.
-
+ 
 | Paramètre | Unité | Statut |
 |---|---|---|
 | Grammage papier retenu | g/m² | `À CALIBRER` |
 | Facteur de correction d'échelle de l'imprimante | ratio | `À CALIBRER` |
-| Hauteur du pion par taille | mm | `À CALIBRER` |
+| Hauteur du pion pour la taille Moyenne | mm | `À CALIBRER` |
+| Loi de progression des hauteurs des autres tailles | multiplicateurs | `À CALIBRER` (voir DEC-032) |
 | Largeur et hauteur de l'onglet | mm | `À CALIBRER` |
-| Cotes de l'encoche (ouverture / extrémité) | mm | `À CALIBRER` |
 | Hauteur des volets de tente | mm | `À CALIBRER` |
 | Marge de sécurité autour de la silhouette | mm | `À CALIBRER` |
-
+ 
+> **Note.** La v0.1 listait une entrée « cotes de l'encoche (ouverture / extrémité) ». C'était un résidu de la piste d'impression chez un prestataire externe, abandonnée très tôt. La géométrie `PionASocle` n'a pas d'encoche : elle a un onglet rectangulaire qui coulisse dans un socle du commerce. Aucun champ correspondant n'existe dans `calibration.json` et le protocole T0 n'en mesure aucune.
+ 
+### 5.7 Plafond de hauteur imposé par le papier
+ 
+Une unité dépliée occupe `2 × (hauteurPion + hauteurAppendice)`. Elle doit tenir dans la hauteur utile de la page :
+ 
+```
+hauteurUtile = hauteurPage − 2 × margePage − hauteurZoneCalibration
+2 × (hauteurPion + hauteurAppendice) ≤ hauteurUtile
+```
+ 
+Avec les valeurs de mise en page actuelles (marge 10 mm, zone de calibration 14 mm) :
+ 
+| Format | Hauteur utile | Plafond de `hauteurPion` (onglet 10 mm) | Plafond (volet 8 mm) |
+|---|---|---|---|
+| A4 (297 mm) | 263 mm | **121,5 mm** | 123,5 mm |
+| US Letter (279 mm) | 245 mm | **112,5 mm** | 114,5 mm |
+ 
+**Le plafond contraignant est celui d'US Letter : environ 112 mm.** Toute hauteur de pion supérieure produit une capacité nulle et rend la taille inutilisable sur ce format. C'est la borne dure de DEC-032, et elle doit être couverte par un test.
+ 
 ---
-
+ 
 ## 6. Architecture
-
+ 
 ### 6.1 Découpage
-
+ 
 Architecture hexagonale allégée. **Quatre projets, pas sept.**
-
+ 
 | Projet | Contenu | Dépendances |
 |---|---|---|
 | `Pawnsmith.Domain` | Géométries, tailles, calcul de grille, conversions millimètres/points, règles de validation. Pur, sans effet de bord. | Aucune |
 | `Pawnsmith.Application` | Cas d'usage, orchestration des jobs, définition des ports. | Domain |
 | `Pawnsmith.Infrastructure` | Client ComfyUI, runtime ONNX, PDFsharp, système de fichiers, Serilog. | Application, Domain |
 | `Pawnsmith.Api` | ASP.NET Core, points de terminaison, DTO, injection de dépendances. Sert aussi le front compilé. | Toutes |
-
+ 
 Le choix de l'hexagonal est ici justifié par les faits, pas par principe : le domaine est authentiquement pur (des mathématiques testables sans mock) et l'infrastructure est authentiquement remplaçable (ComfyUI aujourd'hui, une API demain).
-
+ 
 ### 6.2 Principes de code
-
+ 
 - **DTO en `record`**, immuables, à égalité par valeur.
 - **Une frontière, un jeu de DTO** — celle de l'API. Pas de cascade de représentations intermédiaires du même concept.
 - **Mapping manuel explicite** via méthodes d'extension `ToDto()`. Pas d'AutoMapper : le mapping automatique casse à l'exécution et reste invisible à la relecture, ce qui contredit frontalement le mode de travail retenu (DEC-027).
 - **Minimiser les dépendances NuGet.** Chaque paquet ajouté doit être justifié dans le journal des décisions.
 - **Méthodes courtes**, découpées en méthodes privées nommées. La lisibilité prime sur la concision.
 - Le domaine est couvert par des **tests unitaires sans mock** ; les adaptateurs par des **tests d'intégration**.
-
 ### 6.3 Front et packaging
-
+ 
 - Front **React** + `react-i18next`.
 - API ASP.NET Core.
 - **Un seul conteneur**, construit en plusieurs étapes : compilation Node du front, compilation .NET de l'API, copie du `dist` dans le `wwwroot`. Même origine, donc pas de CORS ; déploiement en un `docker run`.
 - Deux volumes distincts : `/app/data/projects` et `/app/data/logs`.
-
 ### 6.4 Une remarque sur le générateur d'images
-
+ 
 L'API de ComfyUI est **HTTP, y compris en local**. Le port `IImageGenerator` est donc un client HTTP dès le premier jour — il n'existe jamais de cas « processus embarqué » qui polluerait l'abstraction.
-
-ComfyUI n'accepte pas un prompt mais un **graphe de workflow JSON**. L'application stocke donc un *template de workflow* comportant des jetons nommés (`{{POSITIVE}}`, `{{NEGATIVE}}`, `{{SEED}}`, `{{WIDTH}}`, `{{HEIGHT}}`) qu'elle substitue avant envoi. Ce template est un **fichier de configuration**, pas du code : un utilisateur dont le workflow diffère peut l'adapter sans recompiler.
-
+ 
+ComfyUI n'accepte pas un prompt mais un **graphe de workflow JSON**. L'application stocke donc un *template de workflow* comportant des jetons nommés (`{{POSITIVE}}`, `{{NEGATIVE}}`, `{{SEED}}`, `{{WIDTH}}`, `{{HEIGHT}}`) qu'elle substitue avant envoi. Ce template est un **fichier de configuration**, pas du code : un utilisateur dont le workflow diffère peut l'adapter sans recompiler. C'est aussi le seul point d'accès à la clause de cadrage (DEC-029).
+ 
 ---
-
+ 
 ## 7. Contrats des ports
-
+ 
 Signatures indicatives, à affiner à l'implémentation.
-
+ 
 ```csharp
 // Disponibilité + génération. L'indisponibilité est un état normal, pas une exception.
 public interface IImageGenerator
@@ -313,25 +359,30 @@ public interface IImageGenerator
     Task<GeneratorHealth> CheckAsync(CancellationToken ct);
     Task<RawImage> GenerateAsync(GenerationRequest request, CancellationToken ct);
 }
-
+ 
 // Produit le couple recto/verso. Point de substitution du choix DEC-003.
 public interface IPawnPairProducer
 {
     Task<PawnPair> ProduceAsync(string prompt, int seed, CancellationToken ct);
 }
-
+ 
 // Détourage. Fournisseur d'exécution ONNX configurable (cpu | cuda).
 public interface IBackgroundRemover
 {
     Task<TransparentImage> RemoveAsync(RawImage image, CancellationToken ct);
 }
-
-// Deux implémentations prévues ; une seule livrée en v1.
+ 
+// Deux méthodes, deux responsabilités distinctes — voir DEC-028.
+// ComposeSubject produit la clause sujet initiale ; l'utilisateur peut ensuite l'éditer.
+// Assemble reconstruit le prompt complet à partir d'une clause sujet éventuellement éditée.
+// Aucune signature ne permet de fournir une clause cadrage ou une clause style depuis
+// le niveau du gabarit : le verrouillage est porté par le type, pas par une convention.
 public interface IPromptComposer
 {
-    string Compose(Gabarit gabarit, Style style, Univers univers);
+    string ComposeSubject(Gabarit gabarit, Univers univers);
+    string Assemble(string clauseSujet, Style style);
 }
-
+ 
 public interface IProjectRepository
 {
     Task<Project> LoadAsync(string path, CancellationToken ct);
@@ -339,31 +390,30 @@ public interface IProjectRepository
     Task ExportArchiveAsync(Project project, string destination, CancellationToken ct);
     Task<Project> ImportArchiveAsync(string archivePath, string destination, CancellationToken ct);
 }
-
+ 
 // Reçoit un modèle de planche déjà calculé par le domaine. Ne décide de rien.
 public interface ISheetRenderer
 {
     Task<byte[]> RenderAsync(SheetLayout layout, CultureInfo culture, CancellationToken ct);
 }
 ```
-
+ 
 ---
-
+ 
 ## 8. Journalisation et observabilité
-
+ 
 - **Serilog**, sortie **JSON structurée** (pas du texte : la destination Graylog doit être branchable sans travail de parsing).
 - **Rotation quotidienne** et rétention configurable par nombre de fichiers. Sans rétention, le volume croît indéfiniment.
 - Destination par défaut : le volume `/app/data/logs`, **jamais le dossier du projet**. Les journaux contiennent des prompts, des chemins absolus et l'URL du générateur ; ils ne doivent pas partir avec une archive de projet.
 - Chaque **Job** porte un identifiant, poussé une seule fois en entrée du cas d'usage via `LogContext.PushProperty`. Il n'est jamais passé en paramètre de méthode en méthode.
 - L'interface expose un visualiseur de journaux dans la section configuration. Il lit **uniquement** dans le répertoire de journaux, par liste blanche de noms de fichiers (voir MEN-002).
 - La journalisation est désactivable par configuration.
-
 ---
-
+ 
 ## 9. Sécurité — modèle de menace
-
+ 
 Les menaces sont déduites de l'architecture, non d'une liste générique. Chaque entrée est traçable vers une décision de conception.
-
+ 
 | Réf. | Menace | Vecteur | Contre-mesure |
 |---|---|---|---|
 | MEN-001 | **Zip Slip** | Archive importée contenant une entrée `../../` (conséquence directe de DEC-011) | Résoudre le chemin absolu de chaque entrée et vérifier qu'il est bien préfixé par le dossier de destination **avant** écriture. Rejet global de l'archive sinon. |
@@ -373,206 +423,314 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 | MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. |
 | MEN-006 | **Fuite de secret** | Clé d'API ou identifiants sérialisés dans `projet.json` puis partagés | Secrets exclusivement en variables d'environnement. Aucun champ de secret dans le modèle de projet. Test automatisé vérifiant l'absence de secret dans l'export. |
 | MEN-007 | **Consommation de ressources** | Lot de génération de taille non bornée | Plafond configurable du nombre de candidats par lot. Annulation coopérative des jobs. |
-
+ 
 ---
-
+ 
 ## 10. Localisation
-
+ 
 - Deux langues en v1 : **français** et **anglais**. Aucune chaîne en dur, nulle part.
 - Front : `react-i18next`, un fichier JSON par langue.
 - Back : `.resx` et `IStringLocalizer`, réservés à ce que le serveur produit réellement.
 - **L'API renvoie des codes d'erreur, pas des messages traduits** (`GENERATOR_UNREACHABLE`, `SHEET_CAPACITY_EXCEEDED`, `ARCHIVE_REJECTED`…). L'API reste agnostique de la langue et les traductions vivent en un seul endroit.
 - **Le PDF contient du texte** (mention de calibration, étiquettes). La requête d'export transporte donc la culture cible.
 - Ne pas coder en dur les formats de date et de nombre. Prévoir que les chaînes traduites changent de largeur.
-
+- Les noms de tailles sont des **clés de traduction**, jamais des chaînes affichées telles quelles : `Petite` / `Small`, `Très Grande` / `Huge`, etc. Les identifiants de code et de configuration restent en français, sans accent (`TresGrande`).
 ---
-
+ 
 ## 11. Journal des décisions
-
+ 
 Format : contexte implicite, choix, conséquence. On n'édite pas une fiche : on en ajoute une nouvelle qui supersède.
-
+ 
 **DEC-001 — Géométrie double, verrouillée au projet.**
 Choix : `TentePliee` et `PionASocle`, paramétrables, mais fixées à la création du projet.
 Conséquence : pas de mélange de géométries sur une planche ; l'abstraction se réduit à l'appendice sous la ligne des pieds.
-
+*Partiellement superséde par DEC-030 : le verrouillage après création tombe, le reste demeure.*
+ 
 **DEC-002 — Le verso représente le même personnage retourné.**
 Choix : deux vues distinctes du même sujet, pas un miroir du recto.
 Conséquence : contrainte la plus forte du projet ; justifie DEC-003.
-
+ 
 **DEC-003 — Production du couple par génération jumelée puis découpe.**
 Choix : une seule génération produit une planche de rotation contenant les deux vues, découpée immédiatement.
 Conséquence : cohérence garantie par construction ; résolution divisée par deux. Isolé derrière `IPawnPairProducer` pour substitution.
-
+ 
 **DEC-004 — Découplage production d'images / mise en page.**
 Choix : après découpe, le système ne manipule que deux images indépendantes.
 Conséquence : le choix de génération n'impose aucune contrainte sur le placement. Lève l'objection initiale sur DEC-003.
-
+ 
 **DEC-005 — Une seule taille de pion par page, N pages par projet.**
 Choix : grille uniforme par page ; regroupement par taille au moment de la mise en page.
 Conséquence : pas de bin packing ; le projet reste l'unité de cohérence stylistique.
-
+ 
 **DEC-006 — Style verrouillé au niveau projet.**
 Choix : rendu, palette et formulation figés à la création, non surchargeables par gabarit.
 Conséquence : seule garantie *structurelle* de cohérence visuelle. Changer de style implique de dupliquer le projet.
-
+*Partiellement superséde par DEC-030 : le style reste une propriété de projet et n'est jamais surchargeable par gabarit — c'est le figement à la création qui tombe.*
+ 
 **DEC-007 — Fournisseur d'images local en v1.**
 Choix : ComfyUI via son API HTTP, plutôt qu'une API en ligne.
 Conséquence : accès aux LoRA, ce dont dépend la faisabilité de DEC-003. Dépendance à un poste équipé.
-
+ 
 **DEC-008 — Détourage local et systématique.**
 Choix : modèle ONNX embarqué, jamais délégué au fournisseur d'images.
 Conséquence : comportement identique quel que soit le fournisseur, gratuit, hors ligne. Fournisseur d'exécution configurable.
-
+ 
 **DEC-009 — Composition de prompt déterministe ; modèle de langage différé.**
 Choix : `TemplatePromptComposer` seul en v1, derrière `IPromptComposer`.
 Conséquence : pas de seconde dépendance modèle, pas de contention VRAM, pas de variance introduite là où DEC-006 l'interdit. Voir §13.
-
+ 
 **DEC-010 — Templates de prompts en fichiers de données.**
 Choix : un fichier par univers, livré avec l'application, éditable par l'utilisateur.
 Conséquence : ajouter un univers n'est pas une recompilation.
-
+ 
 **DEC-011 — Persistance en dossier clair + export ZIP.**
 Choix : `projet.json` et un dossier `images/`, pas de base de données.
 Conséquence : portable et pérenne. Introduit MEN-001.
-
+ 
 **DEC-012 — Secrets hors du fichier projet.**
 Choix : variables d'environnement uniquement.
 Conséquence : invariant « un projet est partageable sans réflexion ». Voir MEN-006.
-
+ 
 **DEC-013 — Quantité par gabarit.**
 Choix : un gabarit porte un nombre d'exemplaires ; une seule génération, N impressions.
 Conséquence : couvre le cas majoritaire (les figurants interchangeables) et divise le coût de génération.
-
+ 
 **DEC-014 — Validation candidat par candidat.**
 Choix : un seul mode de validation en v1.
 Conséquence : interface plus simple ; la validation en lot est différée.
-
+ 
 **DEC-015 — Tailles prédéfinies calées sur la grille de jeu.**
 Choix : Moyenne / Grande / Très Grande / Gigantesque, valeurs en mm surchargeables dans les réglages.
 Conséquence : compatibilité avec les tapis standards, sans fermer la porte aux grilles de 3 cm.
-
+*Étendue par DEC-031 : ajout de la taille Petite, et adossement explicite des emprises à la table de référence du chapitre 14.*
+ 
 **DEC-016 — A4 et US Letter fournis, dimensions pilotées en millimètres.**
 Choix : aucun format codé en dur ; le moteur prend une largeur et une hauteur.
 Conséquence : ajouter un format est une entrée de configuration. Rappel : Letter est plus large de 6 mm et plus court de 18 mm ; une planche A4 imprimée sur Letter perd sa dernière rangée.
-
+ 
 **DEC-017 — Repères d'impression obligatoires.**
 Choix : calibration, coupe et pliage non désactivables en v1.
 Conséquence : protection contre le tirage hors échelle, au prix d'un peu de surface.
-
+ 
 **DEC-018 — Front React, API ASP.NET, conteneur unique.**
 Choix : React pour l'écosystème et la couverture par les assistants de code ; build multi-étapes.
 Conséquence : deux chaînes de compilation, une seule image, pas de CORS.
-
+ 
 **DEC-019 — PDFsharp plutôt que QuestPDF.**
 Choix : PDFsharp, sous licence MIT.
 Conséquence : le projet et **ses utilisateurs aval** restent libres. QuestPDF est désormais une licence commerciale « source-available », non approuvée OSI, dont sont exclus le secteur public et les sociétés cotées quel que soit leur chiffre d'affaires — une obligation qu'un utilisateur aval n'aurait pas vue venir. Techniquement, le besoin est du placement d'images à des coordonnées précises, pas un moteur de flux de document.
-
+ 
 **DEC-020 — Architecture hexagonale allégée, quatre projets.**
 Choix : Domain / Application / Infrastructure / Api.
 Conséquence : domaine testable sans mock ; adaptateurs substituables. Risque surveillé : la multiplication des mappings.
-
+ 
 **DEC-021 — DTO en record, mapping manuel, pas d'AutoMapper.**
 Choix : mapping explicite en méthodes d'extension.
 Conséquence : plus verbeux, mais entièrement visible en relecture — ce qui est le mécanisme de sécurité choisi en DEC-027.
-
+ 
 **DEC-022 — Journaux en volume dédié.**
 Choix : `/app/data/logs`, séparé du volume des projets.
 Conséquence : aucune fuite de prompt, de chemin ou d'URL via une archive partagée.
-
+ 
 **DEC-023 — Localisation dès la v1, codes d'erreur côté API.**
 Choix : français et anglais ; l'API ne renvoie pas de texte traduit.
 Conséquence : traductions centralisées côté front ; la requête d'export PDF transporte la culture.
-
+ 
 **DEC-024 — Paramétrage d'unité mixte.**
 Choix : trois champs obligatoires (race, classe, taille), champs optionnels cochables issus d'un catalogue éditable, champ de détails libre, prompt final éditable.
 Conséquence : un champ décoché signifie « non contraint », pas « absent ». Formulation à soigner dans l'interface.
-
+*Précisé par DEC-028 : ce qui est éditable est la clause sujet, pas le prompt entier.*
+ 
 **DEC-025 — Univers en paramètre global, fantasy seul en v1.**
 Choix : le champ existe, un seul jeu de templates est livré.
 Conséquence : extension future sans migration de schéma.
-
+ 
 **DEC-026 — Nom de code : Pawnsmith.**
 Choix : retenu contre *Simulacra* et *Standee*.
 Conséquence : préfixe de tous les espaces de noms et nom du dépôt. Décision volontairement prise tôt.
-
+ 
 **DEC-027 — Périmètre de compréhension du porteur.**
 Choix : le code est produit par assistance, mais **intégralement relu**, tranche par tranche, avec compréhension approfondie de la couche ONNX.
 Conséquence : contraint le style de code vers l'explicite (DEC-021) et impose un découpage en petites tâches relisibles (chapitre 12).
-
+ 
+**DEC-028 — Le prompt est composé de trois clauses ; seule la clause sujet est éditable.**
+Choix : le composeur assemble `clauseCadrage + clauseSujet + clauseStyle`. Le gabarit stocke `clauseSujet`, modifiable. `promptResolu` devient une valeur dérivée, recalculée, affichée en lecture seule.
+Conséquence : précise DEC-024, dont la formulation « prompt final éditable » rendait les clauses verrouillées atteignables par un simple champ texte libre — la garantie de DEC-006 n'était donc que nominale. Le verrouillage est désormais porté par la signature de `IPromptComposer` : aucune méthode ne permet de fournir une clause cadrage ou style depuis le niveau du gabarit.
+ 
+**DEC-029 — La clause cadrage n'est jamais exposée dans l'interface.**
+Choix : elle reste une constante de l'application. Son point d'extension est le template de workflow ComfyUI, fichier de configuration éditable sur disque.
+Conséquence : la clause cadrage garantit la découpe verticale (étape 3) et la fiabilité du détourage (étape 4). La modifier produit un défaut fonctionnel, pas un choix esthétique — ce n'est donc pas un réglage utilisateur. L'échappatoire experte existe déjà, elle est auto-sélective, et elle ne coûte aucune ligne de code.
+ 
+**DEC-030 — Le désalignement remplace le verrouillage.**
+Choix : `univers`, `style`, `geometrie` et `formatPapier` sont modifiables après création. Un candidat est **désaligné** lorsque son `promptUtilise` figé diffère du prompt résolu que produirait le composeur aujourd'hui. L'état est **calculé** à la volée, jamais stocké.
+Conséquence : supersède le verrouillage après création de DEC-006 et de DEC-001 ; le reste de DEC-001 (deux géométries, aucun mélange sur une planche) demeure. Un avertissement au moment de l'édition aurait été un mécanisme de consentement, pas de sécurité : il arrive quand l'utilisateur est motivé, et le problème n'apparaît qu'à l'export. Le désalignement, lui, est visible exactement là où il compte, désigne **quels** candidats sont concernés, et n'est pas destructif. Changer de géométrie ou de format ne désaligne rien : ce sont des paramètres de rendu (DEC-004). Reste à trancher : ce que l'export fait d'un candidat élu mais désaligné.
+ 
+**DEC-031 — Cinq tailles nommées d'après les règles ; l'échelle S/M/L/XL/XXL est écartée.**
+Choix : les tailles s'appellent `Petite`, `Moyenne`, `Grande`, `TresGrande`, `Gigantesque`, et correspondent aux catégories Small, Medium, Large, Huge, Gargantuan des règles. Leurs emprises sont celles du chapitre 14 : 25,4 / 25,4 / 50,8 / 76,2 / 101,6 mm. `Minuscule` (Tiny, 12,7 mm) est écartée de la v1 et devient EVO-011.
+Conséquence : une échelle de type S/M/L/XL/XXL était impraticable parce que **Small et Medium occupent la même case de 5 pieds**. Une échelle à cinq crans calée sur les emprises produit donc soit deux crans identiques, soit une emprise Small inventée qui n'existe dans aucun corpus de règles — ce qui viole la règle « les valeurs physiques ne s'inventent jamais ». Ce qui distingue réellement ces deux catégories est la **hauteur**, dimension que le modèle sépare déjà de l'emprise (§3.1). Reprendre le vocabulaire des règles évite en outre d'imposer aux joueurs une taxonomie parallèle à celle de leur table.
+Contrepartie assumée : `Petite` et `Moyenne` partageant l'emprise mais pas la hauteur, elles ont des hauteurs de cellule différentes et **ne peuvent pas partager une page** sous DEC-005. Un unique gnome coûte une page. C'est acceptable en v1 et c'est la meilleure justification d'EVO-005.
+Étend DEC-015.
+ 
+**DEC-032 — La progression des hauteurs est une décision de conception, bornée par le papier.**
+Choix : `hauteurPion` n'est dérivée d'aucune règle de jeu. Seule la hauteur de `Moyenne` est mesurée en T0b ; les autres s'en déduisent par une loi de progression **monotone, documentée et arbitrée**, dont la seule contrainte dure est le plafond du §5.7 : `2 × (hauteurPion + hauteurAppendice) ≤ hauteurUtile`, soit environ **112 mm** de hauteur de pion si US Letter doit rester utilisable.
+Conséquence : trois choses cessent d'être implicites. **Un**, les règles de jeu ne définissent que l'espace occupé au sol, jamais la taille des créatures — aucune source ne peut fournir ces hauteurs, et il est vain d'en chercher une. **Deux**, à l'échelle vraie de la grille (1 pouce pour 5 pieds, soit environ 1:60), un humanoïde de 1,80 m mesurerait 30,5 mm ; les valeurs provisoires actuelles surdimensionnent donc d'un facteur ~1,6 pour la lisibilité à un mètre, et c'est délibéré. **Trois**, la progression proportionnelle aux emprises (50 / 100 / 150 / 200 mm) est physiquement impossible : `Gigantesque` dépasserait la feuille du double. L'instruction du protocole T0 « déduire les autres tailles par proportion » était fausse et est corrigée.
+Défaut constaté et corrigé par cette fiche : la valeur provisoire `Gigantesque.pawnHeightMm = 125` donnait `2 × (125 + 10) = 270 mm > 263 mm` de hauteur utile A4 — **capacité nulle sur les deux formats**. Le cahier des charges T1 en fait désormais un test de non-régression.
+ 
+**DEC-033 — T0 est scindée ; le CLI de T1 produit les gabarits de calibration.**
+Choix : **T0a** (verdict DEC-003, aucun code, aucune impression) passe avant tout. **T0b** (mesures physiques) passe **après** le code de T1 et utilise le CLI jetable de B.7 pour tirer ses gabarits, avec des fichiers de calibration variantes passés en `--calibration`. Le « script Python de gabarit » que le protocole T0 posait en prérequis est supprimé.
+Conséquence : ce script aurait dû tracer des pions à hauteur, volet et marge variables sur une planche A4 calibrée — c'est-à-dire réimplémenter le moteur de T1 en jetable, sans test, pour l'abandonner trois jours plus tard. Le CLI de B.7 est déjà défini pour exactement cet usage (« permettre un tirage papier avant l'existence de l'interface »). L'ordre devient : Fondations → T0a → T1 (code) → T0b → T1 (validation B.9). T1 reste écrivable sans aucune valeur mesurée, puisque B.2 impose au code de les lire et jamais de les connaître ; ce sont ses **critères d'acceptation** qui attendent T0b, pas son code.
+Risque identifié : un défaut de géométrie dans T1 contaminerait les gabarits de T0b, et l'on mesurerait sur du faux. Mitigation : l'étape 2 de T0b (le trait de 100 mm) est aussi le test du moteur ; vérifier au réglet le trait de calibration **et** la hauteur totale dépliée d'une cellule avant de découper quoi que ce soit.
+ 
 ---
-
+ 
 ## 12. Découpage en tranches
-
+ 
 Chaque tranche est livrable, testable, et se termine par une relecture intégrale.
-
-### T0 — Calibration manuelle *(hors code)*
-
-Produire à la main une planche complète : générer cinq images, détourer, monter, imprimer, découper, assembler, poser sur le tapis.
-
-**Critères de sortie** : le tableau §5.6 est rempli avec des mesures réelles ; le test décisif de DEC-003 est fait (le modèle local produit-il une planche de rotation exploitable ?) ; un prompt de référence fonctionnel est consigné.
-
+ 
+Ordre effectif après DEC-033 : **Fondations → T0a → T1 (code) → T0b → T1 (validation) → T2 …**
+ 
+### Fondations — squelette et chaîne de compilation
+ 
+Structure du dépôt, `Directory.Build.props`, `.editorconfig`, `.gitignore`, solution .NET aux quatre projets, squelette React + `react-i18next`, `Dockerfile` multi-étapes, intégration continue, `LICENSE`, `README.md`, `THIRD-PARTY-NOTICES.md`, `CLAUDE.md`.
+ 
+**Critères de sortie** : la solution compile, les tests (vides) s'exécutent, `docker run` sert le front, la bascule de langue fonctionne, `Pawnsmith.Domain.csproj` ne référence rien, **l'intégration continue est passée au vert au moins une fois**.
+ 
+*Détaillée en partie A du cahier des charges T1.*
+ 
+### T0a — Test décisif de DEC-003 *(hors code, sans impression)*
+ 
+Trois sujets nettement différents, une génération chacun, grille d'évaluation à huit critères. Ne dépend d'aucun code et ne consomme aucun papier.
+ 
+**Critères de sortie** : verdict rendu — le modèle local produit-il une planche de rotation exploitable ? Prompt de référence, modèle, LoRA et paramètres de génération consignés.
+ 
+*C'est la seule question ouverte du projet capable de modifier l'architecture. Elle passe avant tout le reste.*
+ 
 ### T1 — Noyau de mise en page
-
+ 
 Domaine pur plus rendu PDFsharp. Entrée : un dossier de PNG déjà détourés. Sortie : un PDF calibré. Ni IA, ni interface.
-
-**Critères d'acceptation** : le trait de calibration mesure 100 mm ± 0,5 sur le papier ; les pions découpés tiennent dans leur socle ; le verso est à l'endroit après pliage ; le calcul de capacité est couvert par des tests unitaires.
-
-*Cette tranche vient en premier parce qu'elle porte le risque physique et qu'elle est immédiatement vérifiable au ciseau.*
-
+ 
+Écrite avec les valeurs de calibration provisoires. Le code lit les valeurs, il ne les connaît pas.
+ 
+**Critères d'acceptation** : voir B.9 du cahier des charges. Ils exigent une **planche imprimée en main** et ne peuvent donc être cochés qu'après T0b.
+ 
+*Cette tranche vient tôt parce qu'elle porte le risque physique et qu'elle est immédiatement vérifiable au ciseau.*
+ 
+### T0b — Calibration physique *(hors code, avec le CLI de T1)*
+ 
+Tirage papier, mesures, découpe, montage, pose sur le tapis, à l'aide des gabarits produits par le CLI de B.7.
+ 
+**Critères de sortie** : le tableau §5.6 est rempli avec des mesures réelles ; la loi de progression des hauteurs est arbitrée et respecte le plafond du §5.7 ; `calibration.json` ne contient plus aucune valeur provisoire.
+ 
 ### T2 — Modèle de projet et persistance
-
+ 
 Entités, sérialisation, chargement, sauvegarde, export et import d'archives.
-
-**Critères d'acceptation** : aller-retour export/import sans perte ; MEN-001 couvert par un test avec archive malveillante ; MEN-006 couvert par un test vérifiant l'absence de secret dans l'export ; `versionSchema` présent.
-
+ 
+**Critères d'acceptation** : aller-retour export/import sans perte ; MEN-001 couvert par un test avec archive malveillante ; MEN-006 couvert par un test vérifiant l'absence de secret dans l'export ; `versionSchema` présent ; **aucune valeur dérivée n'est sérialisée** (`promptResolu`, `desaligne`).
+ 
 ### T3 — Composition de prompts et catalogue
-
-Templates en fichiers, gabarits, catalogue éditable, prompt résolu stocké et modifiable.
-
-**Critères d'acceptation** : composition déterministe (même entrée, même sortie) ; les clauses style et cadrage sont inatteignables depuis l'interface de gabarit.
-
+ 
+Templates en fichiers, gabarits, catalogue éditable, clause sujet stockée et modifiable.
+ 
+**Critères d'acceptation** : composition déterministe (même entrée, même sortie) ; les clauses style et cadrage sont inatteignables depuis l'interface de gabarit, et la signature de `IPromptComposer` le rend structurellement vrai ; le désalignement est correctement calculé après édition d'une clause sujet, d'un style ou d'un univers.
+ 
 ### T4 — Client générateur et production de couples
-
+ 
 Client HTTP ComfyUI, substitution du template de workflow, génération jumelée, découpe.
-
+ 
 **Critères d'acceptation** : générateur injoignable géré comme un état normal ; un lot interrompu conserve les candidats déjà produits ; l'image jumelée brute est conservée pour diagnostic.
-
+ 
 ### T5 — Détourage
-
+ 
 Runtime ONNX, fournisseur d'exécution configurable, plafonds d'entrée.
-
+ 
 **Critères d'acceptation** : MEN-005 couvert ; échec propre sur image malformée ; PNG de sortie à fond réellement transparent.
-
+ 
 *Tranche à relire en profondeur (DEC-027).*
-
+ 
 ### T6 — API et interface
-
+ 
 Points de terminaison, front React, galerie de candidats, validation, export, localisation complète.
-
-**Critères d'acceptation** : aucune chaîne en dur ; bascule français/anglais sans rechargement ; capacité de page affichée ; codes d'erreur correctement traduits.
-
+ 
+**Critères d'acceptation** : aucune chaîne en dur ; bascule français/anglais sans rechargement ; capacité de page affichée ; codes d'erreur correctement traduits ; les candidats désalignés sont visuellement distingués des candidats sains.
+ 
 ### T7 — Observabilité et durcissement
-
+ 
 Serilog, visualiseur de journaux, rotation et rétention, revue complète du chapitre 9.
-
+ 
 **Critères d'acceptation** : chaque menace MEN-001 à MEN-007 est soit couverte par un test, soit explicitement documentée comme risque accepté.
-
+ 
 > Les tranches T2 à T5 n'ont pas d'interface. Elles s'éprouvent par tests d'intégration et, si nécessaire, par un point d'entrée en ligne de commande minimal — jetable, non livré.
-
+ 
 ---
-
+ 
 ## 13. Évolutions différées
-
+ 
 À reprendre une fois la v1 fonctionnelle et réellement utilisée. Rien ici ne doit être anticipé dans le code au-delà des points d'extension déjà prévus.
-
+ 
 | Réf. | Évolution | Point d'extension déjà en place |
 |---|---|---|
-| EVO-001 | **Composition de prompt par modèle de langage.** Second adaptateur de `IPromptComposer`, appelant un point de terminaison compatible OpenAI (Ollama, LM Studio). Ne réécrit **que la clause sujet** ; les clauses style et cadrage lui restent inaccessibles. Repli silencieux sur le template si injoignable. Séquencer le chargement des modèles pour éviter la contention VRAM. | `IPromptComposer` |
+| EVO-001 | **Composition de prompt par modèle de langage.** Second adaptateur de `IPromptComposer`, appelant un point de terminaison compatible OpenAI (Ollama, LM Studio). Ne réécrit **que la clause sujet** ; les clauses style et cadrage lui restent inaccessibles — contrainte désormais portée par la signature du port (DEC-028). Repli silencieux sur le template si injoignable. Séquencer le chargement des modèles pour éviter la contention VRAM. | `IPromptComposer` |
 | EVO-002 | **Fournisseur d'images distant.** Second adaptateur de `IImageGenerator`. Introduit un compteur de coût, une confirmation avant lot et un cache prompt+graine. | `IImageGenerator` |
 | EVO-003 | **Troisième géométrie** : deux pièces séparées, collées entre elles ou sur une âme carton, avec repères d'alignement en croix. Considérée pour l'instant comme une variante du pion à socle. | Fonction de placement |
 | EVO-004 | **Univers supplémentaires** (steampunk, science-fiction, contemporain). | Champ `univers` + fichiers de templates |
-| EVO-005 | **Mélange de tailles sur une page**, par shelf packing. | Moteur de mise en page |
+| EVO-005 | **Mélange de tailles sur une page**, par shelf packing. Renforcée par DEC-031 : sans elle, une seule créature de taille Petite consomme une page entière. | Moteur de mise en page |
 | EVO-006 | **Validation en lot** en complément de la validation unitaire. | Interface |
 | EVO-007 | **Langues supplémentaires.** | Fichiers de ressources |
 | EVO-008 | **Déploiement distribué** : application sur une machine sobre, générateur sur le poste équipé. Sans impact sur la conception — le client est déjà HTTP. À reprendre uniquement si la charge locale devient un problème. | Aucun |
 | EVO-009 | **Passage par la 3D** pour la cohérence recto/verso, si DEC-003 déçoit à l'usage : image → modèle 3D → deux rendus orthographiques. | `IPawnPairProducer` |
+| EVO-010 | **Import d'images externes déjà détourées.** Un gabarit peut recevoir un couple recto/verso fourni par l'utilisateur au lieu d'un candidat généré. Rend l'application utilisable sans GPU, et sans modèle de diffusion du tout. Le format d'entrée est **déjà** celui de T1 : un dossier de PNG à fond transparent plus un manifeste. À ne pas anticiper dans le code, mais à ne rien faire qui l'empêche. | Format d'entrée de T1 ; `Candidat` |
+| EVO-011 | **Taille Minuscule** (Tiny, emprise 12,7 mm). Écartée de la v1 tant que la faisabilité physique n'est pas établie : une unité dépliée ferait 12,7 mm de large sur une hauteur dépliée d'une centaine de millimètres, à découper et plier au milieu. À trancher par un essai papier, pas par un raisonnement. | Table des tailles |
+| EVO-012 | **Grilles hexagonales.** Table d'emprises **distincte**, jamais dérivée des emprises carrées — voir §14.4. | Table des tailles |
+ 
+---
+ 
+## 14. Référence — grilles de jeu et tailles de créature
+ 
+Ce chapitre est une table de faits externes au projet. Il existe pour une seule raison : éviter qu'une emprise soit un jour redevinée de mémoire. Les valeurs ci-dessous sont documentées et sourcées ; celles du §5.6, non — ne pas confondre les deux registres.
+ 
+### 14.1 La grille carrée
+ 
+| | Valeur |
+|---|---|
+| Côté d'une case | **1 pouce = 25,4 mm exactement** |
+| Équivalent en jeu | 5 pieds (1,524 m) |
+| Éditions concernées | D&D 3.5, 4, 5e (2014), D&D 2024, Pathfinder 1 et 2, Starfinder |
+ 
+Standard stable depuis une vingtaine d'années ; aucune édition récente n'y a touché. Le tapis de référence Chessex offre 23,5 × 26 pouces de surface, soit 22 × 25 cases.
+ 
+Des tapis européens à cases de 30 mm ou 25 mm ronds existent. Ils sont minoritaires, mais ils justifient à eux seuls que DEC-015 rende les emprises surchargeables.
+ 
+### 14.2 Tailles de créature et emprises
+ 
+| Catégorie (VO) | Nom Pawnsmith | Espace occupé | Cases carrées | Socle du commerce |
+|---|---|---|---|---|
+| Tiny | *(hors v1, EVO-011)* | 2,5 × 2,5 pieds | ¼ (4 par case) | 0,5 pouce — 12,7 mm |
+| Small | `Petite` | 5 × 5 pieds | 1 | 1 pouce — **25,4 mm** |
+| Medium | `Moyenne` | 5 × 5 pieds | 1 | 1 pouce — **25,4 mm** |
+| Large | `Grande` | 10 × 10 pieds | 4 (2×2) | 2 pouces — **50,8 mm** |
+| Huge | `TresGrande` | 15 × 15 pieds | 9 (3×3) | 3 pouces — **76,2 mm** |
+| Gargantuan | `Gigantesque` | 20 × 20 pieds ou plus | 16 (4×4) | 4 pouces — **101,6 mm** |
+ 
+Identique en D&D 2024 et en Pathfinder 2. Pathfinder 1 comportait en outre **Colossal** (30 pieds, 6 × 6 cases, 152,4 mm), abandonnée en Pathfinder 2 ; hors périmètre.
+ 
+> **Nuance importante.** Les règles ne définissent que l'**espace occupé au sol**. Le diamètre du socle est une convention du hobby, très respectée mais non normative — et **aucune règle ne définit la hauteur d'une créature**. C'est ce vide qui rend DEC-032 nécessaire.
+ 
+### 14.3 Échelle réelle de la grille
+ 
+1 pouce pour 5 pieds donne une échelle d'environ **1:60**. À cette échelle, un humanoïde d'1,80 m mesurerait 30,5 mm de haut. Les hauteurs retenues par Pawnsmith sont volontairement supérieures, pour la lisibilité à un mètre. Voir DEC-032.
+ 
+### 14.4 La grille hexagonale — mise en garde
+ 
+Hors périmètre v1 (EVO-012), mais la mise en garde doit être écrite avant qu'on en ait besoin.
+ 
+- **Aucun fabricant n'indique comment il mesure ses hexagones.** Trois conventions coexistent : plat-à-plat, pointe-à-pointe, longueur d'arête. Sur un hexagone régulier, plat-à-plat = 0,866 × pointe-à-pointe ; l'écart entre deux lectures d'un « hexagone de 1 pouce » atteint 3,4 mm.
+- Faisceau d'indices en faveur de **plat-à-plat = 25,4 mm** : le comptage d'hexagones du tapis Chessex réversible (21/22 × 28 sur 23,5 × 26 pouces) ne recolle qu'avec un pas horizontal d'un pouce ; et c'est la seule lecture qui laisse un socle de 25 mm entrer dans l'hexagone, donc la seule qui rende les deux faces d'un tapis réversible mutuellement compatibles. **C'est une inférence, pas une mesure** : à confirmer au réglet sur un tapis réel avant tout usage.
+- **Les emprises hexagonales et carrées ne se correspondent pas.** Les règles optionnelles du DMG 5e font occuper 1 hexagone à une Medium, 3 à une Large, 7 à une Huge, 12 à une Gargantuan — surfaces nettement inférieures aux 4, 9 et 16 cases carrées équivalentes. Le socle physique d'une Huge (76 mm) n'entre pas dans 7 hexagones d'un pouce. **Ne jamais dériver une emprise hexagonale d'une emprise carrée par le calcul** : si l'hexagonal entre un jour au périmètre, c'est une table de valeurs distincte, mesurée.
+### 14.5 Sources
+ 
+- LITKO — *D&D Miniature Base Sizes Chart* : https://litko.net/pages/dnd-base-sizes-guide
+- Archives of Nethys — *Pathfinder 2e, Size, Space, and Reach* : https://2e.aonprd.com/Rules.aspx?ID=2359
+- Wargamer — *DnD sizes explained for 5.5e* : https://www.wargamer.com/dnd/sizes-5e
+- Chessex — *Reversible Battlemat 1" Squares & 1" Hexes* : https://www.chessex.com/reversible-battlemat-1-squares-1-hexes-23-x-26-playing-surface
+- Matters of Critical Insignificance — *Creature size on hex grid* : https://criticalinsignificance.wordpress.com/2021/02/09/rant-creature-size-on-hex-grid-is-waay-off/
+*Consultées le 29 août 2026.*
