@@ -12,9 +12,20 @@ de code. Il ne remplace pas les documents de référence, il y renvoie :
   de calibration physique, scindé en T0a (test décisif, sans impression) et T0b
   (mesures papier, **après** le code de T1, avec le CLI de B.7). DEC-033.
 
-`docs/` est un **miroir** de la base de connaissance du projet, qui fait foi.
-Ne jamais y toucher de sa propre initiative : sur demande explicite seulement,
-et en signalant que la correction reste à reporter en amont.
+**`docs/` EST la base de connaissance du projet**, et non un miroir d'une source
+extérieure. Elle fait foi, et c'est ici qu'on la fait évoluer : conception et
+code se font désormais dans le même dépôt.
+
+Deux conséquences à ne pas séparer. Ces documents se **modifient** quand une
+décision est prise — les laisser diverger du code est un défaut. Et la règle
+du §1 s'y applique **intégralement** : proposer, montrer le diff, attendre la
+validation. Ce serait le pire endroit où la relâcher, puisque c'est le document
+qui arbitre tous les autres.
+
+En pratique : une décision se consigne en **fiche au chapitre 11 de la bible**,
+on n'édite jamais une fiche existante, on en ajoute une qui la supersède. Le
+numéro de version du document et sa ligne de changelog se mettent à jour dans
+le même commit.
 
 En cas de contradiction entre ce fichier et l'un de ces documents, **ce sont
 les documents qui gagnent**, et il faut le signaler.
