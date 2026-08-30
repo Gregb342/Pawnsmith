@@ -8,10 +8,14 @@ Ce fichier est tenu à jour **dans le commit qui introduit la dépendance**
 défaut, pas un oubli bénin.
 
 Rappel de la politique de dépendances (A.2) : la licence d'une dépendance est un
-critère de conception. Sont explicitement écartés **QuestPDF** (licence
+critère de conception, et la chaîne de dépendances est une surface de traitement
+de données personnelles. Sont explicitement écartés **QuestPDF** (licence
 commerciale « source-available », non approuvée OSI), **FluentAssertions ≥ 8**
-(passé sous licence propriétaire Xceed en janvier 2025) et **AutoMapper**
-(modèle commercial, et mapping invisible en relecture — DEC-021, DEC-027).
+(passé sous licence propriétaire Xceed en janvier 2025), **AutoMapper**
+(modèle commercial, et mapping invisible en relecture — DEC-021, DEC-027) et
+**Moq** (a embarqué en août 2023, dans une version mineure, un composant
+extrayant l'adresse e-mail du développeur depuis sa configuration Git pour
+l'envoyer à un service tiers ; utiliser **NSubstitute**).
 
 ---
 
@@ -51,15 +55,3 @@ Aucun projet de `src/` ni de `tools/` ne référence de paquet NuGet à ce stade
 | `mcr.microsoft.com/dotnet/sdk:10.0` | MIT (composants .NET), voir la licence de l'image |
 | `mcr.microsoft.com/dotnet/aspnet:10.0` | MIT (composants .NET), voir la licence de l'image |
 | `node:22-alpine` | MIT (Node.js), voir la licence de l'image |
-
----
-
-## Dépendances prévues, pas encore introduites
-
-Annoncées en A.1 mais absentes du code tant qu'aucun code ne les utilise. Elles
-seront ajoutées à la table ci-dessus par le commit qui les référence.
-
-| Paquet | Licence | Tranche |
-|---|---|---|
-| PDFsharp | MIT | T1 — rendu PDF (DEC-019) |
-| Serilog | Apache-2.0 | T7 — journalisation (chapitre 8) |
