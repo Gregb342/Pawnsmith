@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.3 |
+| **Version du document** | 0.4 |
 | **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.3** — Ajout du **chapitre 15**, structure de l'interface : navigation, anatomie de l'écran de mise en page, panneau de paramètres à deux niveaux, indicateur de capacité, et la liste de ce que l'interface ne fait pas. DEC-034 (la coquille d'une maquette exploratoire est retenue, son contenu est rejeté). DEC-035 (les marges de page restent uniformes ; le gain abandonné est chiffré). DEC-036 (le paysage est une entrée de configuration, pas une bascule ; son intérêt dépend de la taille). §5.4 et critères de T6 renvoyés vers le chapitre 15.
  
 > **Changements depuis la v0.2** — Ajout du **chapitre 14**, table de référence des grilles de jeu et des tailles de créature, sourcée. DEC-031 (cinq tailles nommées d'après les règles, emprise et hauteur découplées ; rejet de l'échelle S/M/L/XL/XXL). DEC-032 (la loi de progression des hauteurs est une décision de conception, bornée par le format de papier — la valeur provisoire de `Gigantesque` rendait la capacité de page nulle). DEC-033 (T0 scindée en T0a et T0b ; le CLI de T1 remplace le script de gabarit jetable). EVO-011 (taille Minuscule). Tableau des tailles du §3.1 étendu, §5.6 borné, chapitre 12 réordonné.
  
@@ -261,7 +263,8 @@ Toutes les figurines d'une page ont la même taille, donc la page est une **gril
 3. Capacité d'une page = `floor((largeurUtile) / largeurCellule) × floor((hauteurUtile) / hauteurCellule)`.
 4. Chaque gabarit occupe `quantite` cellules consécutives.
 5. Le PDF final concatène toutes les pages de tous les groupes.
-L'interface expose la capacité restante de la page courante — information réellement utile lors de la composition.
+
+L'interface expose la capacité restante de la page courante — information réellement utile lors de la composition. Ce qu'elle affiche exactement, et pourquoi un taux de remplissage en pourcentage n'y suffit pas, est précisé au §15.4.
  
 **Une capacité nulle est un cas normal, pas une anomalie improbable** : il suffit qu'une hauteur de pion dépasse le plafond du §5.7. Elle doit produire une erreur explicite nommant la taille en cause, et un test dédié.
  
@@ -581,6 +584,30 @@ Choix : **T0a** (verdict DEC-003, aucun code, aucune impression) passe avant tou
 Conséquence : ce script aurait dû tracer des pions à hauteur, volet et marge variables sur une planche A4 calibrée — c'est-à-dire réimplémenter le moteur de T1 en jetable, sans test, pour l'abandonner trois jours plus tard. Le CLI de B.7 est déjà défini pour exactement cet usage (« permettre un tirage papier avant l'existence de l'interface »). L'ordre devient : Fondations → T0a → T1 (code) → T0b → T1 (validation B.9). T1 reste écrivable sans aucune valeur mesurée, puisque B.2 impose au code de les lire et jamais de les connaître ; ce sont ses **critères d'acceptation** qui attendent T0b, pas son code.
 Risque identifié : un défaut de géométrie dans T1 contaminerait les gabarits de T0b, et l'on mesurerait sur du faux. Mitigation : l'étape 2 de T0b (le trait de 100 mm) est aussi le test du moteur ; vérifier au réglet le trait de calibration **et** la hauteur totale dépliée d'une cellule avant de découper quoi que ce soit.
  
+**DEC-034 — La coquille de l'interface est retenue d'une maquette exploratoire ; son contenu est rejeté.**
+Choix : d'une maquette produite le 29 août 2026 par un modèle de langage disposant de très peu de contexte projet, retenir quatre choses — la navigation en cinq étapes calquée sur le pipeline du chapitre 4, l'aperçu de planche comme pièce maîtresse de l'écran de mise en page, le panneau de paramètres séparant obligatoires et optionnels, et l'indicateur de capacité de page. Écarter tout le reste. Le résultat est le chapitre 15.
+Conséquence : c'est le **rejet** qui est la partie utile de cette fiche, pas l'adoption. La maquette proposait des comptes utilisateurs et un partage (contre §1.5), une planche de jetons ronds au lieu d'unités dépliées, quarante-huit figurines sur un A4 là où la géométrie en autorise douze en taille Moyenne, un mélange de tailles sur une même page (contre DEC-005), des repères d'impression absents et désactivables (contre DEC-017), un placement libre à la souris (contre le fait que la planche est calculée), et `race` rangée parmi les champs optionnels avec `classe` absente (contre DEC-024). Sans cette fiche, la même maquette ressort dans six mois et les mêmes erreurs sont réintroduites une par une, chacune paraissant raisonnable isolément.
+Enseignement de méthode, qui vaut au-delà de cette maquette : l'essentiel de ces écarts vient de ce qu'elle a été produite **sans le glossaire du chapitre 2 ni les fiches DEC-001, 005, 006, 017 et 024**. Une maquette n'est pas un document d'entrée, c'est un document de sortie.
+
+**DEC-035 — Les marges de page restent uniformes.**
+Choix : un seul `pageMarginMm`, appliqué aux quatre côtés. La formule du §B.5.2 conserve `pageWidth − 2 × pageMarginMm`. Les marges indépendantes par côté sont écartées de la v1.
+Conséquence : on renonce sciemment à de la capacité. Les imprimantes domestiques ont rarement une zone non imprimable symétrique — beaucoup acceptent 3 à 5 mm sur trois côtés mais exigent 12 à 15 mm en bas, à cause de l'entraînement du papier. Une marge uniforme doit donc prendre **le pire des quatre côtés** et gaspille la différence sur les trois autres. Le gain abandonné est mesurable : sur A4, le passage de 6 à 7 colonnes en `Petite` et `Moyenne` se joue à **7,1 mm** de marge latérale, soit **+2 pions par page** pour une imprimante qui tolérerait 5 mm sur les côtés.
+Motif du choix malgré ce gain : quatre marges doublent la surface d'erreur d'un calcul géométrique **relu à la main** (DEC-027), pour un bénéfice borné à deux tailles sur cinq et dans une plage étroite. Et la décision est réversible dans le bon sens — passer d'une marge à quatre est une extension, l'inverse serait une régression. À réexaminer si T0b mesure une asymétrie forte sur l'imprimante retenue : ce sera alors une décision fondée sur une mesure et non sur une hypothèse.
+
+**DEC-036 — Le paysage est une entrée de configuration, pas une bascule d'interface.**
+Choix : le paysage s'obtient en ajoutant une entrée à `paperFormats`, par exemple `"A4Paysage": { "widthMm": 297.0, "heightMm": 210.0 }`. Aucune bascule d'orientation dans l'interface, et **aucune sélection automatique** de l'orientation la plus capacitaire. Aucune entrée paysage n'est livrée en v1 ; le format existe si on l'écrit.
+Conséquence : coût nul, DEC-016 le permettait déjà — le moteur ne connaît qu'une largeur et une hauteur en millimètres. Surtout, cela évite de traiter le paysage comme un gain général, ce qu'il n'est pas : il fait **perdre une rangée entière** (hauteur utile de 263 à 176 mm sur A4) et gagner des colonnes, donc son intérêt dépend de la taille.
+
+| Taille | A4 portrait | A4 paysage | |
+|---|---|---|---|
+| `Petite` | 6 × 2 = **12** | 9 × 1 = 9 | portrait |
+| `Moyenne` | 6 × 2 = **12** | 9 × 1 = 9 | portrait |
+| `Grande` | 3 × 1 = 3 | 5 × 1 = **5** | **paysage, +67 %** |
+| `TresGrande` | 2 × 1 = **2** | 3 × 0 = **0** | paysage inutilisable |
+| `Gigantesque` | 1 × 1 = **1** | 2 × 0 = **0** | paysage inutilisable |
+
+La dégradation est propre et déjà spécifiée : un format paysage choisi avec des `TresGrande` produit une capacité nulle, donc l'erreur explicite du §B.5.2 nommant la taille en cause. Une sélection automatique de l'orientation serait en revanche un **choix implicite du moteur**, ce que le chapitre 0 du cahier des charges interdit. Si le gain sur `Grande` se révèle utile à l'usage, ce sera une EVO avec sa fiche, pas un comportement qui apparaît tout seul.
+
 ---
  
 ## 12. Découpage en tranches
@@ -651,7 +678,7 @@ Runtime ONNX, fournisseur d'exécution configurable, plafonds d'entrée.
  
 Points de terminaison, front React, galerie de candidats, validation, export, localisation complète.
  
-**Critères d'acceptation** : aucune chaîne en dur ; bascule français/anglais sans rechargement ; capacité de page affichée ; codes d'erreur correctement traduits ; les candidats désalignés sont visuellement distingués des candidats sains.
+**Critères d'acceptation** : aucune chaîne en dur ; bascule français/anglais sans rechargement ; capacité de page affichée ; codes d'erreur correctement traduits ; les candidats désalignés sont visuellement distingués des candidats sains ; la structure du chapitre 15 est respectée, y compris la liste du §15.5.
  
 ### T7 — Observabilité et durcissement
  
@@ -734,3 +761,86 @@ Hors périmètre v1 (EVO-012), mais la mise en garde doit être écrite avant qu
 - Chessex — *Reversible Battlemat 1" Squares & 1" Hexes* : https://www.chessex.com/reversible-battlemat-1-squares-1-hexes-23-x-26-playing-surface
 - Matters of Critical Insignificance — *Creature size on hex grid* : https://criticalinsignificance.wordpress.com/2021/02/09/rant-creature-size-on-hex-grid-is-waay-off/
 *Consultées le 29 août 2026.*
+
+---
+
+## 15. Interface — coquille retenue
+
+> **Statut.** Ce chapitre fixe la **structure** de l'interface, pas son apparence. Il est écrit à la suite d'une maquette exploratoire du 29 août 2026, dont la charpente a été retenue et le contenu rejeté (DEC-034). L'interface est livrée en **T6** ; rien ici n'est à coder avant, au-delà du squelette de A.5.
+
+### 15.1 Navigation
+
+Cinq étapes, dans l'ordre du pipeline du chapitre 4 :
+
+| Étape | Contenu | Tranche |
+|---|---|---|
+| **Projet** | Création, nom, univers, style, géométrie, format de papier. Les quatre derniers sont **verrouillés après création** (DEC-001, DEC-006, DEC-025). | T2 |
+| **Gabarits** | Saisie des gabarits : paramètres, quantité, prompt résolu. | T3 |
+| **Génération** | Lancement des lots, galerie de candidats, validation du couple recto/verso. | T4, T5 |
+| **Mise en page** | Aperçu des planches calculées, capacité de page. | T6 |
+| **Impression** | Export PDF, choix de la culture. | T6 |
+
+Le vocabulaire du chapitre 2 est **contraignant jusque dans les libellés d'écran** : on écrit *Gabarit*, jamais « créature » ni « figurine ». Une divergence de vocabulaire dans l'interface est un défaut au même titre qu'une divergence dans le code — c'est même là qu'elle coûte le plus cher, puisque c'est la seule que l'utilisateur voit.
+
+L'ordre est celui du pipeline, mais **la navigation n'est pas un assistant** : on revient à une étape antérieure sans perdre l'état, et sans repasser par les suivantes.
+
+### 15.2 Anatomie de l'écran de mise en page
+
+Trois zones :
+
+- **Au centre, l'aperçu de la planche courante**, à l'échelle, cotes du format affichées sur les bords. C'est le centre de gravité de l'écran : une planche se juge en la regardant, pas en lisant des chiffres.
+- **À gauche, le panneau de paramètres** (§15.3).
+- **À droite, les mesures de la page** : format, taille des pions, capacité, place restante.
+
+**L'aperçu montre ce que le PDF contiendra, repères d'impression compris** — trait de calibration, traits de coupe, lignes de pliage. Un aperçu qui les masque donne une fausse idée de l'encombrement réel : la zone de calibration mange 14 mm de hauteur utile, ce qui suffit à faire perdre une rangée. Masquer les repères, c'est afficher une capacité qui n'existe pas.
+
+### 15.3 Panneau de paramètres à deux niveaux
+
+La distinction obligatoire / optionnel est celle de DEC-024, et elle est structurante :
+
+| Niveau | Champs | Sémantique d'un champ laissé vide |
+|---|---|---|
+| **Obligatoires** | `race`, `classe`, `taille` | — ils ne peuvent pas être vides |
+| **Optionnels** | clés du catalogue : arme, armure, vêtement, couleur… | **« non contraint »**, et non « absent de l'illustration » |
+| **Libres** | `details`, puis le `promptResolu`, stocké et éditable | — |
+
+**La formulation des optionnels est un travail d'interface à part entière, pas un choix de libellé.** Un utilisateur qui décoche « arme » croit demander un personnage désarmé ; il demande en réalité un personnage dont l'arme n'est pas imposée. C'est l'incompréhension la plus prévisible du produit, et elle se règle par les mots, pas par un champ de plus.
+
+Ce qui **n'a rien à faire dans ce panneau** : l'univers, le style et la géométrie. Ils sont verrouillés au niveau du projet, et les afficher parmi les paramètres d'un gabarit invite exactement la dérive que DEC-006 existe pour empêcher. Changer de style implique de dupliquer le projet ; l'interface doit rendre cela évident plutôt que de le cacher derrière un champ modifiable.
+
+### 15.4 Indicateur de capacité
+
+Le §5.4 le demande. Ce qu'il affiche :
+
+- la **capacité** de la page courante, **en cellules** ;
+- le **nombre de cellules occupées** ;
+- la **taille** des pions de la page, puisqu'une page n'en porte qu'une seule (DEC-005).
+
+Il est utile parce qu'il répond à la question réellement posée pendant la composition : *est-ce que ce gobelin de plus tient sur cette page, ou est-ce qu'il en coûte une nouvelle ?*
+
+**Un taux de remplissage en pourcentage ne répond pas à cette question et ne doit pas remplacer le compte.** À 85 % de surface occupée il peut ne rester aucune cellule libre, le reste étant réparti entre les gouttières et le bord. Ce qui se compte, ce sont les cellules.
+
+Une **capacité nulle** s'affiche comme une erreur explicite nommant la taille, le format et la géométrie (§5.4), jamais comme une page vide.
+
+### 15.5 Ce que l'interface ne fait pas
+
+Chacun de ces points découle d'une décision déjà prise. Ils sont listés ensemble parce qu'ils sont tous naturels à ajouter, et tous faux.
+
+| L'interface… | Parce que |
+|---|---|
+| …n'expose ni compte, ni connexion, ni partage | Non-objectif permanent du §1.5. Et l'absence d'authentification n'est tenable que si personne ne croit qu'il y en a une (MEN-004) |
+| …ne permet ni de déplacer ni de faire pivoter un pion à la souris | La planche est **calculée** par le domaine, pas composée à la main (§5.4). Le rendu ne décide de rien, l'interface non plus |
+| …ne mélange jamais deux tailles sur une page | DEC-005. Le mélange est différé en EVO-005 |
+| …ne permet pas de désactiver les repères d'impression | DEC-017 |
+| …n'offre aucune mise à l'échelle automatique | §B.6 du cahier des charges. Seul `scaleCorrectionFactor` agit, et il agit sur **tout**, trait de calibration compris (§B.5.5) |
+| …n'expose ni la clause style ni la clause cadrage | DEC-028, DEC-029 |
+
+### 15.6 Arbitrages rendus, et la question qui reste
+
+La maquette a soulevé deux questions qu'aucune décision antérieure ne couvrait. Elles sont tranchées, en **DEC-035** (marges uniformes) et **DEC-036** (le paysage est une entrée de configuration, pas une bascule). Aucune des deux n'est un sujet d'interface : la première touche la formule de capacité du §B.5.2, donc le cœur de T1.
+
+**Reste ouvert, et c'est T2 que cela concerne, pas T6** : `gutterMm` doit-il devenir un réglage de projet ?
+
+Les quatre valeurs du bloc `layout` de `calibration.json` n'ont pas la même nature, et les traiter en bloc est une erreur qui se paiera. `pageMarginMm` et `calibrationZoneHeightMm` sont des **propriétés de l'imprimante et de la planche** : elles se mesurent en T0b, elles ne se choisissent pas. `gutterMm` est une **préférence** — le §B.5.3 admet lui-même la valeur 0, qui « laisse moins de marge au ciseau » : c'est la dextérité de l'utilisateur, pas son matériel. `silhouetteMarginMm` est entre les deux.
+
+Si `gutterMm` devient un réglage de projet, il rejoint l'entité `Projet` et donc le schéma de T2. T1 n'est pas concernée : elle continue de le lire dans la calibration, et le manifeste du §B.3 n'a pas à le porter.
