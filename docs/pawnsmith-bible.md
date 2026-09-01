@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.7 |
+| **Version du document** | 0.8 |
 | **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.7** — DEC-043 : T0a est menée et concluante. DEC-003 tient — le modèle effectue une rotation réelle du personnage et non un miroir. Le prompt de référence est consigné. Correction : le modèle installé est Krea 2 Turbo et non FLUX Krea, ce qui rend les LoRA et ControlNet FLUX incompatibles.
  
 > **Changements depuis la v0.6** — DEC-042 (la clause de cadrage impose la pose ; mesures à l'appui, les huit illustrations d'essai étaient toutes limitées par leur largeur). DEC-039 (troisième géométrie `NoSupport`, sans appendice). DEC-040 (les cotes de l'onglet sont réglables, et la troisième catégorie de valeur physique est nommée). DEC-041 (le recto et le verso partagent une échelle unique — défaut mesuré jusqu'à 4,5 mm d'écart sur des illustrations réelles).
  
@@ -694,6 +696,63 @@ Conséquence, et c'est ce qui motive le choix : deux autres leviers existaient, 
 Contrepartie assumée : le catalogue de poses se restreint. Une figurine de 25 mm vue à un mètre n'a de toute façon pas besoin d'une pose dynamique, et le §4.1 rappelle que cette clause n'est pas une préférence esthétique mais ce qui rend l'étape suivante fiable.
 **La clause ne couvre pas tout, et l'écart doit être signalé.** Elle gouverne ce que le générateur produit, pas ce qui entre par ailleurs : les images déjà en main, et plus tard l'import d'images externes (EVO-010), échappent à toute clause. Le moteur conserve donc sa règle — l'image entre dans sa boîte quoi qu'il arrive — mais **signale toute image dont la largeur est le facteur limitant**, en nommant l'élément et la hauteur réellement obtenue. Une incohérence invisible devient une information sur laquelle agir.
 Relève de T3 pour la clause, et de T1 pour le signalement. La clause reste inaccessible depuis l'interface (DEC-029).
+
+**DEC-043 — T0a est concluante : DEC-003 tient, et le modèle n'est pas celui que l'on croyait.**
+Choix : le test décisif du protocole T0a a été mené le 1er septembre 2026 sur l'instance locale. **Verdict concluant** — la génération jumelée est retenue, DEC-003 et DEC-004 restent en vigueur, et T4 peut être spécifiée sur cette base. Le prompt de référence ci-dessous devient la matière première des templates de T3 (DEC-010).
+
+Résultat mesuré sur trois sujets, une seule génération chacun, sans tri ni relance : deux sujets à 7 critères sur 8, un à 5. Le seuil était de 6 sur 8 pour deux sujets sur trois. Les écarts d'alignement et d'échelle entre les deux vues sont de 0 à 10 pixels sur 832, soit **0 à 1,4 %** — c'est ce qu'on pouvait redouter le plus, et cela ne pose aucun problème.
+
+**Le résultat qui emporte la décision n'est pas dans la grille.** Sur le mage, le bâton tenu de la main gauche apparaît à droite de l'image en vue de face et à gauche en vue de dos ; sur l'éclaireur, l'arc et le carquois basculent de la même façon. **Le modèle effectue une rotation réelle du personnage, pas un miroir de la vue de face.** C'est exactement ce qu'exige DEC-002, et c'est la propriété la plus difficile à obtenir : un modèle produisant deux belles vues avec l'arme du mauvais côté aurait donné un verdict trompeur, cohérent à l'œil et faux au montage.
+
+Le prompt de référence, avec un seul emplacement variable :
+
+```text
+Character rotation sheet for a miniature reference: the exact same character
+drawn twice in one single image, front view on the left and back view on the
+right, side by side in one horizontal row, both figures resting on the same
+horizontal ground line, exactly the same height and exactly the same scale,
+each view occupying a tall narrow portrait panel.
+Subject: {SUJET}
+Both views are the identical character: identical armour, identical clothing,
+identical colour palette, identical weapon, identical proportions. The right
+figure is that same character seen strictly from behind.
+Full body from head to feet, the feet touching the bottom edge of the image,
+nothing cropped.
+Compact narrow silhouette: strict straight standing pose, arms hanging straight
+down and held close against the sides, any weapon held vertically flat against
+the body, any cape or cloak hanging straight down against the back. Nothing
+extends sideways beyond the shoulders: no outstretched arms, no horizontal
+weapon, no spread or flowing cape.
+Flat uniform pale grey background, completely plain and even, no scenery, no
+ground plane, no cast shadow, no drop shadow, soft even diffuse lighting, crisp
+clean outlines suitable for automatic cutout. Clean digital illustration, clear
+readable shapes.
+```
+
+La contrainte de pose compacte, ajoutée au titre de DEC-042, a tenu sur les trois sujets : aucun bras tendu, aucune arme à l'horizontale, aucun élargissement de silhouette. Le défaut que DEC-042 vient corriger ne s'est pas reproduit une seule fois.
+
+| Paramètre | Valeur |
+|---|---|
+| Modèle | `krea2_turbo_fp8_scaled.safetensors` — **Krea 2 Turbo**, 12 B, fp8 |
+| Encodeur de texte | `qwen3vl_4b_fp8_scaled.safetensors` |
+| VAE | `qwen_image_vae.safetensors` |
+| LoRA | aucun |
+| Échantillonneur / ordonnanceur | euler / simple |
+| Étapes, CFG, denoise | 8 · 1.0 · 1.0 |
+| Dimensions | 1216 × 832, soit ≈ 608 × 832 par vue |
+| Durée | 34 à 42 s par planche |
+
+**Correction de documentation que cette fiche entérine.** Le protocole T0 posait « ComfyUI opérationnel avec **FLUX Krea** ». C'est faux : le modèle installé est **Krea 2 Turbo**, d'architecture différente, avec un encodeur Qwen3-VL et un régime de 8 étapes à CFG 1 dont on ne sort pas — augmenter les étapes dégrade le résultat, c'est mesuré. Conséquence à ne pas découvrir plus tard : **les LoRA et les ControlNet de l'écosystème FLUX sont incompatibles.** Toute piste d'amélioration passant par un LoRA de planche de personnage ou un ControlNet de pose devra être cherchée dans l'écosystème Krea 2, pas FLUX.
+
+Deux points de vigilance, à traiter dans leur tranche et pas avant.
+
+**Pour T5 — la bande de sol touche les pieds.** Le modèle ajoute systématiquement une bande de sol de 8 à 10 pixels sur 832, soit environ 1 % de l'image, malgré une consigne explicite l'interdisant. Le fond lui-même est propre : gris uniforme à 99 % sur le meilleur sujet, 83 % sur le moins bon. Ce n'est donc pas un problème de fond, mais d'adjacence : cette bande touche les semelles, et un détoureur qui la conserverait comme partie de la silhouette produirait un pion debout sur une barre brune. Comme le moteur cale l'image sur son bord bas, **cette barre deviendrait la ligne des pieds** et décollerait le personnage de son socle. À vérifier sur les premières sorties du détourage.
+
+**Pour T3 — l'adhérence à l'équipement est imparfaite.** Le sujet 1 demandait `a large battle axe` ; l'orc tient deux dagues. Les deux vues sont cohérentes entre elles, donc la génération jumelée n'est pas en cause, mais la consigne d'équipement a été ignorée. Cela compte dès que l'équipement viendra d'un catalogue : un utilisateur qui coche « hache » attend une hache.
+
+Un dernier constat, à surveiller plutôt qu'à corriger : sur le sujet 1, une cape couvre tout le dos alors que rien ne la laisse deviner de face. C'est le seul échec non systématique du test. Sur un pion de 25 mm l'effet est nul, mais le mécanisme — l'invention d'un élément dorsal — produirait une incohérence visible sur un personnage dont le dos porte quelque chose de structurant.
+
+Les trois planches produites sont conservées dans `refs/gen comfyui krea2/`, non versionnées comme le reste du dossier. Elles servent de matière première aux gabarits de T0b.
 
 ---
  
