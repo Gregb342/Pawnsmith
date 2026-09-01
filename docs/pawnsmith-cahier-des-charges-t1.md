@@ -9,6 +9,8 @@
  
 > **Changements depuis la v1.3** — Renommage des identifiants de taille et de géométrie en anglais (DEC-037), dans le texte comme dans les blocs JSON du §B.2 et du §B.3. Aucun changement de formule, de valeur ni de périmètre.
  
+> **Changements depuis la v1.3** — Correction du §0, qui contredisait DEC-037 en affirmant encore que le vocabulaire du chapitre 2 est repris tel quel dans les noms de types. C'est la première consigne que lit un assistant de code, et elle envoyait vers du français là où tout le reste du dépôt est en anglais.
+ 
 > **Changements depuis la v1.2** — Deux encadrés au §B.5.2 renvoyant vers DEC-035 (marges uniformes, gain abandonné chiffré) et DEC-036 (le paysage est une entrée de `paperFormats`, pas un paramètre du moteur). Aucun changement de formule ni de périmètre.
  
 > **Changements depuis la v1.1** — Correction de l'arborescence §A.3 (nom réel du fichier de spécification, ajout de `CLAUDE.md`). Précision §A.2 sur le contenu de `THIRD-PARTY-NOTICES.md`. Ajout de la taille `Small` au fichier de calibration (DEC-031). **Correction de `Gargantuan.pawnHeightMm`, dont la valeur provisoire produisait une capacité de page nulle sur A4 comme sur US Letter** (DEC-032) ; ajout du §B.5.6 sur le plafond de hauteur et de deux tests dédiés. Le CLI de B.7 devient l'outil de tirage de T0b (DEC-033). Aucun changement de périmètre.
@@ -26,7 +28,7 @@ Ce document est destiné à un assistant de code. Le porteur du projet **relit i
 - **Expliciter les choix non évidents** en commentaire ou en message de commit, en particulier les conversions d'unités et les calculs géométriques.
 - **Aucun code implicite ou magique** : pas de génération automatique de mapping, pas de conventions cachées, pas d'abstraction introduite « au cas où ».
 - Quand une information manque dans ce document, **s'arrêter et demander** plutôt que de choisir une valeur plausible. Les valeurs physiques inventées coûtent une impression papier à détecter.
-- Le vocabulaire du chapitre 2 de la bible est contraignant : `Gabarit`, `Candidat`, `Planche`, `Taille`, `Geometrie`. Il est repris tel quel dans les noms de types.
+- Le vocabulaire du chapitre 2 de la bible est contraignant **en tant que concept** : un terme désigne une seule chose, partout, et toute divergence de sens est un défaut. Il ne l'est plus **en tant que graphie** : depuis **DEC-037**, le code, les journaux et les clés de fichiers sont en anglais, et l'identifiant de chaque terme est donné par la table de correspondance de cette fiche — `Blueprint`, `Candidate`, `Sheet`, `Size`, `Geometry`.
 ---
  
 ## PARTIE A — FONDATIONS
