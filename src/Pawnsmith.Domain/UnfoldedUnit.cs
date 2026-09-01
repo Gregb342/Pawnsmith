@@ -18,8 +18,9 @@ namespace Pawnsmith.Domain;
 /// standing on its head, and is the most likely mistake of this slice.
 /// </para>
 /// <para>
-/// This type carries geometry only. Where the artwork goes inside each image
-/// band, and what the cut outline looks like, are separate concerns.
+/// This type carries the unit's own geometry: its bands, its folds and the
+/// polygon it is cut along. Where the artwork goes inside each image band is
+/// a separate concern.
 /// </para>
 /// </remarks>
 /// <param name="WidthMm">Width of the unit, in millimetres.</param>
@@ -30,6 +31,7 @@ namespace Pawnsmith.Domain;
 /// <param name="FrontImage">Front artwork, drawn upright.</param>
 /// <param name="FrontAppendix">Bottom band: flaps or tab, depending on geometry.</param>
 /// <param name="FoldLinesYMm">Every fold to be drawn, top to bottom. See <see cref="Create"/>.</param>
+/// <param name="CutOutlineMm">Closed polygon the unit is cut along. See <see cref="Domain.CutOutline"/>.</param>
 public sealed record UnfoldedUnit(
     double WidthMm,
     double TotalHeightMm,
@@ -38,7 +40,8 @@ public sealed record UnfoldedUnit(
     UnitBand BackImage,
     UnitBand FrontImage,
     UnitBand FrontAppendix,
-    IReadOnlyList<double> FoldLinesYMm)
+    IReadOnlyList<double> FoldLinesYMm,
+    IReadOnlyList<PointMm> CutOutlineMm)
 {
     /// <summary>
     /// Builds the unfolded unit for one size and geometry.
@@ -75,7 +78,12 @@ public sealed record UnfoldedUnit(
             BackImage: backImage,
             FrontImage: frontImage,
             FrontAppendix: frontAppendix,
-            FoldLinesYMm: FoldLines(geometry, foldLineYMm, backImage, frontImage));
+            FoldLinesYMm: FoldLines(geometry, foldLineYMm, backImage, frontImage),
+            CutOutlineMm: CutOutline.Create(
+                pawn.PawnWidthMm,
+                totalHeightMm,
+                geometry,
+                geometrySettings));
     }
 
     private static double AppendixHeightMm(Geometry geometry, GeometrySettings settings)
