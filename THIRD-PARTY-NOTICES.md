@@ -19,9 +19,25 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 
 ---
 
-## .NET — tests uniquement
+## .NET — production
 
-Aucun projet de `src/` ni de `tools/` ne référence de paquet NuGet à ce stade.
+| Paquet | Version | Licence | Rôle |
+|---|---|---|---|
+| [PDFsharp](https://github.com/empira/PDFsharp) | 6.2.4 | MIT | Rendu PDF, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-019) |
+| Microsoft.Extensions.DependencyInjection.Abstractions | 8.0.2 | MIT | Dépendance transitive de PDFsharp |
+| Microsoft.Extensions.Logging.Abstractions | 8.0.3 | MIT | Dépendance transitive de PDFsharp |
+| System.Security.Cryptography.Pkcs | 8.0.1 | MIT | Dépendance transitive de PDFsharp (signature de PDF) |
+
+> **Réserve de licence, à trancher avant la v1.** Le rendu utilise la police
+> **Segoe WP**, embarquée dans le paquet PDFsharp via `PdfSharp.WPFonts`. Le
+> paquet est MIT, mais la police appartient à Microsoft et ses conditions de
+> redistribution sont les siennes — or une police utilisée dans un PDF s'y
+> retrouve **embarquée**. Pour un projet dont le §A.2 fait de la licence un
+> critère de conception, le point mérite un arbitrage explicite. La remplacer
+> par une police OFL (Liberation Sans, DejaVu Sans) demande de modifier la
+> seule classe `SheetFontResolver`.
+
+## .NET — tests uniquement
 
 | Paquet | Version | Licence | Rôle |
 |---|---|---|---|
