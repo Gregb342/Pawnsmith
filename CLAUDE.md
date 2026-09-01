@@ -300,28 +300,37 @@ exécuter. Ne pas les supprimer tant qu'aucun vrai test ne les remplace.
 Documents de référence en vigueur : bible **v0.4**, cahier des charges **v1.3**,
 protocole T0 **v1.1**.
 
-**La tranche T1 (moteur de mise en page et rendu PDF) est démarrée**, sur
-instruction du porteur. Elle est découpée en onze tâches, une par commit :
+**La tranche T1 (moteur de mise en page et rendu PDF) est terminée**, ses onze
+tâches committées :
 
 | # | Tâche | État |
 |---|---|---|
-| 1 | Vocabulaire du domaine et valeurs de calibration | en relecture |
-| 2 | Unité dépliée : bandes, hauteur totale, ligne de pliage, appendice | — |
-| 3 | Contour de découpe | — |
-| 4 | Placement des images, verso à 180° | — |
-| 5 | Capacité et grille | — |
-| 6 | Regroupement, quantités, pagination | — |
-| 7 | Modèle de planche résolu, repères, facteur d'échelle | — |
-| 8 | Port `ISheetRenderer` et cas d'usage (Application) | — |
-| 9 | Lecture du manifeste et de la calibration (Infrastructure) | — |
-| 10 | Rendu PDFsharp et `.resx` | — |
-| 11 | CLI de B.7 | — |
+| 1 | Vocabulaire du domaine et valeurs de calibration | ✅ |
+| 2 | Unité dépliée : bandes, hauteur totale, ligne de pliage, appendice | ✅ |
+| 3 | Contour de découpe | ✅ |
+| 4 | Placement des images, verso à 180° | ✅ |
+| 5 | Capacité et grille | ✅ |
+| 6 | Regroupement, quantités, pagination | ✅ |
+| 7 | Modèle de planche résolu, repères, facteur d'échelle | ✅ |
+| 8 | Port `ISheetRenderer` et cas d'usage | ✅ |
+| 9 | Lecture du manifeste et de la calibration | ✅ |
+| 10 | Rendu PDFsharp et `.resx` | ✅ |
+| 11 | CLI de B.7 | ✅ |
 
-Aucune référence de projet ni paquet NuGet n'a encore été ajouté. PDFsharp
-n'entre au dépôt qu'à la tâche 10, avec le code qui l'utilise.
+**133 tests verts**, les 19 du §B.8 couverts. Une seule dépendance de production :
+PDFsharp 6.2.4 (MIT), référencée par `Pawnsmith.Infrastructure`.
 
-**Tenir ce tableau à jour à chaque fin de tâche**, pour que l'avancement se lise
-ici plutôt que dans l'historique.
+**Ce qui reste avant de clore T1** : les critères d'acceptation du §B.9 se
+cochent planche imprimée en main, donc après T0b. Deux points sont en attente
+d'arbitrage — la police Segoe WP embarquée dans le PDF (réserve de licence, voir
+`THIRD-PARTY-NOTICES.md`) et la hauteur inventée des repères du trait de
+calibration.
+
+Produire une planche :
+
+```bash
+dotnet run --project tools/Pawnsmith.Cli -- --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
+```
 
 T0a (test décisif du générateur, sans code) reste à mener. T0b (mesures papier)
 vient **après** le code de T1, dont elle utilise le CLI (DEC-033) : T1 s'écrit
