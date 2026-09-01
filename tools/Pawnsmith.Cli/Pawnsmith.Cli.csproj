@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <!-- Throwaway harness (B.7), never shipped and excluded from the Docker image.
-       It gains project references when it gains a reason to; today it has none. -->
+       It composes the use case and its two adapters, and does nothing else. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Pawnsmith.Application\Pawnsmith.Application.csproj" />
+    <ProjectReference Include="..\..\src\Pawnsmith.Domain\Pawnsmith.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Pawnsmith.Infrastructure\Pawnsmith.Infrastructure.csproj" />
+  </ItemGroup>
 
 </Project>
