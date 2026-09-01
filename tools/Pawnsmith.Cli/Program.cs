@@ -19,6 +19,8 @@ const string Usage = """
       --manifest     Input manifest, as described in B.3.
       --calibration  Physical values, as described in B.2.
       --out          PDF file to write.
+      --debug        Print "head" and "feet" inside each panel. Diagnostics
+                     only: never on a sheet meant to be cut.
     """;
 
 try
@@ -35,7 +37,7 @@ try
 
     RenderSheetUseCase useCase = new(
         new FileImageSizeReader(),
-        new PdfSharpSheetRenderer(manifest.ImagesDirectory));
+        new PdfSharpSheetRenderer(manifest.ImagesDirectory, options.AnnotateOrientation));
 
     byte[] pdf = await useCase.ExecuteAsync(
         manifest.Request,
@@ -73,16 +75,32 @@ catch (ArgumentException error)
 }
 
 /// <summary>The three paths the harness needs.</summary>
-internal sealed record Options(string ManifestPath, string CalibrationPath, string OutputPath)
+internal sealed record Options(
+    string ManifestPath,
+    string CalibrationPath,
+    string OutputPath,
+    bool AnnotateOrientation)
 {
     public static Options Parse(string[] args)
     {
         string? manifest = null;
         string? calibration = null;
         string? output = null;
+        bool debug = false;
 
-        for (int index = 0; index < args.Length; index += 2)
+        int index = 0;
+
+        while (index < args.Length)
         {
+            // --debug is the only flag without a value, so it advances by one
+            // where every other option advances by two.
+            if (args[index] == "--debug")
+            {
+                debug = true;
+                index += 1;
+                continue;
+            }
+
             if (index + 1 >= args.Length)
             {
                 throw new ArgumentException($"Option '{args[index]}' has no value.");
@@ -104,12 +122,15 @@ internal sealed record Options(string ManifestPath, string CalibrationPath, stri
                 default:
                     throw new ArgumentException($"Unknown option '{args[index]}'.");
             }
+
+            index += 2;
         }
 
         return new Options(
             Required(manifest, "--manifest"),
             Required(calibration, "--calibration"),
-            Required(output, "--out"));
+            Required(output, "--out"),
+            debug);
     }
 
     private static string Required(string? value, string option)

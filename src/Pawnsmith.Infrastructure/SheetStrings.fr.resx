@@ -81,4 +81,12 @@
   <data name="Size_Gargantuan" xml:space="preserve">
     <value>Gigantesque</value>
   </data>
+  <data name="DebugHead" xml:space="preserve">
+    <value>tête</value>
+    <comment>Diagnostics overlay only. Never printed on a sheet meant to be cut.</comment>
+  </data>
+  <data name="DebugFeet" xml:space="preserve">
+    <value>pieds</value>
+    <comment>Diagnostics overlay only. Never printed on a sheet meant to be cut.</comment>
+  </data>
 </root>

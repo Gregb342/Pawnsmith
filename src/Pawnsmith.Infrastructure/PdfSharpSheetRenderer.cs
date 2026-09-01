@@ -75,13 +75,20 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
     }
 
     private readonly string _imagesDirectory;
+    private readonly bool _annotateOrientation;
 
     /// <param name="imagesDirectory">Directory the layout's file names are relative to.</param>
-    public PdfSharpSheetRenderer(string imagesDirectory)
+    /// <param name="annotateOrientation">
+    /// Prints "head" and "feet" inside each panel. <b>Diagnostics only, off by
+    /// default, never on a sheet meant to be cut.</b> See
+    /// <see cref="DrawOrientationAnnotations"/> for why it exists.
+    /// </param>
+    public PdfSharpSheetRenderer(string imagesDirectory, bool annotateOrientation = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(imagesDirectory);
 
         _imagesDirectory = imagesDirectory;
+        _annotateOrientation = annotateOrientation;
     }
 
     /// <summary>The single conversion from millimetres to PDF points.</summary>
@@ -140,6 +147,11 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
             DrawImage(graphics, unit.FrontImage);
             DrawCutOutline(graphics, unit, strokes, strokeColor);
             DrawFoldLines(graphics, unit, strokes, strokeColor);
+
+            if (_annotateOrientation)
+            {
+                DrawOrientationAnnotations(graphics, unit, culture);
+            }
         }
 
         DrawCalibrationMark(graphics, page, strokes, strokeColor, culture);
@@ -294,6 +306,67 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
             SheetFont,
             XBrushes.Gray,
             new XPoint(Points(page.PaperFormat.WidthMm / 2), Points(6)),
+            XStringFormats.Center);
+    }
+
+    /// <summary>
+    /// Prints "head" and "feet" inside each panel. Diagnostics only.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The single most likely defect of this slice is a back panel that ends up
+    /// upside down after folding, and it is invisible on screen: both panels
+    /// look like a silhouette in a box. These labels make the orientation
+    /// readable without folding anything — on a correct sheet, the two "feet"
+    /// labels face each other across the fold line, and the two "head" labels
+    /// sit at the outer ends of the unit.
+    /// </para>
+    /// <para>
+    /// They are drawn from the placement the domain produced, not from a second
+    /// calculation, so they report what will actually be printed rather than
+    /// what ought to be.
+    /// </para>
+    /// <para>
+    /// <b>This never appears in the application.</b> It is off by default and
+    /// only the throwaway CLI of B.7 turns it on, with --debug.
+    /// </para>
+    /// </remarks>
+    private static void DrawOrientationAnnotations(
+        XGraphics graphics,
+        PlacedUnit unit,
+        CultureInfo culture)
+    {
+        string head = Strings.GetString("DebugHead", culture) ?? "head";
+        string feet = Strings.GetString("DebugFeet", culture) ?? "feet";
+        XSolidBrush brush = new(XColor.FromArgb(200, 40, 40));
+
+        // The front panel is upright: head at the top of its box, feet at the
+        // bottom, which is the boundary with the appendix.
+        Annotate(graphics, unit.FrontImage, head, atTop: true, brush);
+        Annotate(graphics, unit.FrontImage, feet, atTop: false, brush);
+
+        // The back panel is turned by a half turn, so its head is at the bottom
+        // of its box on the page and its feet at the top.
+        Annotate(graphics, unit.BackImage, feet, atTop: true, brush);
+        Annotate(graphics, unit.BackImage, head, atTop: false, brush);
+    }
+
+    private static void Annotate(
+        XGraphics graphics,
+        PlacedImage image,
+        string text,
+        bool atTop,
+        XBrush brush)
+    {
+        double yMm = atTop
+            ? image.YMm + (image.HeightMm * 0.10)
+            : image.YMm + (image.HeightMm * 0.94);
+
+        graphics.DrawString(
+            text,
+            SheetFont,
+            brush,
+            new XPoint(Points(image.XMm + (image.WidthMm / 2)), Points(yMm)),
             XStringFormats.Center);
     }
 
