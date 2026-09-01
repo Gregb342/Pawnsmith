@@ -7,9 +7,7 @@
 | **Document parent** | `pawnsmith-bible.md` v0.3 — à lire en premier |
 | **Portée** | Squelette du dépôt, chaîne de compilation, puis moteur de mise en page et rendu PDF |
  
-> **Changements depuis la v1.3** — Renommage des identifiants de taille et de géométrie en anglais (DEC-037), dans le texte comme dans les blocs JSON du §B.2 et du §B.3. Aucun changement de formule, de valeur ni de périmètre.
- 
-> **Changements depuis la v1.3** — Correction du §0, qui contredisait DEC-037 en affirmant encore que le vocabulaire du chapitre 2 est repris tel quel dans les noms de types. C'est la première consigne que lit un assistant de code, et elle envoyait vers du français là où tout le reste du dépôt est en anglais.
+> **Changements depuis la v1.3** — Application de DEC-037. Renommage des identifiants de taille et de géométrie en anglais, dans le texte comme dans les blocs JSON du §B.2 et du §B.3. Et correction du §0, qui contredisait la même fiche en affirmant encore que le vocabulaire du chapitre 2 est repris tel quel dans les noms de types — c'est la première consigne que lit un assistant de code, et elle l'envoyait vers du français là où tout le reste du dépôt est en anglais. Aucun changement de formule, de valeur ni de périmètre.
  
 > **Changements depuis la v1.2** — Deux encadrés au §B.5.2 renvoyant vers DEC-035 (marges uniformes, gain abandonné chiffré) et DEC-036 (le paysage est une entrée de `paperFormats`, pas un paramètre du moteur). Aucun changement de formule ni de périmètre.
  
