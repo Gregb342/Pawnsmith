@@ -65,6 +65,12 @@ internal static class CalibrationFixture
         AllSizes().Where(entry => entry.Key != Size.Small)
             .ToDictionary(entry => entry.Key, entry => entry.Value));
 
+    /// <summary>The nominal graph with a different printer correction.</summary>
+    public static Calibration CalibrationWithScale(double factor)
+    {
+        return Calibration with { Print = new PrintSettings(factor) };
+    }
+
     private static Dictionary<Size, PawnDimensions> AllSizes()
     {
         return Enum.GetValues<Size>().ToDictionary(size => size, Pawn);
