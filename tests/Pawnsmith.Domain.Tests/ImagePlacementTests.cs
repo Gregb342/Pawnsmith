@@ -1,8 +1,8 @@
 namespace Pawnsmith.Domain.Tests;
 
 /// <summary>
-/// Covers tests 6 and 10 of B.8. Test 6 is the one that matters most: omitting
-/// the half turn produces a character standing on its head after folding.
+/// Covers tests 6 and 10 of B.8, plus DEC-041 (the pair shares one scale) and
+/// the width-limited report of DEC-042.
 /// </summary>
 /// <remarks>
 /// Fixture values, not calibration values. Width 30, pawn height 100, margin 2
@@ -15,12 +15,15 @@ public class ImagePlacementTests
     private const double TabHeightMm = 20.0;
     private const double MarginMm = 2.0;
 
+    private const double BoxWidthMm = WidthMm - (2 * MarginMm);
+    private const double BoxHeightMm = PawnHeightMm - MarginMm;
+
     private const double Tolerance = 1e-9;
 
     private static readonly PawnDimensions Pawn =
         new(GridFootprintMm: 25.4, PawnWidthMm: WidthMm, PawnHeightMm: PawnHeightMm);
 
-    private static readonly GeometrySettings Geometry_ = new(
+    private static readonly GeometrySettings GeometrySettings = new(
         FoldedTent: new FoldedTentSettings(FlapHeightMm: 5.0),
         TabAndSocket: new TabAndSocketSettings(TabWidthMm: 12.0, TabHeightMm: TabHeightMm));
 
@@ -30,53 +33,80 @@ public class ImagePlacementTests
         SilhouetteMarginMm: MarginMm,
         CalibrationZoneHeightMm: 14.0);
 
-    /// <summary>Taller than its box is wide: the height is the limiting side.</summary>
-    private static readonly SourceImageSize TallSource = new(WidthPx: 100, HeightPx: 1000);
+    /// <summary>Narrow and tall: the height is the limiting side.</summary>
+    private static readonly SourceImageSize Tall = new(WidthPx: 100, HeightPx: 1000);
 
-    /// <summary>Wider than its box is tall: the width is the limiting side.</summary>
-    private static readonly SourceImageSize WideSource = new(WidthPx: 1000, HeightPx: 100);
+    /// <summary>Wide and short: the width is the limiting side.</summary>
+    private static readonly SourceImageSize Wide = new(WidthPx: 1000, HeightPx: 100);
 
     private static UnfoldedUnit Unit()
     {
-        return UnfoldedUnit.Create(Size.Medium, Pawn, Geometry.TabAndSocket, Geometry_);
+        return UnfoldedUnit.Create(Size.Medium, Pawn, Geometry.TabAndSocket, GeometrySettings);
+    }
+
+    private static ImagePair Pair(SourceImageSize front, SourceImageSize? back = null)
+    {
+        return ImagePlacement.ForPair(Unit(), front, back ?? front, Layout);
     }
 
     // --- B.8 n° 6 : le verso est tourné et placé au-dessus du pli ---------
 
     [Fact]
-    public void BackImageIsTurnedByAHalfTurn()
+    public void BackImageIsTurnedByAHalfTurnAndFrontIsNot()
     {
-        var back = ImagePlacement.ForBack(Unit(), TallSource, Layout);
+        ImagePair pair = Pair(Tall);
 
-        back.Rotation.ShouldBe(ImageRotation.HalfTurn);
+        pair.Back.Rotation.ShouldBe(ImageRotation.HalfTurn);
+        pair.Front.Rotation.ShouldBe(ImageRotation.None);
     }
 
     [Fact]
-    public void FrontImageIsNotTurned()
-    {
-        var front = ImagePlacement.ForFront(Unit(), TallSource, Layout);
-
-        front.Rotation.ShouldBe(ImageRotation.None);
-    }
-
-    [Fact]
-    public void BackImageSitsEntirelyAboveTheFoldLine()
+    public void BackSitsAboveTheFoldAndFrontBelow()
     {
         UnfoldedUnit unit = Unit();
+        ImagePair pair = Pair(Tall);
 
-        var back = ImagePlacement.ForBack(unit, TallSource, Layout);
+        pair.Back.BottomMm.ShouldBeLessThanOrEqualTo(unit.FoldLineYMm + Tolerance);
+        pair.Front.YMm.ShouldBeGreaterThanOrEqualTo(unit.FoldLineYMm - Tolerance);
+    }
 
-        back.BottomMm.ShouldBeLessThanOrEqualTo(unit.FoldLineYMm + Tolerance);
+    // --- DEC-041 : le couple partage une échelle unique -------------------
+
+    [Fact]
+    public void TheTwoFacesShareOneScale()
+    {
+        // Two views of the same character with different pixel dimensions: a
+        // raised weapon on the back is enough. Scaled independently they would
+        // be magnified differently; scaled as a pair they must not be.
+        ImagePair pair = Pair(new SourceImageSize(100, 1000), new SourceImageSize(110, 1000));
+
+        double frontScale = pair.Front.WidthMm / 100;
+        double backScale = pair.Back.WidthMm / 110;
+
+        frontScale.ShouldBe(backScale, Tolerance);
     }
 
     [Fact]
-    public void FrontImageSitsEntirelyBelowTheFoldLine()
+    public void TheSharedScaleIsTheOneThatLetsBothFit()
     {
-        UnfoldedUnit unit = Unit();
+        // The back is wider, so it is the back that decides. Taking the front's
+        // scale would push the back past its box.
+        ImagePair pair = Pair(new SourceImageSize(100, 1000), new SourceImageSize(200, 1000));
 
-        var front = ImagePlacement.ForFront(unit, TallSource, Layout);
+        pair.Back.WidthMm.ShouldBeLessThanOrEqualTo(BoxWidthMm + Tolerance);
+        pair.Front.WidthMm.ShouldBeLessThanOrEqualTo(BoxWidthMm + Tolerance);
+        (pair.Back.WidthMm / 200).ShouldBe(pair.Front.WidthMm / 100, Tolerance);
+    }
 
-        front.YMm.ShouldBeGreaterThanOrEqualTo(unit.FoldLineYMm - Tolerance);
+    [Fact]
+    public void AFaceThatWouldHaveBeenBiggerAloneIsHeldBackByItsPartner()
+    {
+        // The measured defect of DEC-041, in miniature: the narrow face alone
+        // would fill its box, but it must follow the wide one.
+        ImagePair alone = Pair(new SourceImageSize(100, 1000));
+        ImagePair paired = Pair(new SourceImageSize(100, 1000), new SourceImageSize(400, 1000));
+
+        paired.Front.HeightMm.ShouldBeLessThan(alone.Front.HeightMm);
     }
 
     // --- B.8 n° 10 : rapport d'aspect, ligne des pieds, marge -------------
@@ -87,37 +117,23 @@ public class ImagePlacementTests
     [InlineData(640, 480)]
     public void AspectRatioIsPreserved(double widthPx, double heightPx)
     {
-        SourceImageSize source = new(widthPx, heightPx);
-        UnfoldedUnit unit = Unit();
+        ImagePair pair = Pair(new SourceImageSize(widthPx, heightPx));
 
-        var front = ImagePlacement.ForFront(unit, source, Layout);
-
-        (front.WidthMm / front.HeightMm).ShouldBe(widthPx / heightPx, Tolerance);
+        (pair.Front.WidthMm / pair.Front.HeightMm).ShouldBe(widthPx / heightPx, Tolerance);
+        (pair.Back.WidthMm / pair.Back.HeightMm).ShouldBe(widthPx / heightPx, Tolerance);
     }
 
     [Fact]
-    public void FrontImageStandsOnTheBottomOfItsBand()
+    public void EachFaceStandsOnItsOwnFeetLine()
     {
-        // The feet line of the front panel is its boundary with the front
-        // appendix, below it.
+        // The front's feet line is the bottom of its band; the back's is the top
+        // of its own. The two face each other across the fold, which is what
+        // makes the back land the right way up once folded.
         UnfoldedUnit unit = Unit();
+        ImagePair pair = Pair(Tall);
 
-        var front = ImagePlacement.ForFront(unit, TallSource, Layout);
-
-        front.BottomMm.ShouldBe(unit.FrontImage.BottomMm, Tolerance);
-    }
-
-    [Fact]
-    public void BackImageStandsOnTheTopOfItsBand()
-    {
-        // The feet line of the back panel is its boundary with the back
-        // appendix, above it. The two feet lines face each other across the
-        // fold, which is what makes the back land the right way up.
-        UnfoldedUnit unit = Unit();
-
-        var back = ImagePlacement.ForBack(unit, TallSource, Layout);
-
-        back.YMm.ShouldBe(unit.BackImage.TopMm, Tolerance);
+        pair.Front.BottomMm.ShouldBe(unit.FrontImage.BottomMm, Tolerance);
+        pair.Back.YMm.ShouldBe(unit.BackImage.TopMm, Tolerance);
     }
 
     [Fact]
@@ -126,24 +142,22 @@ public class ImagePlacementTests
         // A wide, short source leaves room above the head. That room must all
         // be above, never split.
         UnfoldedUnit unit = Unit();
+        ImagePair pair = Pair(Wide);
 
-        var front = ImagePlacement.ForFront(unit, WideSource, Layout);
-
-        front.HeightMm.ShouldBeLessThan(unit.FrontImage.HeightMm / 2);
-        front.BottomMm.ShouldBe(unit.FrontImage.BottomMm, Tolerance);
+        pair.Front.HeightMm.ShouldBeLessThan(unit.FrontImage.HeightMm / 2);
+        pair.Front.BottomMm.ShouldBe(unit.FrontImage.BottomMm, Tolerance);
     }
 
     [Theory]
     [InlineData(100, 1000)]
     [InlineData(1000, 100)]
-    public void ImageIsHorizontallyCentred(double widthPx, double heightPx)
+    public void ImagesAreHorizontallyCentred(double widthPx, double heightPx)
     {
-        SourceImageSize source = new(widthPx, heightPx);
         UnfoldedUnit unit = Unit();
+        ImagePair pair = Pair(new SourceImageSize(widthPx, heightPx));
 
-        var front = ImagePlacement.ForFront(unit, source, Layout);
-
-        (front.XMm + (front.WidthMm / 2)).ShouldBe(unit.WidthMm / 2, Tolerance);
+        (pair.Front.XMm + (pair.Front.WidthMm / 2)).ShouldBe(unit.WidthMm / 2, Tolerance);
+        (pair.Back.XMm + (pair.Back.WidthMm / 2)).ShouldBe(unit.WidthMm / 2, Tolerance);
     }
 
     [Theory]
@@ -151,14 +165,12 @@ public class ImagePlacementTests
     [InlineData(1000, 100)]
     public void SilhouetteMarginIsRespectedOnTheSidesAndAbove(double widthPx, double heightPx)
     {
-        SourceImageSize source = new(widthPx, heightPx);
         UnfoldedUnit unit = Unit();
+        ImagePair pair = Pair(new SourceImageSize(widthPx, heightPx));
 
-        var front = ImagePlacement.ForFront(unit, source, Layout);
-
-        front.XMm.ShouldBeGreaterThanOrEqualTo(MarginMm - Tolerance);
-        (unit.WidthMm - front.XMm - front.WidthMm).ShouldBeGreaterThanOrEqualTo(MarginMm - Tolerance);
-        front.YMm.ShouldBeGreaterThanOrEqualTo(unit.FrontImage.TopMm + MarginMm - Tolerance);
+        pair.Front.XMm.ShouldBeGreaterThanOrEqualTo(MarginMm - Tolerance);
+        pair.Front.YMm.ShouldBeGreaterThanOrEqualTo(
+            unit.FrontImage.TopMm + MarginMm - Tolerance);
     }
 
     [Fact]
@@ -168,32 +180,63 @@ public class ImagePlacementTests
         // reach the fold or the tab.
         UnfoldedUnit unit = Unit();
 
-        var front = ImagePlacement.ForFront(unit, TallSource, Layout);
-
-        front.BottomMm.ShouldBe(unit.FrontImage.BottomMm, Tolerance);
+        Pair(Tall).Front.BottomMm.ShouldBe(unit.FrontImage.BottomMm, Tolerance);
     }
 
     [Fact]
-    public void ImageFillsTheLimitingSideOfItsBox()
+    public void ATallPairFillsTheAvailableHeightExactly()
     {
-        // A tall source is limited by the box height, so it must reach it
-        // exactly — otherwise the pawn would print shorter than its size.
-        UnfoldedUnit unit = Unit();
-
-        var front = ImagePlacement.ForFront(unit, TallSource, Layout);
-
-        front.HeightMm.ShouldBe(unit.FrontImage.HeightMm - MarginMm, Tolerance);
+        Pair(Tall).Front.HeightMm.ShouldBe(BoxHeightMm, Tolerance);
     }
 
     [Fact]
     public void ASourceSmallerThanItsBoxIsScaledUp()
     {
-        UnfoldedUnit unit = Unit();
-        SourceImageSize tiny = new(WidthPx: 10, HeightPx: 100);
+        // Not scaling up would print a pawn shorter than its size demands.
+        Pair(new SourceImageSize(10, 100)).Front.HeightMm.ShouldBe(BoxHeightMm, Tolerance);
+    }
 
-        var front = ImagePlacement.ForFront(unit, tiny, Layout);
+    // --- DEC-042 : le facteur limitant est rapporté ------------------------
 
-        front.HeightMm.ShouldBeGreaterThan(100.0 / 25.4);
+    [Fact]
+    public void ATallPairIsNotReportedAsWidthLimited()
+    {
+        ImagePair pair = Pair(Tall);
+
+        pair.IsWidthLimited.ShouldBeFalse();
+        pair.HeightUsage.ShouldBe(1.0, Tolerance);
+    }
+
+    [Fact]
+    public void AWidePairIsReportedAsWidthLimited()
+    {
+        // The case the framing clause is meant to make rare, and that imported
+        // artwork can always bring back.
+        ImagePair pair = Pair(Wide);
+
+        pair.IsWidthLimited.ShouldBeTrue();
+        pair.HeightUsage.ShouldBeLessThan(0.1);
+    }
+
+    [Fact]
+    public void OneWideFaceIsEnoughToReportThePair()
+    {
+        // Both faces are scaled by the wide one, so both print short. Reporting
+        // only when *both* are wide would hide exactly that case.
+        ImagePair pair = Pair(Tall, Wide);
+
+        pair.IsWidthLimited.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HeightUsageSaysHowMuchOfTheHeightIsActuallyUsed()
+    {
+        // 200 px wide for 400 tall in a 26 × 98 box: width decides, scale is
+        // 26/200 = 0.13, so the drawing is 52 mm out of 98 available.
+        ImagePair pair = Pair(new SourceImageSize(200, 400));
+
+        pair.Front.HeightMm.ShouldBe(52.0, Tolerance);
+        pair.HeightUsage.ShouldBe(52.0 / BoxHeightMm, Tolerance);
     }
 
     // --- Garde-fous -------------------------------------------------------
@@ -205,7 +248,7 @@ public class ImagePlacementTests
     public void ANonPositiveSourceSizeIsRejected(double widthPx, double heightPx)
     {
         Should.Throw<ArgumentOutOfRangeException>(
-            () => ImagePlacement.ForFront(Unit(), new SourceImageSize(widthPx, heightPx), Layout));
+            () => Pair(new SourceImageSize(widthPx, heightPx)));
     }
 
     [Fact]
@@ -214,6 +257,6 @@ public class ImagePlacementTests
         LayoutSettings impossible = Layout with { SilhouetteMarginMm = WidthMm };
 
         Should.Throw<ArgumentOutOfRangeException>(
-            () => ImagePlacement.ForFront(Unit(), TallSource, impossible));
+            () => ImagePlacement.ForPair(Unit(), Tall, Tall, impossible));
     }
 }

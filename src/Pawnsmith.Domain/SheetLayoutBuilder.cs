@@ -60,6 +60,7 @@ public static class SheetLayoutBuilder
             request.PaperFormat.HeightMm);
 
         List<SheetPage> pages = [];
+        Dictionary<string, WidthLimitedItem> widthLimited = [];
 
         for (int index = 0; index < plans.Count; index++)
         {
@@ -70,10 +71,11 @@ public static class SheetLayoutBuilder
                 imageSizes,
                 scale,
                 pageNumber: index + 1,
-                pageCount: plans.Count));
+                pageCount: plans.Count,
+                widthLimited));
         }
 
-        return new SheetLayout(pages, calibration.Strokes);
+        return new SheetLayout(pages, calibration.Strokes, [.. widthLimited.Values]);
     }
 
     private static SheetPage BuildPage(
@@ -83,7 +85,8 @@ public static class SheetLayoutBuilder
         IReadOnlyDictionary<string, SourceImageSize> imageSizes,
         PageScale scale,
         int pageNumber,
-        int pageCount)
+        int pageCount,
+        Dictionary<string, WidthLimitedItem> widthLimited)
     {
         var unit = UnfoldedUnit.Create(
             plan.Size,
@@ -103,7 +106,8 @@ public static class SheetLayoutBuilder
                 grid.CellOrigin(index),
                 calibration.Layout,
                 imageSizes,
-                scale));
+                scale,
+                widthLimited));
         }
 
         return new SheetPage(
@@ -126,10 +130,24 @@ public static class SheetLayoutBuilder
         PointMm cellOriginMm,
         LayoutSettings layout,
         IReadOnlyDictionary<string, SourceImageSize> imageSizes,
-        PageScale scale)
+        PageScale scale,
+        Dictionary<string, WidthLimitedItem> widthLimited)
     {
-        var front = ImagePlacement.ForFront(unit, ImageSize(imageSizes, cell.Item.FrontImageFile), layout);
-        var back = ImagePlacement.ForBack(unit, ImageSize(imageSizes, cell.Item.BackImageFile), layout);
+        ImagePair pair = ImagePlacement.ForPair(
+            unit,
+            ImageSize(imageSizes, cell.Item.FrontImageFile),
+            ImageSize(imageSizes, cell.Item.BackImageFile),
+            layout);
+
+        if (pair.IsWidthLimited)
+        {
+            // Keyed by item name so several copies of the same pawn report once.
+            widthLimited[cell.Item.Name] = new WidthLimitedItem(
+                cell.Item.Name,
+                cell.Item.Size,
+                Math.Max(pair.Front.HeightMm, pair.Back.HeightMm),
+                pair.BoxHeightMm);
+        }
 
         return new PlacedUnit(
             Item: cell.Item,
@@ -145,8 +163,8 @@ public static class SheetLayoutBuilder
                     scale.Point(cellOriginMm.XMm, cellOriginMm.YMm + y),
                     scale.Point(cellOriginMm.XMm + unit.WidthMm, cellOriginMm.YMm + y))),
             ],
-            FrontImage: Place(cell.Item.FrontImageFile, front, cellOriginMm, scale),
-            BackImage: Place(cell.Item.BackImageFile, back, cellOriginMm, scale));
+            FrontImage: Place(cell.Item.FrontImageFile, pair.Front, cellOriginMm, scale),
+            BackImage: Place(cell.Item.BackImageFile, pair.Back, cellOriginMm, scale));
     }
 
     private static PlacedImage Place(

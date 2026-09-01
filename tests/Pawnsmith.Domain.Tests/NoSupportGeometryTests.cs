@@ -85,12 +85,11 @@ public class NoSupportGeometryTests
         LayoutSettings layout = new(10.0, 3.0, SilhouetteMarginMm: 1.5, 14.0);
         SourceImageSize source = new(100, 1000);
 
-        var front = ImagePlacement.ForFront(unit, source, layout);
-        var back = ImagePlacement.ForBack(unit, source, layout);
+        ImagePair pair = ImagePlacement.ForPair(unit, source, source, layout);
 
-        front.BottomMm.ShouldBe(unit.TotalHeightMm, Tolerance);
-        back.YMm.ShouldBe(0, Tolerance);
-        back.Rotation.ShouldBe(ImageRotation.HalfTurn);
+        pair.Front.BottomMm.ShouldBe(unit.TotalHeightMm, Tolerance);
+        pair.Back.YMm.ShouldBe(0, Tolerance);
+        pair.Back.Rotation.ShouldBe(ImageRotation.HalfTurn);
     }
 
     [Fact]
