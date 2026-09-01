@@ -28,7 +28,7 @@ public class CutOutlineTests
 
     private static UnfoldedUnit Create(Geometry geometry)
     {
-        return UnfoldedUnit.Create(Pawn, geometry, Settings);
+        return UnfoldedUnit.Create(Size.Medium, Pawn, geometry, Settings);
     }
 
     // --- B.8 n° 9 : forme du contour --------------------------------------
@@ -152,7 +152,7 @@ public class CutOutlineTests
             TabAndSocket: new TabAndSocketSettings(TabWidthMm: WidthMm + 1, TabHeightMm));
 
         Should.Throw<ArgumentOutOfRangeException>(
-            () => UnfoldedUnit.Create(Pawn, Geometry.TabAndSocket, impossible));
+            () => UnfoldedUnit.Create(Size.Medium, Pawn, Geometry.TabAndSocket, impossible));
     }
 
     private static bool HasVertexAt(IReadOnlyList<PointMm> outline, PointMm expected)

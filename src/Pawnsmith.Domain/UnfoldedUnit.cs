@@ -23,6 +23,8 @@ namespace Pawnsmith.Domain;
 /// a separate concern.
 /// </para>
 /// </remarks>
+/// <param name="Size">The size this unit was built for. Carried so that an error can name it.</param>
+/// <param name="Geometry">The geometry this unit was built for. Carried for the same reason.</param>
 /// <param name="WidthMm">Width of the unit, in millimetres.</param>
 /// <param name="TotalHeightMm">Unfolded height: <c>2 × (pawnHeight + appendixHeight)</c>.</param>
 /// <param name="FoldLineYMm">Position of the main fold, at half the total height.</param>
@@ -33,6 +35,8 @@ namespace Pawnsmith.Domain;
 /// <param name="FoldLinesYMm">Every fold to be drawn, top to bottom. See <see cref="Create"/>.</param>
 /// <param name="CutOutlineMm">Closed polygon the unit is cut along. See <see cref="Domain.CutOutline"/>.</param>
 public sealed record UnfoldedUnit(
+    Size Size,
+    Geometry Geometry,
     double WidthMm,
     double TotalHeightMm,
     double FoldLineYMm,
@@ -49,7 +53,9 @@ public sealed record UnfoldedUnit(
     /// <param name="pawn">Pawn dimensions for the size, read from the calibration file.</param>
     /// <param name="geometry">Geometry of the whole sheet (DEC-001).</param>
     /// <param name="geometrySettings">Appendix dimensions, read from the calibration file.</param>
+    /// <param name="size">The size being built. Carried by the result for error messages.</param>
     public static UnfoldedUnit Create(
+        Size size,
         PawnDimensions pawn,
         Geometry geometry,
         GeometrySettings geometrySettings)
@@ -71,6 +77,8 @@ public sealed record UnfoldedUnit(
         double foldLineYMm = frontImage.TopMm;
 
         return new UnfoldedUnit(
+            Size: size,
+            Geometry: geometry,
             WidthMm: pawn.PawnWidthMm,
             TotalHeightMm: totalHeightMm,
             FoldLineYMm: foldLineYMm,

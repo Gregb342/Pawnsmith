@@ -38,7 +38,7 @@ public class ImagePlacementTests
 
     private static UnfoldedUnit Unit()
     {
-        return UnfoldedUnit.Create(Pawn, Geometry.TabAndSocket, Geometry_);
+        return UnfoldedUnit.Create(Size.Medium, Pawn, Geometry.TabAndSocket, Geometry_);
     }
 
     // --- B.8 n° 6 : le verso est tourné et placé au-dessus du pli ---------

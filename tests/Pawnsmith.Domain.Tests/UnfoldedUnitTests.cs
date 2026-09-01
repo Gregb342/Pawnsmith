@@ -27,7 +27,7 @@ public class UnfoldedUnitTests
 
     private static UnfoldedUnit Create(Geometry geometry)
     {
-        return UnfoldedUnit.Create(Pawn, geometry, Settings);
+        return UnfoldedUnit.Create(Size.Medium, Pawn, geometry, Settings);
     }
 
     // --- B.8 n° 8 : hauteur totale dépliée -------------------------------
