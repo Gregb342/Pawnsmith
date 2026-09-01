@@ -100,6 +100,9 @@ public sealed record UnfoldedUnit(
         {
             Geometry.FoldedTent => settings.FoldedTent.FlapHeightMm,
             Geometry.TabAndSocket => settings.TabAndSocket.TabHeightMm,
+            // No appendix at all, so the two appendix bands have zero height
+            // and the unit is exactly twice the pawn height (DEC-039).
+            Geometry.NoSupport => 0,
             _ => throw new ArgumentOutOfRangeException(nameof(geometry), geometry, null),
         };
     }
@@ -111,7 +114,8 @@ public sealed record UnfoldedUnit(
     /// <c>FoldedTent</c> gets three: the main fold, plus one at each
     /// image/appendix boundary, where the flaps fold outwards to form the base.
     /// <c>TabAndSocket</c> gets one: the tab is rigid with the figure and
-    /// slides into the socket, so it is never folded.
+    /// slides into the socket, so it is never folded. <c>NoSupport</c> gets one
+    /// for the same reason: there is nothing below the feet to fold.
     /// </remarks>
     private static IReadOnlyList<double> FoldLines(
         Geometry geometry,
@@ -123,6 +127,8 @@ public sealed record UnfoldedUnit(
         {
             Geometry.FoldedTent => [backImage.TopMm, foldLineYMm, frontImage.BottomMm],
             Geometry.TabAndSocket => [foldLineYMm],
+            // Only the main fold: there is nothing else to fold.
+            Geometry.NoSupport => [foldLineYMm],
             _ => throw new ArgumentOutOfRangeException(nameof(geometry), geometry, null),
         };
     }

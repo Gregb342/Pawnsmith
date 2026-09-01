@@ -19,4 +19,16 @@ public enum Geometry
     /// A rectangular tab below each feet line slides into a commercial base.
     /// </summary>
     TabAndSocket,
+
+    /// <summary>
+    /// Nothing below the feet line: the cut-out is the two panels and no more
+    /// (DEC-039).
+    /// </summary>
+    /// <remarks>
+    /// The pawn does not stand on its own. That is the point — it is for
+    /// whoever wants to glue it onto their own base, clip it, or simply lay the
+    /// figures flat. Since there is no appendix, the cell is shorter and a page
+    /// holds more of them.
+    /// </remarks>
+    NoSupport,
 }

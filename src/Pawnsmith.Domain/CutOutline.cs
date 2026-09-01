@@ -35,7 +35,9 @@ public static class CutOutline
 
         return geometry switch
         {
-            Geometry.FoldedTent => Rectangle(widthMm, totalHeightMm),
+            // Both give a plain rectangle, for opposite reasons: the folded
+            // tent's appendix spans the full width, and NoSupport has none.
+            Geometry.FoldedTent or Geometry.NoSupport => Rectangle(widthMm, totalHeightMm),
             Geometry.TabAndSocket => TabbedRectangle(
                 widthMm,
                 totalHeightMm,
