@@ -2,9 +2,11 @@
  
 | | |
 |---|---|
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 29 août 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.3, DEC-032 et DEC-033 |
+ 
+> **Changements depuis la v1.2** — T0b est marquée comme reportée (DEC-044). L'étape 0 se juge désormais en rapport avec le trait de calibration et non en millimètres absolus, et passe après l'étape 2 (DEC-045) : en l'état, elle aurait fait conclure à un bug de T1 pour une simple réduction d'imprimante.
  
 > **Changements depuis la v1.1** — T0a est marquée comme menée et concluante, avec renvoi vers DEC-043. Le modèle est corrigé : Krea 2 Turbo et non FLUX Krea. L'étape 1 précise ce que la grille ne mesure pas et qui pourtant décide — rotation contre miroir.
  
@@ -58,6 +60,8 @@ Pour chaque sujet, une seule génération demandant explicitement une feuille de
  
 # T0b — Mesures physiques
  
+> ⏸️ **T0b est reportée** à une date non fixée (DEC-044). T1 reste ouverte : écrite et testée, non validée. Le report ne bloque aucune autre tranche.
+ 
 **Durée estimée** : 2 heures
 **Prérequis** : le code de T1 compile et le CLI de B.7 produit un PDF. Une imprimante, du papier de plusieurs grammages, ciseaux, règle graduée ou réglet, colle en bâton, un socle de pion si disponible, un tapis de jeu quadrillé.
  
@@ -67,13 +71,14 @@ Pour chaque sujet, une seule génération demandant explicitement une feuille de
  
 DEC-033 identifie un risque : un défaut de géométrie dans T1 contaminerait toutes les mesures qui suivent, et on mesurerait consciencieusement du faux.
  
-Avant de découper quoi que ce soit, sur la première planche imprimée :
+> ⚠️ **Faire l'étape 2 d'abord** (DEC-045). Ce contrôle se juge **en rapport avec le trait de calibration mesuré sur la même feuille**, jamais en millimètres absolus. La première planche est forcément tirée avec un facteur de 1,0, donc une imprimante qui réduit de 2 % ferait mesurer 117,6 mm à une cellule de 120 : on conclurait à un bug de T1 pour une propriété de l'imprimante. Le trait et la cellule subissent la même réduction, c'est ce qui rend le rapport fiable — et c'est exactement ce que garantit le §B.5.5 en appliquant le facteur d'échelle au trait comme au reste.
+ 
+Sur la première planche imprimée, en notant `T` la longueur mesurée du trait de calibration :
  
 | Contrôle | Attendu |
 |---|---|
-| Trait de calibration au réglet | *(voir étape 2 — c'est la mesure, pas un contrôle)* |
-| Hauteur totale d'une cellule, bord haut à bord bas du contour | `2 × (pawnHeightMm + appendiceMm) × scaleCorrectionFactor` |
-| Largeur d'une cellule | `pawnWidthMm × scaleCorrectionFactor` |
+| Hauteur totale d'une cellule, bord haut à bord bas du contour | `2 × (pawnHeightMm + appendiceMm) × T / 100` |
+| Largeur d'une cellule | `pawnWidthMm × T / 100` |
 | Onglet centré horizontalement | Écarts gauche et droite égaux |
  
 Un écart au-delà de la tolérance de lecture du réglet arrête T0b : c'est un bug de T1, pas une propriété du papier.
