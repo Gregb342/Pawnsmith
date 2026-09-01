@@ -26,13 +26,13 @@ public sealed class RenderSheetUseCase
         _renderer = renderer;
     }
 
-    /// <summary>Produces the PDF bytes for one request.</summary>
+    /// <summary>Produces the PDF for one request, with what the domain noticed.</summary>
     /// <param name="request">Geometry, paper format and items to lay out.</param>
     /// <param name="calibration">Physical values.</param>
     /// <param name="imagesDirectory">Directory the image file names are relative to.</param>
     /// <param name="culture">Culture of the text printed on the sheet (DEC-023).</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    public async Task<byte[]> ExecuteAsync(
+    public async Task<RenderedSheet> ExecuteAsync(
         SheetRequest request,
         Calibration calibration,
         string imagesDirectory,
@@ -51,7 +51,18 @@ public sealed class RenderSheetUseCase
 
         SheetLayout layout = SheetLayoutBuilder.Build(request, calibration, imageSizes);
 
-        return await _renderer.RenderAsync(layout, culture, cancellationToken)
+        byte[] pdf = await _renderer.RenderAsync(layout, culture, cancellationToken)
             .ConfigureAwait(false);
+
+        // The layout travels back with the bytes rather than being thrown away:
+        // it carries the width-limited items of DEC-042, which the caller has to
+        // be able to report. A sheet that silently prints short pawns is exactly
+        // what that decision refuses.
+        return new RenderedSheet(pdf, layout);
     }
 }
+
+/// <summary>The produced PDF, and what the domain noticed while producing it.</summary>
+/// <param name="Pdf">The PDF bytes.</param>
+/// <param name="Layout">The resolved layout, including its diagnostics.</param>
+public sealed record RenderedSheet(byte[] Pdf, SheetLayout Layout);

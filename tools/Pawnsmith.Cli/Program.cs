@@ -39,17 +39,27 @@ try
         new FileImageSizeReader(),
         new PdfSharpSheetRenderer(manifest.ImagesDirectory, options.AnnotateOrientation));
 
-    byte[] pdf = await useCase.ExecuteAsync(
+    RenderedSheet sheet = await useCase.ExecuteAsync(
         manifest.Request,
         calibration,
         manifest.ImagesDirectory,
         CultureInfo.GetCultureInfo(manifest.Culture),
         CancellationToken.None).ConfigureAwait(false);
 
-    await File.WriteAllBytesAsync(options.OutputPath, pdf, CancellationToken.None)
+    await File.WriteAllBytesAsync(options.OutputPath, sheet.Pdf, CancellationToken.None)
         .ConfigureAwait(false);
 
-    Console.WriteLine($"Wrote {options.OutputPath} ({pdf.Length} bytes).");
+    Console.WriteLine($"Wrote {options.OutputPath} ({sheet.Pdf.Length} bytes).");
+
+    // DEC-042 — a width-limited pawn prints shorter than its size demands and
+    // nothing on the sheet reveals it. Report it rather than let it pass.
+    foreach (WidthLimitedItem item in sheet.Layout.WidthLimitedItems)
+    {
+        Console.WriteLine(
+            $"  note: '{item.ItemName}' ({item.Size}) prints at " +
+            $"{item.HeightUsage:P0} of its height ({item.PrintedHeightMm:F1} of " +
+            $"{item.AvailableHeightMm:F1} mm) — its width is the limiting factor.");
+    }
 
     return 0;
 }

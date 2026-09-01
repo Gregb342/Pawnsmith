@@ -11,7 +11,47 @@ namespace Pawnsmith.Domain;
 /// </remarks>
 /// <param name="Pages">The pages, in order, across all size groups.</param>
 /// <param name="Strokes">Stroke widths and colour of the printing marks.</param>
-public sealed record SheetLayout(IReadOnlyList<SheetPage> Pages, StrokeSettings Strokes);
+/// <param name="WidthLimitedItems">Items that print shorter than their size allows (DEC-042).</param>
+public sealed record SheetLayout(
+    IReadOnlyList<SheetPage> Pages,
+    StrokeSettings Strokes,
+    IReadOnlyList<WidthLimitedItem> WidthLimitedItems);
+
+/// <summary>
+/// An item whose artwork is held back by its width rather than its height
+/// (DEC-042).
+/// </summary>
+/// <remarks>
+/// <para>
+/// Such a pawn prints shorter than its size demands, and <b>nothing on the
+/// sheet reveals it</b> — it simply looks like a smaller creature. Measured on
+/// real artwork, two pawns of the same declared size came out with a ratio of
+/// 1.87 between them.
+/// </para>
+/// <para>
+/// The framing clause is what makes the case rare, but it only governs what the
+/// generator produces: artwork brought in by hand, and later the external import
+/// of EVO-010, escape it. So the engine reports rather than hides, and the sheet
+/// is still produced — a short pawn is usable, a missing one is not.
+/// </para>
+/// <para>
+/// One entry per item, not per copy: six copies of the same goblin are one
+/// problem, not six.
+/// </para>
+/// </remarks>
+/// <param name="ItemName">Name of the item, as written in the manifest.</param>
+/// <param name="Size">Size it was declared at.</param>
+/// <param name="PrintedHeightMm">Height the artwork actually reaches.</param>
+/// <param name="AvailableHeightMm">Height its size would have allowed.</param>
+public sealed record WidthLimitedItem(
+    string ItemName,
+    Size Size,
+    double PrintedHeightMm,
+    double AvailableHeightMm)
+{
+    /// <summary>Share of the available height actually used, from 0 to 1.</summary>
+    public double HeightUsage => PrintedHeightMm / AvailableHeightMm;
+}
 
 /// <summary>One page of the sheet.</summary>
 /// <param name="Size">Size of every pawn on this page (DEC-005).</param>
