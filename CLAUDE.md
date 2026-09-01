@@ -292,16 +292,14 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 ## 8. État actuel
 
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
-l'intégration continue a tourné au vert sur `main`. Les projets .NET sont
-**vides** — aucune logique métier nulle part, seulement le strict minimum pour
-compiler, plus deux tests fumigènes qui donnent à la CI quelque chose à
-exécuter. Ne pas les supprimer tant qu'aucun vrai test ne les remplace.
+l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.4**, cahier des charges **v1.3**,
+Documents de référence en vigueur : bible **v0.7**, cahier des charges **v1.3**,
 protocole T0 **v1.1**.
 
-**La tranche T1 (moteur de mise en page et rendu PDF) est terminée**, ses onze
-tâches committées :
+**La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
+tâches committées, plus quatre décisions nées de son usage sur de vraies
+illustrations.
 
 | # | Tâche | État |
 |---|---|---|
@@ -317,21 +315,53 @@ tâches committées :
 | 10 | Rendu PDFsharp et `.resx` | ✅ |
 | 11 | CLI de B.7 | ✅ |
 
-**133 tests verts**, les 19 du §B.8 couverts. Une seule dépendance de production :
-PDFsharp 6.2.4 (MIT), référencée par `Pawnsmith.Infrastructure`.
+| Décision | Objet | Implémentée ? |
+|---|---|---|
+| DEC-039 | Géométrie `NoSupport`, rien sous les pieds | ✅ |
+| DEC-040 | Cotes d'onglet réglables par l'utilisateur | ❌ — touche le schéma de `Projet`, donc **T2** |
+| DEC-041 | Le couple recto/verso partage une échelle | ✅ |
+| DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait, la **clause** relève de **T3** |
 
-**Ce qui reste avant de clore T1** : les critères d'acceptation du §B.9 se
-cochent planche imprimée en main, donc après T0b. Deux points sont en attente
-d'arbitrage — la police Segoe WP embarquée dans le PDF (réserve de licence, voir
-`THIRD-PARTY-NOTICES.md`) et la hauteur inventée des repères du trait de
-calibration.
+**154 tests verts**, les 19 du §B.8 couverts. Une seule dépendance de
+production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
+licence libre autorisant l'incorporation dans un document — point important,
+puisqu'une police utilisée dans un PDF y est redistribuée.
 
-Produire une planche :
+### Comment faire tourner les choses
+
+**Produire une planche** — c'est le livrable réel de T1 :
 
 ```bash
 dotnet run --project tools/Pawnsmith.Cli -- --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
 ```
 
-T0a (test décisif du générateur, sans code) reste à mener. T0b (mesures papier)
-vient **après** le code de T1, dont elle utilise le CLI (DEC-033) : T1 s'écrit
-donc avec les valeurs provisoires, et c'est normal.
+Ajouter `--debug` imprime « tête » et « pieds » dans chaque panneau. Diagnostic
+seulement, jamais sur une planche destinée au ciseau.
+
+**Lancer l'application** — elle ne sert encore que la coquille du front, sans
+aucune fonctionnalité : l'interface est T6.
+
+```bash
+docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 pawnsmith
+```
+
+### Ce qui reste avant de clore T1
+
+Les critères d'acceptation du §B.9 se cochent **planche imprimée en main**, donc
+après T0b.
+
+🔖 **À demander au porteur à la clôture de T1 : le filigrane (« watermark »).**
+Sujet noté et volontairement non instruit — ne pas y réfléchir avant, ne pas
+l'oublier au moment venu.
+
+### T0a et T0b
+
+**T0a** (test décisif de DEC-003) **ne concerne pas ce dépôt** : ni code, ni
+impression, ni Pawnsmith. C'est un essai dans ComfyUI, mené par le porteur, qui
+répond à une seule question — le modèle produit-il en une génération une vue de
+face et une vue de dos du **même** personnage ? Protocole complet en tête de
+`docs/pawnsmith-protocole-t0.md`, avec sa grille de huit critères et son seuil.
+
+**T0b** (mesures papier) vient **après** le code de T1, dont elle utilise le CLI
+(DEC-033), avec plusieurs fichiers de calibration variantes passés à
+`--calibration`. T1 s'écrit donc avec les valeurs provisoires, et c'est normal.
