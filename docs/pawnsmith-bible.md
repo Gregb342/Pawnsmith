@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.8 |
+| **Version du document** | 0.9 |
 | **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.8** — DEC-044 (T0b reportée ; T1 reste ouverte, écrite et testée mais non validée ; le travail continue sur T2). DEC-045 (l'étape 0 de T0b se juge en rapport avec le trait de calibration, pas en millimètres absolus — sans quoi on conclurait à un bug de T1 pour une propriété de l'imprimante). Correction au §15.3 : le prompt résolu y était décrit comme stocké et éditable, ce que DEC-028 contredit.
  
 > **Changements depuis la v0.7** — DEC-043 : T0a est menée et concluante. DEC-003 tient — le modèle effectue une rotation réelle du personnage et non un miroir. Le prompt de référence est consigné. Correction : le modèle installé est Krea 2 Turbo et non FLUX Krea, ce qui rend les LoRA et ControlNet FLUX incompatibles.
  
@@ -754,6 +756,17 @@ Un dernier constat, à surveiller plutôt qu'à corriger : sur le sujet 1, une c
 
 Les trois planches produites sont conservées dans `refs/gen comfyui krea2/`, non versionnées comme le reste du dossier. Elles servent de matière première aux gabarits de T0b.
 
+**DEC-044 — T0b est reportée ; T1 reste ouverte et le travail continue sur T2.**
+Choix : la calibration physique T0b est repoussée à une date non fixée. L'ordre de DEC-033 devient **Fondations → T0a → T1 (code) → T2 → … → T0b → T1 (validation)**. T1 n'est pas close pour autant : elle est **écrite et testée, non validée**.
+Conséquence : le report ne bloque qu'une seule chose, la clôture formelle de T1, dont les critères du §B.9 se cochent planche imprimée en main. Il ne bloque **ni T2, ni T3, ni T4, ni T5** : aucune de ces tranches ne touche à une valeur physique. Le code s'en accommode par construction, puisque le §B.2 impose au moteur de **lire** ces valeurs et de ne jamais les connaître — remplacer une hauteur de pion ne demandera pas une ligne de code.
+Risque assumé, et il faut le nommer : l'étape 0 de T0b existe pour attraper un défaut de géométrie dans T1, et on construira donc T2 et T3 sur un moteur jamais confronté au papier. L'exposition reste faible pour deux raisons — T2 et T3 ne consomment rien de la géométrie de T1, et celle-ci est couverte par des tests de symétrie et des vérifications par mutation. Si un défaut subsiste, il portera sur des **valeurs**, pas sur du code, et sa correction restera confinée à T1.
+Ce que cette fiche ne fait pas : elle ne dispense pas de T0b. Tant qu'elle n'est pas menée, aucune planche ne peut être déclarée conforme, et les valeurs de `config/calibration.json` restent des marqueurs.
+
+**DEC-045 — L'étape 0 de T0b se juge en rapport, pas en millimètres absolus.**
+Choix : le contrôle du moteur de l'étape 0 compare les dimensions relevées **au trait de calibration mesuré sur la même feuille**, et non à leur valeur nominale en millimètres. L'ordre des étapes est corrigé en conséquence : mesurer le trait d'abord, contrôler le moteur ensuite.
+Défaut corrigé : le protocole demandait de vérifier qu'une cellule mesure `2 × (hauteur + appendice) × facteur`, et concluait qu'un écart au-delà de la tolérance du réglet « arrête T0b, c'est un bug de T1 ». Or le facteur n'est pas encore connu à ce moment — c'est l'étape suivante qui le mesure — et la première planche est nécessairement tirée avec un facteur de 1,0. Une imprimante réduisant de 2 % ferait mesurer 117,6 mm à une cellule de 120, soit 2,4 mm d'écart, très au-delà du réglet. **On aurait conclu à un bug de T1 pour une propriété de l'imprimante.**
+Conséquence : le contrôle redevient valide sans rien mesurer de plus, parce que le trait et la cellule subissent exactement la même réduction. C'est précisément ce que garantissait le §B.5.5 en décidant que le facteur d'échelle s'applique **aussi** au trait de calibration — une décision prise pour la lisibilité de la mesure, et qui sert ici une seconde fois.
+
 ---
  
 ## 12. Découpage en tranches
@@ -948,7 +961,8 @@ La distinction obligatoire / optionnel est celle de DEC-024, et elle est structu
 |---|---|---|
 | **Obligatoires** | `race`, `classe`, `taille` | — ils ne peuvent pas être vides |
 | **Optionnels** | clés du catalogue : arme, armure, vêtement, couleur… | **« non contraint »**, et non « absent de l'illustration » |
-| **Libres** | `details`, puis le `promptResolu`, stocké et éditable | — |
+| **Libres** | `details`, puis la `clauseSujet`, stockée et éditable | — |
+| **Lecture seule** | le `promptResolu`, dérivé et affiché tel quel (DEC-028) | — |
 
 **La formulation des optionnels est un travail d'interface à part entière, pas un choix de libellé.** Un utilisateur qui décoche « arme » croit demander un personnage désarmé ; il demande en réalité un personnage dont l'arme n'est pas imposée. C'est l'incompréhension la plus prévisible du produit, et elle se règle par les mots, pas par un champ de plus.
 
