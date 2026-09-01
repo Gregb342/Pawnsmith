@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.6 |
+| **Version du document** | 0.7 |
 | **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.6** — DEC-042 (la clause de cadrage impose la pose ; mesures à l'appui, les huit illustrations d'essai étaient toutes limitées par leur largeur). DEC-039 (troisième géométrie `NoSupport`, sans appendice). DEC-040 (les cotes de l'onglet sont réglables, et la troisième catégorie de valeur physique est nommée). DEC-041 (le recto et le verso partagent une échelle unique — défaut mesuré jusqu'à 4,5 mm d'écart sur des illustrations réelles).
  
 > **Changements depuis la v0.5** — DEC-038 : les cinq conventions géométriques du domaine, posées pendant les tâches 2 et 3 de T1 et absentes de tout document jusqu'ici — sens de l'axe vertical, coordonnées relatives à l'unité, fermeture implicite des polygones, millimètre partout, rejet des incohérences internes de la calibration.
  
@@ -652,6 +654,46 @@ Conséquence, convention par convention. **Le sens de l'axe (1)** n'est écrit d
 **Le millimètre (4)** est la reprise de l'exigence du §B.6, énoncée ici comme une propriété du domaine et pas seulement une consigne de rendu : aucun type du domaine ne porte de point, de pixel ou de pouce.
 **Le rejet des incohérences (5)** couvre ce que la liste de validation du §B.3 ne couvre pas. Cette liste porte sur le **manifeste** — fichiers présents, taille connue, quantité ≥ 1 — et pas sur la cohérence interne de la **calibration**. Premier cas rencontré : un onglet plus large que le pion produit une abscisse d'onglet négative, donc un contour retourné sur lui-même, valide en apparence, tracé, imprimé, et découvert au ciseau. Le cas est impossible avec les valeurs actuelles, mais `calibration.json` est précisément le fichier qu'on éditera à la main pendant T0b en faisant varier ces valeurs-là.
 Portée : ces conventions engagent `Pawnsmith.Domain` et tout ce qui le consomme. Elles ne sont pas négociables tranche par tranche ; les changer est une nouvelle fiche.
+
+**DEC-039 — Une troisième géométrie, sans aucun support.**
+Choix : ajouter `NoSupport` à `Geometry`. L'appendice a une hauteur nulle, le contour se réduit au rectangle des deux images, et il ne reste que le pli principal. Supersède le mot « double » de DEC-001, dont tout le reste demeure.
+Conséquence : couvre le cas de l'utilisateur qui ne veut que la découpe — pour coller le pion sur son propre socle, le pincer dans une attache, ou simplement disposer des figures à plat. Le §5.2 réduisait déjà la différence entre géométries à « ce qui est ajouté sous la ligne des pieds » : l'absence d'ajout en est une valeur légitime, et le modèle l'accueille sans nouvelle abstraction.
+Effet secondaire, plus étroit qu'il n'y paraît : sans appendice, la cellule mesure `2 × hauteurPion` au lieu de `2 × (hauteurPion + appendice)`. Avec les hauteurs provisoires, cela ne fait gagner une rangée que dans **un seul cas — `Small` sur A4, qui passe de 12 à 18 pions**. Partout ailleurs la capacité est identique : la cellule raccourcit de 16 à 20 mm, ce qui ne suffit jamais à laisser passer une rangée de plus. Le raccourcissement ne peut en revanche jamais faire perdre de capacité, et c'est verrouillé par un test. T0b déplacera probablement cette frontière.
+Ce n'est pas EVO-003, qui décrit une autre troisième géométrie : deux pièces séparées collées sur une âme carton, avec repères d'alignement. Celle-là reste différée.
+
+**DEC-040 — Les cotes de l'onglet sont réglables par l'utilisateur.**
+Choix : `tabWidthMm` et `tabHeightMm` cessent d'être des valeurs de calibration figées et deviennent modifiables. Elles gardent une valeur par défaut dans `calibration.json` ; leur surcharge par projet relève du schéma de T2.
+Conséquence : cette fiche existe surtout pour nommer une **troisième catégorie de valeur physique**, que le projet confondait jusqu'ici avec les deux autres.
+
+| Catégorie | Exemples | Qui la détermine | Modifiable ? |
+|---|---|---|---|
+| Mesure d'imprimante | `pageMarginMm`, `scaleCorrectionFactor` | La machine, en T0b | Non — elle se mesure |
+| Préférence d'usage | `gutterMm` | La dextérité au ciseau | Ouvert, voir §15.6 |
+| **Matériel possédé** | **`tabWidthMm`, `tabHeightMm`** | **La fente des socles du commerce** | **Oui** |
+
+La distinction n'est pas rhétorique. Une marge de page mal réglée produit des pions rognés sans que rien ne le signale, d'où son verrouillage. La largeur de l'onglet, elle, est la cote d'un objet que l'utilisateur tient en main et qui change avec la marque de socle qu'il achète : la verrouiller obligerait à recalibrer le projet entier pour une raison qui n'a rien à voir avec l'impression.
+À ne pas perdre de vue : `tabHeightMm` entre dans la hauteur de cellule du §B.5.2. Changer de socles change donc la capacité des pages, et une planche qui tenait en 12 pions peut en tenir 10. C'est correct, et cela doit être visible dans l'interface plutôt que découvert à l'export.
+
+**DEC-041 — Le recto et le verso d'un même pion partagent une seule échelle.**
+Choix : les deux images d'un couple sont mises à l'échelle par un facteur unique, calculé pour que les deux tiennent dans la boîte. Le §B.4.4, qui décrit le placement image par image, est corrigé en conséquence.
+Défaut constaté qui motive cette fiche, et il est physique, pas esthétique : le §B.4.4 traite chaque image indépendamment, donc deux vues d'un même personnage n'ayant pas exactement le même encombrement en pixels sortent à des hauteurs différentes. Mesuré sur des illustrations réelles, en `Medium` et en `Large` :
+
+| Personnage | Recto | Verso | Écart |
+|---|---|---|---|
+| orc lancier | 20,5 mm | 22,7 mm | 2,2 mm |
+| orc marteau | 35,8 mm | 32,7 mm | 3,1 mm |
+| orc fléau | 36,1 mm | 38,2 mm | 2,1 mm |
+| troll massue | 70,0 mm | 65,5 mm | **4,5 mm** |
+
+Conséquence : après pliage, la face arrière dépasse la face avant de plusieurs millimètres, et le pion n'est pas symétrique. C'est exactement le genre de défaut que la bible signale comme invisible au test et visible au ciseau. Le couple recto/verso est déclaré indissociable au chapitre 2 — la mise à l'échelle doit l'être aussi.
+
+**DEC-042 — La clause de cadrage impose la pose ; la largeur du pion ne bouge pas.**
+Choix : contraindre l'image à la source plutôt que la boîte qui l'accueille. La clause de cadrage du §4.1 gagne une exigence de **pose** — silhouette entière, armes et bras compris, tenant dans un cadre portrait d'au moins deux fois plus haut que large, aucun membre ni aucune arme n'élargissant la silhouette. `pawnWidthMm` reste égal à l'emprise de grille, et la règle de mise à l'échelle du §B.4.4 est inchangée.
+Contexte mesuré, sur des illustrations réelles en `Medium` (boîte de 22,4 × 48,5 mm) : **les huit images étaient limitées par leur largeur, aucune par sa hauteur**. La hauteur imprimée allait de 20,5 à 38,2 mm pour une hauteur disponible de 48,5 — soit un rapport de **1,87** entre deux pions de taille pourtant identique, et 20 à 58 % de hauteur perdue sur chacun.
+Conséquence, et c'est ce qui motive le choix : deux autres leviers existaient, et aucun ne réglait la cause. **Élargir `pawnWidthMm`** aurait coûté une colonne par page — six au lieu de sept en `Medium` sur US Letter — sans sauver le cas qui a déclenché le constat, un orc tenant sa lance à l'horizontale sur toute la largeur de l'image : aucune largeur raisonnable ne le rattrape. **Corriger après coup** n'a pas de sens quand la cause est en amont. Une pose contrainte, elle, rend le problème structurellement absent, et donne au passage ce qui manquait le plus : **des créatures de même espèce sortant toutes à la même hauteur**, ce qui est le critère de qualité visuelle d'une planche.
+Contrepartie assumée : le catalogue de poses se restreint. Une figurine de 25 mm vue à un mètre n'a de toute façon pas besoin d'une pose dynamique, et le §4.1 rappelle que cette clause n'est pas une préférence esthétique mais ce qui rend l'étape suivante fiable.
+**La clause ne couvre pas tout, et l'écart doit être signalé.** Elle gouverne ce que le générateur produit, pas ce qui entre par ailleurs : les images déjà en main, et plus tard l'import d'images externes (EVO-010), échappent à toute clause. Le moteur conserve donc sa règle — l'image entre dans sa boîte quoi qu'il arrive — mais **signale toute image dont la largeur est le facteur limitant**, en nommant l'élément et la hauteur réellement obtenue. Une incohérence invisible devient une information sur laquelle agir.
+Relève de T3 pour la clause, et de T1 pour le signalement. La clause reste inaccessible depuis l'interface (DEC-029).
 
 ---
  
