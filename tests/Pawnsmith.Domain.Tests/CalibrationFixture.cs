@@ -48,4 +48,46 @@ internal static class CalibrationFixture
     {
         return UnfoldedUnit.Create(size, Pawn(size), geometry, Geometry);
     }
+
+    /// <summary>The whole calibration graph, with every size present.</summary>
+    public static Calibration Calibration { get; } = Build(AllSizes());
+
+    /// <summary>Carries the Gargantuan height that shipped in v1.1 (DEC-032).</summary>
+    public static Calibration CalibrationWithImpossibleGargantuan { get; } = Build(
+        AllSizes().ToDictionary(
+            entry => entry.Key,
+            entry => entry.Key == Size.Gargantuan
+                ? new PawnDimensions(101.6, 101.6, 125.0)
+                : entry.Value));
+
+    /// <summary>Missing one size, to exercise the lookup failure.</summary>
+    public static Calibration CalibrationWithoutSmall { get; } = Build(
+        AllSizes().Where(entry => entry.Key != Size.Small)
+            .ToDictionary(entry => entry.Key, entry => entry.Value));
+
+    private static Dictionary<Size, PawnDimensions> AllSizes()
+    {
+        return Enum.GetValues<Size>().ToDictionary(size => size, Pawn);
+    }
+
+    private static Calibration Build(IReadOnlyDictionary<Size, PawnDimensions> sizes)
+    {
+        return new Calibration(
+            VersionSchema: 1,
+            Paper: new PaperNote(250, "Fixture."),
+            Sizes: sizes,
+            Geometry: Geometry,
+            Layout: Layout,
+            Print: new PrintSettings(ScaleCorrectionFactor: 1.0),
+            Strokes: new StrokeSettings(
+                CutWidthMm: 0.25,
+                FoldWidthMm: 0.25,
+                ColorHex: "#B0B0B0",
+                FoldDashPatternMm: [2.0, 2.0]),
+            PaperFormats: new Dictionary<string, PaperFormat>
+            {
+                [A4.Name] = A4,
+                [Letter.Name] = Letter,
+            });
+    }
 }
