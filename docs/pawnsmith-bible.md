@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.4 |
+| **Version du document** | 0.5 |
 | **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.4** — DEC-037 : l'anglais devient la langue du code, des journaux, des clés de fichiers et des prompts ; le français reste celle de l'interface traduite et de ces documents. La clause « repris tel quel » du chapitre 2 est superseedée et la table de correspondance des termes est fixée. Le renommage qui en découle est appliqué dans tout le document **sauf au chapitre 11**, dont les fiches sont des enregistrements datés.
  
 > **Changements depuis la v0.3** — Ajout du **chapitre 15**, structure de l'interface : navigation, anatomie de l'écran de mise en page, panneau de paramètres à deux niveaux, indicateur de capacité, et la liste de ce que l'interface ne fait pas. DEC-034 (la coquille d'une maquette exploratoire est retenue, son contenu est rejeté). DEC-035 (les marges de page restent uniformes ; le gain abandonné est chiffré). DEC-036 (le paysage est une entrée de configuration, pas une bascule ; son intérêt dépend de la taille). §5.4 et critères de T6 renvoyés vers le chapitre 15.
  
@@ -70,7 +72,7 @@ Ces points ne sont pas « plus tard », ils sont **hors sujet**. Les inscrire ic
  
 ## 2. Glossaire
  
-Ce vocabulaire est contraignant : il est repris tel quel dans le code, les noms de classes, l'interface et les messages de journalisation. Toute divergence est un défaut.
+Ce vocabulaire est contraignant en tant que **concept** : un terme désigne une seule chose, partout, et toute divergence de sens est un défaut. Il ne l'est plus en tant que **graphie** : depuis DEC-037, le code, les journaux et les prompts sont en anglais, et l'identifiant de chaque terme est donné par la table de correspondance de cette fiche. Le français reste la langue de ce document et du catalogue d'interface `fr`.
  
 | Terme | Définition |
 |---|---|
@@ -607,6 +609,29 @@ Conséquence : coût nul, DEC-016 le permettait déjà — le moteur ne connaît
 | `Gigantesque` | 1 × 1 = **1** | 2 × 0 = **0** | paysage inutilisable |
 
 La dégradation est propre et déjà spécifiée : un format paysage choisi avec des `TresGrande` produit une capacité nulle, donc l'erreur explicite du §B.5.2 nommant la taille en cause. Une sélection automatique de l'orientation serait en revanche un **choix implicite du moteur**, ce que le chapitre 0 du cahier des charges interdit. Si le gain sur `Grande` se révèle utile à l'usage, ce sera une EVO avec sa fiche, pas un comportement qui apparaît tout seul.
+
+**DEC-037 — L'anglais est la langue du code et des prompts ; le français est celle de l'interface et des documents.**
+Choix : trois registres, séparés une fois pour toutes. **Le code** — types, membres d'énumération, méthodes, journaux, et les clés de `calibration.json` comme du manifeste — est en anglais. **L'interface** est traduite, par les catalogues `fr` et `en` (chapitre 10) ; aucune chaîne affichée n'est écrite en dur, quelle que soit sa langue. **Les prompts**, préenregistrés comme générés, sont en anglais. Cette fiche supersède la clause « repris tel quel dans le code » du chapitre 2.
+
+| Glossaire (ch. 2) | Identifiant de code |
+|---|---|
+| Projet | `Project` |
+| Univers | `Universe` |
+| Style | `Style` |
+| Géométrie | `Geometry` — valeurs `FoldedTent`, `TabAndSocket` |
+| Gabarit | `Blueprint` |
+| Candidat | `Candidate` |
+| Couple recto/verso | `PawnPair` |
+| Taille | `Size` — valeurs `Small`, `Medium`, `Large`, `Huge`, `Gargantuan` |
+| Planche | `Sheet` |
+| Catalogue | `Catalog` |
+| Job | `Job` |
+
+Conséquence : on tranche une incohérence qui existait déjà, plutôt que d'en créer une. Le chapitre 7 écrit `ISheetRenderer`, `SheetLayout`, `PawnPair`, `RawImage` et `IProjectRepository` en anglais depuis le premier jour, et une signature comme `Compose(Gabarit gabarit, Style style, Univers univers)` mélangeait deux langues dans la même ligne.
+Sur les tailles, le gain est réel et pas seulement cosmétique : DEC-031 établit que les cinq catégories **sont** Small, Medium, Large, Huge et Gargantuan dans les règles du jeu. `Medium` n'est donc pas la traduction de `Moyenne`, c'est le nom d'origine, et l'on supprime une couche de traduction au lieu d'en ajouter une.
+Sur les prompts, le motif est technique : les modèles de diffusion sont entraînés très majoritairement sur des légendes anglaises, et un prompt français produit des résultats moins fidèles. Conséquence à assumer dans l'interface : dans une session en français, la clause de style et le prompt résolu éditable restent en anglais. Cela se dit à l'utilisateur, cela ne se découvre pas.
+Les clés de fichier suivent le code plutôt que l'inverse. Un `calibration.json` en français lu par un code en anglais imposerait une couche de correspondance permanente entre ce qu'on lit dans le fichier et ce qu'on lit dans le code — exactement le genre d'écart qui coûte cher en relecture (DEC-027).
+Portée du renommage : **le chapitre 11 n'est pas touché.** Les fiches sont des enregistrements datés, et ce document interdit d'en modifier une. DEC-015 continue donc de dire « Moyenne / Grande / Très Grande / Gigantesque », et c'est correct : c'est ce qui a été décidé ce jour-là.
 
 ---
  
