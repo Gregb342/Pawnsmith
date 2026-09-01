@@ -2,9 +2,11 @@
  
 | | |
 |---|---|
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Date** | 29 août 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.3, DEC-032 et DEC-033 |
+ 
+> **Changements depuis la v1.1** — T0a est marquée comme menée et concluante, avec renvoi vers DEC-043. Le modèle est corrigé : Krea 2 Turbo et non FLUX Krea. L'étape 1 précise ce que la grille ne mesure pas et qui pourtant décide — rotation contre miroir.
  
 > **Changements depuis la v1.0** — Le protocole est scindé en **T0a** (test décisif, exécutable immédiatement) et **T0b** (mesures physiques, après le code de T1). Le « script Python de gabarit » posé en prérequis est supprimé : les gabarits sont produits par le CLI de T1 (DEC-033). L'étape 4 ne demande plus de déduire les grandes tailles « par proportion » — c'était faux et physiquement impossible (DEC-032). Ajout d'une étape 0 de vérification du moteur.
  
@@ -15,13 +17,17 @@
 # T0a — Test décisif
  
 **Durée estimée** : 1 heure
-**Prérequis** : ComfyUI opérationnel avec FLUX Krea. **Aucun code Pawnsmith, aucune impression.**
+**Prérequis** : ComfyUI opérationnel avec le modèle local. **Aucun code Pawnsmith, aucune impression.**
+ 
+> ✅ **T0a a été menée le 1er septembre 2026, et elle est concluante.** Verdict, prompt de référence et paramètres de génération sont consignés en **DEC-043**. Ce qui suit reste la procédure, à rejouer si le modèle change.
+ 
+> ⚠️ **Correction.** Les versions antérieures de ce protocole annonçaient « FLUX Krea ». Le modèle réellement installé est **Krea 2 Turbo** — architecture différente, encodeur Qwen3-VL, 8 étapes à CFG 1 dont on ne sort pas. Conséquence : **les LoRA et ControlNet de l'écosystème FLUX sont incompatibles** (DEC-043).
  
 T0a ne dépend de rien et passe **avant tout le reste**, y compris avant le code de T1. C'est la seule question ouverte du projet capable de faire tomber une décision d'architecture.
  
 ## Étape 1 — La planche de rotation
  
-**Ce qu'on teste** : la capacité de FLUX Krea à produire, en une seule génération, une vue de face et une vue de dos du **même** personnage.
+**Ce qu'on teste** : la capacité du modèle local à produire, en une seule génération, une vue de face et une vue de dos du **même** personnage. Et, ce que la grille ne mesure pas directement mais qui décide : une **rotation** du personnage, pas un miroir de la vue de face (DEC-002).
  
 **Protocole** : trois sujets nettement différents — par exemple un guerrier orc en armure lourde, un mage humain en robe, un éclaireur avec cape et capuche. La cape et la capuche sont volontairement choisies : ce sont les éléments que les modèles perdent en premier.
  

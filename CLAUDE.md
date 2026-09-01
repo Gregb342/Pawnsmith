@@ -294,8 +294,8 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.7**, cahier des charges **v1.3**,
-protocole T0 **v1.1**.
+Documents de référence en vigueur : bible **v0.8**, cahier des charges **v1.3**,
+protocole T0 **v1.2**.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -356,11 +356,24 @@ l'oublier au moment venu.
 
 ### T0a et T0b
 
-**T0a** (test décisif de DEC-003) **ne concerne pas ce dépôt** : ni code, ni
-impression, ni Pawnsmith. C'est un essai dans ComfyUI, mené par le porteur, qui
-répond à une seule question — le modèle produit-il en une génération une vue de
-face et une vue de dos du **même** personnage ? Protocole complet en tête de
-`docs/pawnsmith-protocole-t0.md`, avec sa grille de huit critères et son seuil.
+**T0a** (test décisif de DEC-003) **est menée et concluante** — DEC-043. Le
+modèle local effectue une **rotation réelle** du personnage et non un miroir de
+la vue de face, ce qui est exactement ce qu'exigeait DEC-002 et la propriété la
+plus difficile à obtenir. La génération jumelée est confirmée, T4 peut être
+spécifiée sur cette base, et le prompt de référence est consigné dans la fiche.
+
+Deux points de vigilance en découlent, à traiter dans leur tranche et pas avant :
+une **bande de sol de 1 %** collée aux pieds, qui risque de survivre au
+détourage et de devenir la ligne des pieds (**T5**) ; et une **adhérence
+imparfaite à l'équipement demandé** — une hache réclamée, deux dagues obtenues
+(**T3**).
+
+À ne pas croire sur parole ailleurs : le modèle installé est **Krea 2 Turbo**,
+pas FLUX Krea comme l'annonçaient les versions antérieures du protocole. Les
+LoRA et ControlNet FLUX sont **incompatibles**.
+
+Les trois planches de T0a sont dans `refs/gen comfyui krea2/`, non versionnées
+comme le reste de `refs/`. Elles sont la matière première des gabarits de T0b.
 
 **T0b** (mesures papier) vient **après** le code de T1, dont elle utilise le CLI
 (DEC-033), avec plusieurs fichiers de calibration variantes passés à
