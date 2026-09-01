@@ -11,11 +11,11 @@
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
  
-> **Changements depuis la v0.4** — DEC-037 : l'anglais devient la langue du code, des journaux, des clés de fichiers et des prompts ; le français reste celle de l'interface traduite et de ces documents. La clause « repris tel quel » du chapitre 2 est superseedée et la table de correspondance des termes est fixée. Le renommage qui en découle est appliqué dans tout le document **sauf au chapitre 11**, dont les fiches sont des enregistrements datés.
+> **Changements depuis la v0.4** — DEC-037 : l'anglais devient la langue du code, des journaux, des clés de fichiers et des prompts ; le français reste celle de l'interface traduite et de ces documents. La clause « repris tel quel » du chapitre 2 est superseedée et la table de correspondance des termes est fixée. Renommage appliqué dans tout le document **sauf au chapitre 11**, dont les fiches sont des enregistrements datés.
  
 > **Changements depuis la v0.3** — Ajout du **chapitre 15**, structure de l'interface : navigation, anatomie de l'écran de mise en page, panneau de paramètres à deux niveaux, indicateur de capacité, et la liste de ce que l'interface ne fait pas. DEC-034 (la coquille d'une maquette exploratoire est retenue, son contenu est rejeté). DEC-035 (les marges de page restent uniformes ; le gain abandonné est chiffré). DEC-036 (le paysage est une entrée de configuration, pas une bascule ; son intérêt dépend de la taille). §5.4 et critères de T6 renvoyés vers le chapitre 15.
  
-> **Changements depuis la v0.2** — Ajout du **chapitre 14**, table de référence des grilles de jeu et des tailles de créature, sourcée. DEC-031 (cinq tailles nommées d'après les règles, emprise et hauteur découplées ; rejet de l'échelle S/M/L/XL/XXL). DEC-032 (la loi de progression des hauteurs est une décision de conception, bornée par le format de papier — la valeur provisoire de `Gigantesque` rendait la capacité de page nulle). DEC-033 (T0 scindée en T0a et T0b ; le CLI de T1 remplace le script de gabarit jetable). EVO-011 (taille Minuscule). Tableau des tailles du §3.1 étendu, §5.6 borné, chapitre 12 réordonné.
+> **Changements depuis la v0.2** — Ajout du **chapitre 14**, table de référence des grilles de jeu et des tailles de créature, sourcée. DEC-031 (cinq tailles nommées d'après les règles, emprise et hauteur découplées ; rejet de l'échelle S/M/L/XL/XXL). DEC-032 (la loi de progression des hauteurs est une décision de conception, bornée par le format de papier — la valeur provisoire de `Gargantuan` rendait la capacité de page nulle). DEC-033 (T0 scindée en T0a et T0b ; le CLI de T1 remplace le script de gabarit jetable). EVO-011 (taille Minuscule). Tableau des tailles du §3.1 étendu, §5.6 borné, chapitre 12 réordonné.
  
 > **Changements depuis la v0.1** — DEC-028, DEC-029 et DEC-030 ajoutées (composition du prompt en trois clauses, désalignement à la place du verrouillage). Suppression des « cotes de l'encoche », résidu de la piste d'impression externe abandonnée. Ajout de la tranche Fondations au chapitre 12. Ajout d'EVO-010 (import d'images externes), décidé mais jamais consigné. Vocabulaire du chapitre 2 étendu : clause sujet, clause style, clause cadrage, désaligné.
  
@@ -45,7 +45,7 @@ Pawnsmith est une application web auto-hébergée qui produit, à partir de para
 - Détourage local et systématique.
 - Deux géométries de pion : tente pliée et pion à onglet avec socle.
 - Mise en page en grille uniforme, une taille de pion par page, plusieurs pages par projet.
-- **Cinq tailles** calées sur les emprises de la grille de jeu : Petite, Moyenne, Grande, Très Grande, Gigantesque (DEC-031).
+- **Cinq tailles** calées sur les emprises de la grille de jeu : Small, Medium, Large, Huge, Gargantuan (DEC-031).
 - Export PDF, formats A4 et US Letter.
 - Sauvegarde et rechargement de projets, export et import d'archives.
 - Interface bilingue français / anglais.
@@ -88,7 +88,7 @@ Ce vocabulaire est contraignant en tant que **concept** : un terme désigne une 
 | **Prompt résolu** | Assemblage des trois clauses. Valeur **dérivée** : ni stockée sur le gabarit, ni éditable. |
 | **Désaligné** | État **calculé** d'un candidat dont le `promptUtilise` figé diffère du prompt résolu que produirait le composeur aujourd'hui. Orthogonal au statut. Voir DEC-030. |
 | **Couple recto/verso** | Paire d'images indissociable attachée à un candidat : la vue de face et la vue de dos du même personnage. La validation porte sur le couple, jamais sur une face isolée. |
-| **Taille** | Catégorie de créature, nommée d'après les règles de jeu (Petite, Moyenne, Grande, Très Grande, Gigantesque). Porte **deux dimensions indépendantes** : l'emprise sur la grille et la hauteur du pion. Sert de clé de regroupement en pages. Voir DEC-031 et le chapitre 14. |
+| **Taille** | Catégorie de créature, nommée d'après les règles de jeu (Small, Medium, Large, Huge, Gargantuan). Porte **deux dimensions indépendantes** : l'emprise sur la grille et la hauteur du pion. Sert de clé de regroupement en pages. Voir DEC-031 et le chapitre 14. |
 | **Emprise** | Côté du carré occupé par la créature sur la grille de jeu, en millimètres. Fait documenté, issu des règles (chapitre 14). |
 | **Planche** | Une page PDF, contenant les pions d'une seule taille, disposés en grille uniforme, avec les repères d'impression. |
 | **Catalogue** | Listes de valeurs proposées dans l'interface pour les paramètres d'un gabarit (armes, armures, etc.). Éditable par l'utilisateur. |
@@ -108,7 +108,7 @@ Ce vocabulaire est contraignant en tant que **concept** : un terme désigne une 
 | `nom` | texte | |
 | `univers` | énumération | `Fantasy` en v1. Champ présent pour l'extension. Modifiable ; désaligne les candidats existants (DEC-030). |
 | `style` | Style | Modifiable ; désaligne les candidats existants (DEC-030). |
-| `geometrie` | énumération | `TentePliee` \| `PionASocle`. Modifiable sans conséquence sur les candidats : paramètre de rendu. |
+| `geometrie` | énumération | `FoldedTent` \| `TabAndSocket`. Modifiable sans conséquence sur les candidats : paramètre de rendu. |
 | `formatPapier` | FormatPapier | Référence vers une entrée du catalogue de formats. Modifiable sans conséquence sur les candidats. |
 | `gabarits` | liste de Gabarit | |
 | `creeLe`, `modifieLe` | horodatage | |
@@ -156,17 +156,17 @@ Ce vocabulaire est contraignant en tant que **concept** : un terme désigne une 
  
 **Taille** — table de référence, valeurs par défaut surchargeables dans les réglages. Les emprises sont des **faits documentés** (chapitre 14) ; les hauteurs sont des **décisions de conception** bornées par le papier (DEC-032).
  
-| Nom | Catégorie de règles | Emprise grille | Largeur pion | Hauteur pion |
+| Identifiant | Libellé du catalogue `fr` | Emprise grille | Largeur pion | Hauteur pion |
 |---|---|---|---|---|
-| Petite | Small | 1 × 1 case | 25,4 mm | `À CALIBRER` |
-| Moyenne | Medium | 1 × 1 case | 25,4 mm | `À CALIBRER` |
-| Grande | Large | 2 × 2 cases | 50,8 mm | `À CALIBRER` |
-| Très Grande | Huge | 3 × 3 cases | 76,2 mm | `À CALIBRER` |
-| Gigantesque | Gargantuan | 4 × 4 cases | 101,6 mm | `À CALIBRER` |
+| `Small` | Petite | 1 × 1 case | 25,4 mm | `À CALIBRER` |
+| `Medium` | Moyenne | 1 × 1 case | 25,4 mm | `À CALIBRER` |
+| `Large` | Grande | 2 × 2 cases | 50,8 mm | `À CALIBRER` |
+| `Huge` | Très Grande | 3 × 3 cases | 76,2 mm | `À CALIBRER` |
+| `Gargantuan` | Gigantesque | 4 × 4 cases | 101,6 mm | `À CALIBRER` |
  
-> **Piège à ne pas manquer** : l'emprise sur la grille et la hauteur visuelle du pion sont **deux dimensions indépendantes**. Un humanoïde de taille Moyenne occupe une case de 25,4 mm mais mesure environ le double en hauteur. Ne pas déduire l'une de l'autre.
+> **Piège à ne pas manquer** : l'emprise sur la grille et la hauteur visuelle du pion sont **deux dimensions indépendantes**. Un humanoïde de taille Medium occupe une case de 25,4 mm mais mesure environ le double en hauteur. Ne pas déduire l'une de l'autre.
  
-> **Petite et Moyenne partagent la même emprise.** C'est conforme aux règles : Small et Medium occupent tous deux une case de 5 pieds. Ce qui les distingue est la hauteur du pion, et rien d'autre. Conséquence directe et assumée (DEC-031) : puisque la hauteur détermine la hauteur de cellule, une planche de Petites ne peut pas partager sa page avec des Moyennes. Un seul gnome dans un projet coûte donc une page entière. EVO-005 (mélange de tailles par shelf packing) est la seule résolution propre, et vient de gagner en valeur.
+> **Small et Medium partagent la même emprise.** C'est conforme aux règles : Small et Medium occupent tous deux une case de 5 pieds. Ce qui les distingue est la hauteur du pion, et rien d'autre. Conséquence directe et assumée (DEC-031) : puisque la hauteur détermine la hauteur de cellule, une planche de `Small` ne peut jamais partager sa page avec des `Medium`. Un seul gnome dans un projet coûte donc une page entière. EVO-005 (mélange de tailles par shelf packing) est la seule résolution propre, et vient de gagner en valeur.
  
 **FormatPapier**
  
@@ -288,13 +288,13 @@ Ces valeurs ne doivent **pas** être devinées. Elles sortent d'un tirage papier
 |---|---|---|
 | Grammage papier retenu | g/m² | `À CALIBRER` |
 | Facteur de correction d'échelle de l'imprimante | ratio | `À CALIBRER` |
-| Hauteur du pion pour la taille Moyenne | mm | `À CALIBRER` |
+| Hauteur du pion pour la taille Medium | mm | `À CALIBRER` |
 | Loi de progression des hauteurs des autres tailles | multiplicateurs | `À CALIBRER` (voir DEC-032) |
 | Largeur et hauteur de l'onglet | mm | `À CALIBRER` |
 | Hauteur des volets de tente | mm | `À CALIBRER` |
 | Marge de sécurité autour de la silhouette | mm | `À CALIBRER` |
  
-> **Note.** La v0.1 listait une entrée « cotes de l'encoche (ouverture / extrémité) ». C'était un résidu de la piste d'impression chez un prestataire externe, abandonnée très tôt. La géométrie `PionASocle` n'a pas d'encoche : elle a un onglet rectangulaire qui coulisse dans un socle du commerce. Aucun champ correspondant n'existe dans `calibration.json` et le protocole T0 n'en mesure aucune.
+> **Note.** La v0.1 listait une entrée « cotes de l'encoche (ouverture / extrémité) ». C'était un résidu de la piste d'impression chez un prestataire externe, abandonnée très tôt. La géométrie `TabAndSocket` n'a pas d'encoche : elle a un onglet rectangulaire qui coulisse dans un socle du commerce. Aucun champ correspondant n'existe dans `calibration.json` et le protocole T0 n'en mesure aucune.
  
 ### 5.7 Plafond de hauteur imposé par le papier
  
@@ -439,7 +439,7 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 - **L'API renvoie des codes d'erreur, pas des messages traduits** (`GENERATOR_UNREACHABLE`, `SHEET_CAPACITY_EXCEEDED`, `ARCHIVE_REJECTED`…). L'API reste agnostique de la langue et les traductions vivent en un seul endroit.
 - **Le PDF contient du texte** (mention de calibration, étiquettes). La requête d'export transporte donc la culture cible.
 - Ne pas coder en dur les formats de date et de nombre. Prévoir que les chaînes traduites changent de largeur.
-- Les noms de tailles sont des **clés de traduction**, jamais des chaînes affichées telles quelles : `Petite` / `Small`, `Très Grande` / `Huge`, etc. Les identifiants de code et de configuration restent en français, sans accent (`TresGrande`).
+- Les noms de tailles sont des **clés de traduction**, jamais des chaînes affichées telles quelles. L'identifiant est anglais et sans accent (DEC-037) ; le libellé vient du catalogue : `Huge` s'affiche « Très Grande » en français et « Huge » en anglais.
 ---
  
 ## 11. Journal des décisions
@@ -725,7 +725,7 @@ Serilog, visualiseur de journaux, rotation et rétention, revue complète du cha
 | EVO-002 | **Fournisseur d'images distant.** Second adaptateur de `IImageGenerator`. Introduit un compteur de coût, une confirmation avant lot et un cache prompt+graine. | `IImageGenerator` |
 | EVO-003 | **Troisième géométrie** : deux pièces séparées, collées entre elles ou sur une âme carton, avec repères d'alignement en croix. Considérée pour l'instant comme une variante du pion à socle. | Fonction de placement |
 | EVO-004 | **Univers supplémentaires** (steampunk, science-fiction, contemporain). | Champ `univers` + fichiers de templates |
-| EVO-005 | **Mélange de tailles sur une page**, par shelf packing. Renforcée par DEC-031 : sans elle, une seule créature de taille Petite consomme une page entière. | Moteur de mise en page |
+| EVO-005 | **Mélange de tailles sur une page**, par shelf packing. Renforcée par DEC-031 : sans elle, une seule créature de taille Small consomme une page entière. | Moteur de mise en page |
 | EVO-006 | **Validation en lot** en complément de la validation unitaire. | Interface |
 | EVO-007 | **Langues supplémentaires.** | Fichiers de ressources |
 | EVO-008 | **Déploiement distribué** : application sur une machine sobre, générateur sur le poste équipé. Sans impact sur la conception — le client est déjà HTTP. À reprendre uniquement si la charge locale devient un problème. | Aucun |
@@ -757,11 +757,11 @@ Des tapis européens à cases de 30 mm ou 25 mm ronds existent. Ils sont minorit
 | Catégorie (VO) | Nom Pawnsmith | Espace occupé | Cases carrées | Socle du commerce |
 |---|---|---|---|---|
 | Tiny | *(hors v1, EVO-011)* | 2,5 × 2,5 pieds | ¼ (4 par case) | 0,5 pouce — 12,7 mm |
-| Small | `Petite` | 5 × 5 pieds | 1 | 1 pouce — **25,4 mm** |
-| Medium | `Moyenne` | 5 × 5 pieds | 1 | 1 pouce — **25,4 mm** |
-| Large | `Grande` | 10 × 10 pieds | 4 (2×2) | 2 pouces — **50,8 mm** |
-| Huge | `TresGrande` | 15 × 15 pieds | 9 (3×3) | 3 pouces — **76,2 mm** |
-| Gargantuan | `Gigantesque` | 20 × 20 pieds ou plus | 16 (4×4) | 4 pouces — **101,6 mm** |
+| Small | `Small` | 5 × 5 pieds | 1 | 1 pouce — **25,4 mm** |
+| Medium | `Medium` | 5 × 5 pieds | 1 | 1 pouce — **25,4 mm** |
+| Large | `Large` | 10 × 10 pieds | 4 (2×2) | 2 pouces — **50,8 mm** |
+| Huge | `Huge` | 15 × 15 pieds | 9 (3×3) | 3 pouces — **76,2 mm** |
+| Gargantuan | `Gargantuan` | 20 × 20 pieds ou plus | 16 (4×4) | 4 pouces — **101,6 mm** |
  
 Identique en D&D 2024 et en Pathfinder 2. Pathfinder 1 comportait en outre **Colossal** (30 pieds, 6 × 6 cases, 152,4 mm), abandonnée en Pathfinder 2 ; hors périmètre.
  

@@ -2,14 +2,16 @@
  
 | | |
 |---|---|
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Date** | 29 août 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.3 — à lire en premier |
 | **Portée** | Squelette du dépôt, chaîne de compilation, puis moteur de mise en page et rendu PDF |
  
+> **Changements depuis la v1.3** — Renommage des identifiants de taille et de géométrie en anglais (DEC-037), dans le texte comme dans les blocs JSON du §B.2 et du §B.3. Aucun changement de formule, de valeur ni de périmètre.
+ 
 > **Changements depuis la v1.2** — Deux encadrés au §B.5.2 renvoyant vers DEC-035 (marges uniformes, gain abandonné chiffré) et DEC-036 (le paysage est une entrée de `paperFormats`, pas un paramètre du moteur). Aucun changement de formule ni de périmètre.
  
-> **Changements depuis la v1.1** — Correction de l'arborescence §A.3 (nom réel du fichier de spécification, ajout de `CLAUDE.md`). Précision §A.2 sur le contenu de `THIRD-PARTY-NOTICES.md`. Ajout de la taille `Petite` au fichier de calibration (DEC-031). **Correction de `Gigantesque.pawnHeightMm`, dont la valeur provisoire produisait une capacité de page nulle sur A4 comme sur US Letter** (DEC-032) ; ajout du §B.5.6 sur le plafond de hauteur et de deux tests dédiés. Le CLI de B.7 devient l'outil de tirage de T0b (DEC-033). Aucun changement de périmètre.
+> **Changements depuis la v1.1** — Correction de l'arborescence §A.3 (nom réel du fichier de spécification, ajout de `CLAUDE.md`). Précision §A.2 sur le contenu de `THIRD-PARTY-NOTICES.md`. Ajout de la taille `Small` au fichier de calibration (DEC-031). **Correction de `Gargantuan.pawnHeightMm`, dont la valeur provisoire produisait une capacité de page nulle sur A4 comme sur US Letter** (DEC-032) ; ajout du §B.5.6 sur le plafond de hauteur et de deux tests dédiés. Le CLI de B.7 devient l'outil de tirage de T0b (DEC-033). Aucun changement de périmètre.
  
 > **Changements depuis la v1.0** — Ajout de **Moq** à la liste des dépendances interdites (§A.2), avec NSubstitute en remplaçant. Ajout d'un bloc `paper` documentaire dans `calibration.json` (§B.2).
  
@@ -184,15 +186,15 @@ Toutes les valeurs physiques vivent dans `config/calibration.json`. **Aucune de 
     "note": "Grammage de référence des mesures ci-dessous. Purement documentaire : aucun calcul ne l'utilise."
   },
   "sizes": {
-    "Petite":      { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 40.0 },
-    "Moyenne":     { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 50.0 },
-    "Grande":      { "gridFootprintMm": 50.8,  "pawnWidthMm": 50.8,  "pawnHeightMm": 75.0 },
-    "TresGrande":  { "gridFootprintMm": 76.2,  "pawnWidthMm": 76.2,  "pawnHeightMm": 100.0 },
-    "Gigantesque": { "gridFootprintMm": 101.6, "pawnWidthMm": 101.6, "pawnHeightMm": 110.0 }
+    "Small":      { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 40.0 },
+    "Medium":     { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 50.0 },
+    "Large":      { "gridFootprintMm": 50.8,  "pawnWidthMm": 50.8,  "pawnHeightMm": 75.0 },
+    "Huge":  { "gridFootprintMm": 76.2,  "pawnWidthMm": 76.2,  "pawnHeightMm": 100.0 },
+    "Gargantuan": { "gridFootprintMm": 101.6, "pawnWidthMm": 101.6, "pawnHeightMm": 110.0 }
   },
   "geometry": {
-    "tentePliee":  { "flapHeightMm": 8.0 },
-    "pionASocle":  { "tabWidthMm": 12.0, "tabHeightMm": 10.0 }
+    "foldedTent":  { "flapHeightMm": 8.0 },
+    "tabAndSocket":  { "tabWidthMm": 12.0, "tabHeightMm": 10.0 }
   },
   "layout": {
     "pageMarginMm": 10.0,
@@ -218,34 +220,34 @@ Toutes les valeurs physiques vivent dans `config/calibration.json`. **Aucune de 
  
 > ⚠️ **Toutes les valeurs ci-dessus sont provisoires**, à l'exception des dimensions de papier et des **emprises de grille**, qui sont des faits documentés (chapitre 14 de la bible). Les hauteurs de pion seront arbitrées en T0b (DEC-032).
  
-> **Sur la correction de `Gigantesque`.** La v1.1 portait `pawnHeightMm: 125.0`, ce qui donnait une hauteur de cellule de `2 × (125 + 10) = 270 mm` pour une hauteur utile A4 de 263 mm : **capacité nulle sur A4 comme sur US Letter**. La valeur est ramenée à 110 mm, sous le plafond du §B.5.6. C'est un marqueur qui permet au moteur de tourner, pas une mesure — au même titre que les autres hauteurs.
+> **Sur la correction de `Gargantuan`.** La v1.1 portait `pawnHeightMm: 125.0`, ce qui donnait une hauteur de cellule de `2 × (125 + 10) = 270 mm` pour une hauteur utile A4 de 263 mm : **capacité nulle sur A4 comme sur US Letter**. La valeur est ramenée à 110 mm, sous le plafond du §B.5.6. C'est un marqueur qui permet au moteur de tourner, pas une mesure — au même titre que les autres hauteurs.
  
 > **À propos du bloc `paper`.** Il n'est utilisé par aucun calcul, et c'est volontaire : le code ne doit pas le lire. Il existe parce que toutes les autres valeurs de ce fichier dépendent du grammage sur lequel elles ont été mesurées. Le jour où la ramette change et où les pions gondolent, c'est la seule trace de ce qui fonctionnait. Le désérialiseur doit donc l'accepter et l'ignorer, pas le rejeter.
  
 **Piège à ne pas confondre** : `gridFootprintMm` est l'emprise du pion sur la grille de jeu ; `pawnHeightMm` est sa hauteur visuelle debout. Ce sont **deux dimensions indépendantes**. Ne jamais déduire l'une de l'autre.
  
-**Piège n° 2** : `Petite` et `Moyenne` ont volontairement la **même** emprise — c'est conforme aux règles de jeu, où Small et Medium occupent tous deux une case de 5 pieds (DEC-031). Seule la hauteur les distingue. Ne pas « corriger » cette apparente redondance.
+**Piège n° 2** : `Small` et `Medium` ont volontairement la **même** emprise — c'est conforme aux règles de jeu, où Small et Medium occupent tous deux une case de 5 pieds (DEC-031). Seule la hauteur les distingue. Ne pas « corriger » cette apparente redondance.
  
 ## B.3 Manifeste d'entrée
  
 ```json
 {
   "versionSchema": 1,
-  "geometry": "PionASocle",
+  "geometry": "TabAndSocket",
   "paperFormat": "A4",
   "culture": "fr-FR",
   "imagesDirectory": "./images",
   "items": [
     {
       "name": "gobelin-lancier",
-      "size": "Moyenne",
+      "size": "Medium",
       "quantity": 6,
       "rectoFile": "gobelin-lancier-recto.png",
       "versoFile": "gobelin-lancier-verso.png"
     },
     {
       "name": "ogre",
-      "size": "Grande",
+      "size": "Large",
       "quantity": 1,
       "rectoFile": "ogre-recto.png",
       "versoFile": "ogre-verso.png"
@@ -254,7 +256,7 @@ Toutes les valeurs physiques vivent dans `config/calibration.json`. **Aucune de 
 }
 ```
  
-`geometry` vaut `TentePliee` ou `PionASocle`, et s'applique à tout le manifeste (DEC-001).
+`geometry` vaut `FoldedTent` ou `TabAndSocket`, et s'applique à tout le manifeste (DEC-001).
  
 **Validation à l'ouverture, avec message d'erreur explicite** : fichiers image présents et lisibles, taille référencée existant dans la calibration, quantité ≥ 1, format de papier connu, `versionSchema` reconnu.
  
@@ -280,16 +282,16 @@ La ligne de pliage se situe donc exactement au **sommet de l'image recto**, c'es
  
 ### B.4.2 Appendice selon la géométrie
  
-**`TentePliee`** — `appendixHeight = flapHeightMm`. L'appendice occupe toute la largeur du pion. Deux lignes de pliage supplémentaires sont tracées, à la frontière entre chaque image et son appendice — c'est là que les volets se replient vers l'extérieur pour former la base.
+**`FoldedTent`** — `appendixHeight = flapHeightMm`. L'appendice occupe toute la largeur du pion. Deux lignes de pliage supplémentaires sont tracées, à la frontière entre chaque image et son appendice — c'est là que les volets se replient vers l'extérieur pour former la base.
  
-**`PionASocle`** — `appendixHeight = tabHeightMm`. L'appendice est un onglet rectangulaire de largeur `tabWidthMm`, **centré horizontalement**. Pas de ligne de pliage supplémentaire : l'onglet est solidaire de la figurine et coulisse dans le socle.
+**`TabAndSocket`** — `appendixHeight = tabHeightMm`. L'appendice est un onglet rectangulaire de largeur `tabWidthMm`, **centré horizontalement**. Pas de ligne de pliage supplémentaire : l'onglet est solidaire de la figurine et coulisse dans le socle.
  
 ### B.4.3 Contour de découpe
  
 Le contour est un polygone fermé, symétrique par rapport à l'axe vertical de l'unité et par rapport à la ligne de pliage.
  
-- Pour `TentePliee` : un simple rectangle de `pawnWidthMm` par la hauteur totale dépliée.
-- Pour `PionASocle` : un rectangle de `pawnWidthMm` sur la hauteur des deux images, prolongé en haut et en bas par un onglet de `tabWidthMm` de large et `tabHeightMm` de haut, centré.
+- Pour `FoldedTent` : un simple rectangle de `pawnWidthMm` par la hauteur totale dépliée.
+- Pour `TabAndSocket` : un rectangle de `pawnWidthMm` sur la hauteur des deux images, prolongé en haut et en bas par un onglet de `tabWidthMm` de large et `tabHeightMm` de haut, centré.
 Le domaine expose ce polygone en coordonnées millimétriques relatives à l'unité. **Le rendu ne le recalcule pas** : il le reçoit et le trace.
  
 ### B.4.4 Placement des images
@@ -309,7 +311,7 @@ La ligne des pieds est la frontière entre l'image et son appendice. La marge de
 2. Pour chaque groupe, développer les quantités : un élément de quantité 6 produit 6 cellules identiques.
 3. Remplir les pages du groupe, puis passer au groupe suivant.
 4. Le PDF final concatène toutes les pages de tous les groupes, dans l'ordre des tailles tel qu'il apparaît dans le manifeste.
-Une page ne contient **jamais** deux tailles différentes. Cela vaut aussi pour `Petite` et `Moyenne`, dont les emprises sont pourtant identiques : leurs hauteurs de cellule diffèrent, donc leurs grilles aussi.
+Une page ne contient **jamais** deux tailles différentes. Cela vaut aussi pour `Small` et `Medium`, dont les emprises sont pourtant identiques : leurs hauteurs de cellule diffèrent, donc leurs grilles aussi.
  
 ### B.5.2 Calcul de capacité
  
@@ -325,9 +327,9 @@ lignes   = floor((hauteurUtile + gutterMm) / (hauteurCellule + gutterMm))
 capacite = colonnes × lignes
 ```
  
-> **Le `2 ×` des deux premières lignes est arbitré, pas subi** (DEC-035). La marge est uniforme sur les quatre côtés, alors qu'une imprimante domestique a rarement une zone non imprimable symétrique : une marge unique doit donc prendre le pire des quatre côtés. Le gain abandonné est chiffré dans la fiche — sur A4, +2 pions par page en `Petite` et `Moyenne` pour une imprimante tolérant 5 mm sur les côtés. Ne pas « améliorer » cette formule en marges indépendantes sans rouvrir la décision.
+> **Le `2 ×` des deux premières lignes est arbitré, pas subi** (DEC-035). La marge est uniforme sur les quatre côtés, alors qu'une imprimante domestique a rarement une zone non imprimable symétrique : une marge unique doit donc prendre le pire des quatre côtés. Le gain abandonné est chiffré dans la fiche — sur A4, +2 pions par page en `Small` et `Medium` pour une imprimante tolérant 5 mm sur les côtés. Ne pas « améliorer » cette formule en marges indépendantes sans rouvrir la décision.
 
-> **L'orientation n'apparaît pas dans ce calcul**, et c'est voulu : le paysage est une entrée de `paperFormats` avec largeur et hauteur échangées (DEC-016, DEC-036), pas un paramètre du moteur. Corollaire à ne pas trouver surprenant : un format paysage rend `TresGrande` et `Gigantesque` de capacité nulle, ce que la règle ci-dessous traite déjà.
+> **L'orientation n'apparaît pas dans ce calcul**, et c'est voulu : le paysage est une entrée de `paperFormats` avec largeur et hauteur échangées (DEC-016, DEC-036), pas un paramètre du moteur. Corollaire à ne pas trouver surprenant : un format paysage rend `Huge` et `Gargantuan` de capacité nulle, ce que la règle ci-dessous traite déjà.
 
 La grille est **centrée horizontalement** dans la largeur utile, et **calée en haut** de la hauteur utile.
  
@@ -347,7 +349,7 @@ Tracés sur chaque page, non désactivables (DEC-017) :
 |---|---|
 | **Trait de calibration** | Segment horizontal de **100,0 mm exactement**, centré dans la zone de calibration en bas de page, avec un repère vertical à chaque extrémité. Légendé par une chaîne localisée. |
 | **Traits de coupe** | Le polygone de contour de chaque unité, en trait plein, épaisseur `cutWidthMm`, couleur `colorHex`. |
-| **Lignes de pliage** | Traits discontinus selon `foldDashPatternMm`, épaisseur `foldWidthMm`, même couleur. Une ligne par pli : une pour toutes les géométries, trois pour `TentePliee`. |
+| **Lignes de pliage** | Traits discontinus selon `foldDashPatternMm`, épaisseur `foldWidthMm`, même couleur. Une ligne par pli : une pour toutes les géométries, trois pour `FoldedTent`. |
  
 ### B.5.5 Facteur de correction d'échelle
  
@@ -408,12 +410,12 @@ Ne pas y mettre de logique. Il lit, appelle le cas d'usage, écrit le fichier, a
 6. **Le verso est tourné à 180° et positionné au-dessus de la ligne de pliage.**
 7. La ligne de pliage tombe exactement au sommet de l'image recto.
 8. Hauteur totale dépliée conforme à la formule, pour les deux géométries.
-9. Contour de découpe : rectangle pour `TentePliee`, polygone à onglet centré pour `PionASocle`.
+9. Contour de découpe : rectangle pour `FoldedTent`, polygone à onglet centré pour `TabAndSocket`.
 10. Placement d'image : rapport d'aspect conservé, calage sur la ligne des pieds, marge de silhouette respectée.
 11. Grille centrée horizontalement.
 12. Facteur de correction appliqué au trait de calibration comme au reste.
 13. **Non-régression du plafond (DEC-032)** : une taille de hauteur 125 mm avec un onglet de 10 mm produit une capacité nulle sur A4 **et** sur US Letter. C'est le défaut réel qu'avait la calibration v1.1, pas un cas synthétique.
-14. **`Petite` et `Moyenne`, malgré une emprise identique, produisent des pages distinctes** et des hauteurs de cellule différentes.
+14. **`Small` et `Medium`, malgré une emprise identique, produisent des pages distinctes** et des hauteurs de cellule différentes.
 **Infrastructure — tests d'intégration :**
  
 15. Un manifeste minimal produit un PDF ouvrable et non vide.
@@ -427,8 +429,8 @@ T1 est terminée quand, **planche imprimée en main** — ce qui suppose T0b fai
  
 - [ ] Le trait de calibration mesure 100 mm ± 0,5 à la règle.
 - [ ] La hauteur totale dépliée d'une cellule, mesurée au réglet, correspond à la formule de B.4.1. *(Vérification du moteur avant de découper — voir le risque identifié en DEC-033.)*
-- [ ] Les pions découpés selon le contour tiennent dans leur socle (géométrie `PionASocle`).
-- [ ] Les pions en tente tiennent debout seuls (géométrie `TentePliee`).
+- [ ] Les pions découpés selon le contour tiennent dans leur socle (géométrie `TabAndSocket`).
+- [ ] Les pions en tente tiennent debout seuls (géométrie `FoldedTent`).
 - [ ] Après pliage, le verso est à l'endroit.
 - [ ] Aucune silhouette n'est rognée par le trait de coupe.
 - [ ] Le PDF s'ouvre correctement et le nombre de pages est celui attendu.

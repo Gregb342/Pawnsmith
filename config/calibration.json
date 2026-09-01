@@ -5,15 +5,15 @@
     "note": "Grammage de référence des mesures ci-dessous. Purement documentaire : aucun calcul ne l'utilise."
   },
   "sizes": {
-    "Petite":      { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 40.0 },
-    "Moyenne":     { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 50.0 },
-    "Grande":      { "gridFootprintMm": 50.8,  "pawnWidthMm": 50.8,  "pawnHeightMm": 75.0 },
-    "TresGrande":  { "gridFootprintMm": 76.2,  "pawnWidthMm": 76.2,  "pawnHeightMm": 100.0 },
-    "Gigantesque": { "gridFootprintMm": 101.6, "pawnWidthMm": 101.6, "pawnHeightMm": 110.0 }
+    "Small":      { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 40.0 },
+    "Medium":     { "gridFootprintMm": 25.4,  "pawnWidthMm": 25.4,  "pawnHeightMm": 50.0 },
+    "Large":      { "gridFootprintMm": 50.8,  "pawnWidthMm": 50.8,  "pawnHeightMm": 75.0 },
+    "Huge":  { "gridFootprintMm": 76.2,  "pawnWidthMm": 76.2,  "pawnHeightMm": 100.0 },
+    "Gargantuan": { "gridFootprintMm": 101.6, "pawnWidthMm": 101.6, "pawnHeightMm": 110.0 }
   },
   "geometry": {
-    "tentePliee":  { "flapHeightMm": 8.0 },
-    "pionASocle":  { "tabWidthMm": 12.0, "tabHeightMm": 10.0 }
+    "foldedTent":  { "flapHeightMm": 8.0 },
+    "tabAndSocket":  { "tabWidthMm": 12.0, "tabHeightMm": 10.0 }
   },
   "layout": {
     "pageMarginMm": 10.0,

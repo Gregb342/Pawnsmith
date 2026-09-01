@@ -105,11 +105,11 @@ Le pli doit être net sans craqueler, et le pion doit tenir sans gondoler. Si au
  
 ## Étape 4 — Hauteurs de pion
  
-**Ce qu'on cherche** : `sizes.Moyenne.pawnHeightMm`, puis la **loi de progression** des autres tailles (DEC-032).
+**Ce qu'on cherche** : `sizes.Medium.pawnHeightMm`, puis la **loi de progression** des autres tailles (DEC-032).
  
-### 4a — La taille Moyenne
+### 4a — La taille Medium
  
-Composer trois figurines de taille Moyenne à 45, 50 et 55 mm de hauteur visible. Les monter, les poser sur le tapis, à côté d'une figurine du commerce si tu en as une.
+Composer trois figurines de taille Medium à 45, 50 et 55 mm de hauteur visible. Les monter, les poser sur le tapis, à côté d'une figurine du commerce si tu en as une.
  
 Critères : lisible à un mètre, pas écrasé, pas dominant par rapport à une case de 25,4 mm.
  
@@ -119,33 +119,33 @@ Critères : lisible à un mètre, pas écrasé, pas dominant par rapport à une 
 | 50 mm | ☐ | ☐ | ☐ |
 | 55 mm | ☐ | ☐ | ☐ |
  
-**Retenu pour Moyenne** : ______ mm
+**Retenu pour Medium** : ______ mm
  
 ### 4b — Les autres tailles
  
-> ⚠️ **Ne pas déduire les autres hauteurs « par proportion ».** C'est ce que disait la v1.0 de ce protocole, et c'est faux deux fois. D'abord, les règles de jeu ne définissent que l'emprise au sol, jamais la hauteur d'une créature : aucune proportion n'est donnée nulle part. Ensuite, une progression proportionnelle aux emprises (×1, ×2, ×3, ×4) donnerait 200 mm pour `Gigantesque`, soit une hauteur dépliée de 420 mm — la feuille en fait 297.
+> ⚠️ **Ne pas déduire les autres hauteurs « par proportion ».** C'est ce que disait la v1.0 de ce protocole, et c'est faux deux fois. D'abord, les règles de jeu ne définissent que l'emprise au sol, jamais la hauteur d'une créature : aucune proportion n'est donnée nulle part. Ensuite, une progression proportionnelle aux emprises (×1, ×2, ×3, ×4) donnerait 200 mm pour `Gargantuan`, soit une hauteur dépliée de 420 mm — la feuille en fait 297.
  
 Le **plafond dur** est celui du §B.5.6 du cahier des charges : environ **112 mm** de hauteur de pion si US Letter doit rester utilisable, 121 mm si l'on se limite à l'A4. C'est une contrainte, pas un objectif.
  
-Tirer une planche par taille aux valeurs candidates, monter un exemplaire de chacune, **les poser côte à côte sur le tapis** et juger la progression comme un ensemble. C'est la seule façon de voir si l'écart entre `Grande` et `TresGrande` est lisible.
+Tirer une planche par taille aux valeurs candidates, monter un exemplaire de chacune, **les poser côte à côte sur le tapis** et juger la progression comme un ensemble. C'est la seule façon de voir si l'écart entre `Large` et `Huge` est lisible.
  
 | Taille | Emprise | Hauteur candidate | Retenue |
 |---|---|---|---|
-| Petite | 25,4 mm | ______ mm | ______ mm |
-| Moyenne | 25,4 mm | *(étape 4a)* | ______ mm |
-| Grande | 50,8 mm | ______ mm | ______ mm |
-| Très Grande | 76,2 mm | ______ mm | ______ mm |
-| Gigantesque | 101,6 mm | ______ mm (≤ 112) | ______ mm |
+| Small | 25,4 mm | ______ mm | ______ mm |
+| Medium | 25,4 mm | *(étape 4a)* | ______ mm |
+| Large | 50,8 mm | ______ mm | ______ mm |
+| Huge | 76,2 mm | ______ mm | ______ mm |
+| Gargantuan | 101,6 mm | ______ mm (≤ 112) | ______ mm |
  
 **Contrôle obligatoire avant de clore l'étape** : pour chaque taille retenue, vérifier que `2 × (hauteur + appendice) ≤ 245 mm`. Une valeur au-dessus rend la taille inutilisable sur US Letter et produit une capacité nulle.
  
 ## Étape 5 — Onglet et socle
  
-**Ce qu'on cherche** : `geometry.pionASocle.tabWidthMm` et `tabHeightMm`.
+**Ce qu'on cherche** : `geometry.tabAndSocket.tabWidthMm` et `tabHeightMm`.
  
 **Si tu as un socle du commerce** : mesurer la fente, largeur et profondeur. L'onglet doit faire la largeur de la fente moins un cheveu, et sa hauteur au moins la profondeur de la fente.
  
-**Si tu n'en as pas** : cette étape est reportée. Note-le et laisse les valeurs provisoires — cela ne bloque ni T1 ni sa relecture, seulement sa validation en géométrie `PionASocle`. Teste alors uniquement la géométrie `TentePliee`.
+**Si tu n'en as pas** : cette étape est reportée. Note-le et laisse les valeurs provisoires — cela ne bloque ni T1 ni sa relecture, seulement sa validation en géométrie `TabAndSocket`. Teste alors uniquement la géométrie `FoldedTent`.
  
 Attention : après pliage et collage, l'onglet est en **double épaisseur**. Mesure sur un onglet assemblé, pas sur une simple feuille.
  
@@ -159,7 +159,7 @@ Attention : après pliage et collage, l'onglet est en **double épaisseur**. Mes
  
 ## Étape 6 — Volets de tente
  
-**Ce qu'on cherche** : `geometry.tentePliee.flapHeightMm`.
+**Ce qu'on cherche** : `geometry.foldedTent.flapHeightMm`.
  
 Découper trois figurines identiques avec des volets de 5, 8 et 12 mm. Plier les volets vers l'extérieur, poser debout, souffler dessus doucement.
  
@@ -194,15 +194,15 @@ Découper la même figurine trois fois : au ras du trait, avec 1,5 mm de marge, 
   "scaleCorrectionFactor": ______,
   "grammageRetenu": ______,
   "sizes": {
-    "Petite":      { "pawnHeightMm": ______ },
-    "Moyenne":     { "pawnHeightMm": ______ },
-    "Grande":      { "pawnHeightMm": ______ },
-    "TresGrande":  { "pawnHeightMm": ______ },
-    "Gigantesque": { "pawnHeightMm": ______ }
+    "Small":      { "pawnHeightMm": ______ },
+    "Medium":     { "pawnHeightMm": ______ },
+    "Large":      { "pawnHeightMm": ______ },
+    "Huge":  { "pawnHeightMm": ______ },
+    "Gargantuan": { "pawnHeightMm": ______ }
   },
   "geometry": {
-    "tentePliee": { "flapHeightMm": ______ },
-    "pionASocle": { "tabWidthMm": ______, "tabHeightMm": ______ }
+    "foldedTent": { "flapHeightMm": ______ },
+    "tabAndSocket": { "tabWidthMm": ______, "tabHeightMm": ______ }
   },
   "layout": { "silhouetteMarginMm": ______ }
 }

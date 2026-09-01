@@ -157,9 +157,18 @@ relecture, il ne l'autorise pas à être sautée.
 - **Quand une information manque, s'arrêter et demander** plutôt que de choisir
   une valeur plausible. Une valeur physique inventée coûte une impression papier
   à détecter — et se détecte au ciseau, pas au test.
-- **Le vocabulaire du chapitre 2 de la bible est contraignant** et repris tel
-  quel dans les noms de types : `Gabarit`, `Candidat`, `Planche`, `Taille`,
-  `Geometrie`. Toute divergence est un défaut.
+- **Le vocabulaire du chapitre 2 de la bible est contraignant en tant que
+  concept**, pas en tant que graphie. Un terme désigne une seule chose, partout ;
+  toute divergence de sens est un défaut. L'identifiant de code de chaque terme
+  est donné par la table de **DEC-037** : `Blueprint`, `Candidate`, `Sheet`,
+  `Size`, `Geometry`.
+- **Trois langues, trois registres** (DEC-037). Le **code** — types, membres
+  d'énumération, méthodes, journaux, et les clés de `calibration.json` comme du
+  manifeste — est en **anglais**. L'**interface** est traduite par les
+  catalogues `fr` et `en`, sans jamais de chaîne en dur. Les **prompts**,
+  préenregistrés comme générés, sont en **anglais** : les modèles de diffusion
+  sont entraînés sur des légendes anglaises, et un prompt français rend moins
+  fidèlement.
 - **Ne pas anticiper les tranches à venir.** Les ports du chapitre 7 de la bible
   sont une intention de conception, pas du code à écrire aujourd'hui.
 
@@ -252,7 +261,7 @@ Trois pièges, tous rencontrés pour de vrai :
 1. `gridFootprintMm` (emprise sur la grille de jeu) et `pawnHeightMm` (hauteur
    visuelle debout) sont **deux dimensions indépendantes**. Ne jamais déduire
    l'une de l'autre.
-2. `Petite` et `Moyenne` ont volontairement la **même emprise** de 25,4 mm —
+2. `Small` et `Medium` ont volontairement la **même emprise** de 25,4 mm —
    dans les règles de jeu, Small et Medium occupent tous deux une case de
    5 pieds. Seule la hauteur les distingue. **Ne pas « corriger » cette
    redondance apparente** (DEC-031). Conséquence : elles ne peuvent jamais
@@ -260,7 +269,7 @@ Trois pièges, tous rencontrés pour de vrai :
 3. Une hauteur de pion est **bornée par le papier** : `2 × (pawnHeightMm +
    appendice) ≤ hauteurUtile`, soit environ 112 mm si US Letter doit rester
    utilisable (§B.5.6, DEC-032). La calibration v1.1 portait 125 mm pour
-   `Gigantesque`, ce qui donnait une capacité de page **nulle sur A4 comme sur
+   `Gargantuan`, ce qui donnait une capacité de page **nulle sur A4 comme sur
    Letter**. Toute nouvelle hauteur se vérifie contre ce plafond.
 
 ## 7. Vérifications avant commit
