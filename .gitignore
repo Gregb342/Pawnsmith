@@ -47,6 +47,12 @@ yarn-error.log*
 # ---------------------------------------------------------------------------
 data/
 
+# Reference artwork used to try the engine out. Deliberately untracked: these
+# images weigh more than the code, and their provenance and licence are not
+# settled. If a fixture is ever needed by a test, it gets committed on purpose,
+# one file at a time.
+refs/
+
 # Front bundle copied into the API web root at container build time (A.6).
 # The directory itself is tracked so the static file middleware has a web root.
 src/Pawnsmith.Api/wwwroot/*
