@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.5 |
+| **Version du document** | 0.6 |
 | **Date** | 29 août 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.5** — DEC-038 : les cinq conventions géométriques du domaine, posées pendant les tâches 2 et 3 de T1 et absentes de tout document jusqu'ici — sens de l'axe vertical, coordonnées relatives à l'unité, fermeture implicite des polygones, millimètre partout, rejet des incohérences internes de la calibration.
  
 > **Changements depuis la v0.4** — DEC-037 : l'anglais devient la langue du code, des journaux, des clés de fichiers et des prompts ; le français reste celle de l'interface traduite et de ces documents. La clause « repris tel quel » du chapitre 2 est superseedée et la table de correspondance des termes est fixée. Renommage appliqué dans tout le document **sauf au chapitre 11**, dont les fiches sont des enregistrements datés.
  
@@ -632,6 +634,24 @@ Sur les tailles, le gain est réel et pas seulement cosmétique : DEC-031 établ
 Sur les prompts, le motif est technique : les modèles de diffusion sont entraînés très majoritairement sur des légendes anglaises, et un prompt français produit des résultats moins fidèles. Conséquence à assumer dans l'interface : dans une session en français, la clause de style et le prompt résolu éditable restent en anglais. Cela se dit à l'utilisateur, cela ne se découvre pas.
 Les clés de fichier suivent le code plutôt que l'inverse. Un `calibration.json` en français lu par un code en anglais imposerait une couche de correspondance permanente entre ce qu'on lit dans le fichier et ce qu'on lit dans le code — exactement le genre d'écart qui coûte cher en relecture (DEC-027).
 Portée du renommage : **le chapitre 11 n'est pas touché.** Les fiches sont des enregistrements datés, et ce document interdit d'en modifier une. DEC-015 continue donc de dire « Moyenne / Grande / Très Grande / Gigantesque », et c'est correct : c'est ce qui a été décidé ce jour-là.
+
+**DEC-038 — Conventions géométriques du domaine.**
+Choix : cinq conventions, posées ensemble parce qu'elles découlent toutes de la même chose — le domaine raisonne en millimètres, relativement à une unité, et ne sait rien de la page ni du PDF.
+
+| # | Convention |
+|---|---|
+| 1 | **L'origine est le coin supérieur gauche de l'unité.** X croît vers la droite, **Y croît vers le bas**. |
+| 2 | **Les coordonnées sont relatives à l'unité**, jamais à la page. Placer les unités sur une page est un calcul distinct, qui vient après. |
+| 3 | **Un polygone est implicitement fermé** : le dernier sommet rejoint le premier, et le premier n'est pas répété à la fin. |
+| 4 | **Tout est en millimètres dans le domaine.** La conversion en points est centralisée dans une seule fonction du rendu (§B.6) et n'existe nulle part ailleurs. |
+| 5 | **Une incohérence interne de la calibration est rejetée à la construction**, avec une exception nommant la valeur fautive. |
+
+Conséquence, convention par convention. **Le sens de l'axe (1)** n'est écrit dans aucun document : le §B.4.1 décrit les bandes « de haut en bas » sans dire où est l'origine. Le choix suit l'ordre de lecture de la spécification, de sorte que le code se parcoure dans l'ordre du document. La convention mathématique inverse, Y vers le haut, obligerait à retourner l'axe quelque part entre le domaine et le rendu — et une inversion de signe dans un calcul géométrique ne se voit pas au test, elle se voit à l'impression.
+**Les coordonnées relatives (2)** sont ce qui permet à une unité d'être calculée une fois et placée N fois sur une page, sans recalcul par cellule.
+**La fermeture implicite (3)** évite qu'un tracé émette un segment de longueur nulle. C'est une convention arbitraire — l'inverse se défendrait — mais elle doit être écrite quelque part, sinon la moitié du code fermera le polygone et l'autre moitié le supposera fermé.
+**Le millimètre (4)** est la reprise de l'exigence du §B.6, énoncée ici comme une propriété du domaine et pas seulement une consigne de rendu : aucun type du domaine ne porte de point, de pixel ou de pouce.
+**Le rejet des incohérences (5)** couvre ce que la liste de validation du §B.3 ne couvre pas. Cette liste porte sur le **manifeste** — fichiers présents, taille connue, quantité ≥ 1 — et pas sur la cohérence interne de la **calibration**. Premier cas rencontré : un onglet plus large que le pion produit une abscisse d'onglet négative, donc un contour retourné sur lui-même, valide en apparence, tracé, imprimé, et découvert au ciseau. Le cas est impossible avec les valeurs actuelles, mais `calibration.json` est précisément le fichier qu'on éditera à la main pendant T0b en faisant varier ces valeurs-là.
+Portée : ces conventions engagent `Pawnsmith.Domain` et tout ce qui le consomme. Elles ne sont pas négociables tranche par tranche ; les changer est une nouvelle fiche.
 
 ---
  
