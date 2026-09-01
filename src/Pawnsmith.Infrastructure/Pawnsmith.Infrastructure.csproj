@@ -14,4 +14,11 @@
     <PackageReference Include="PDFsharp" Version="6.2.4" />
   </ItemGroup>
 
+  <!-- The sheet font, embedded so the same PDF comes out of Windows, the Linux
+       container and CI. PDFsharp has no fonts of its own and no access to
+       system fonts. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\DejaVuSans.ttf" />
+  </ItemGroup>
+
 </Project>

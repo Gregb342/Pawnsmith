@@ -28,14 +28,22 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 | Microsoft.Extensions.Logging.Abstractions | 8.0.3 | MIT | Dépendance transitive de PDFsharp |
 | System.Security.Cryptography.Pkcs | 8.0.1 | MIT | Dépendance transitive de PDFsharp (signature de PDF) |
 
-> **Réserve de licence, à trancher avant la v1.** Le rendu utilise la police
-> **Segoe WP**, embarquée dans le paquet PDFsharp via `PdfSharp.WPFonts`. Le
-> paquet est MIT, mais la police appartient à Microsoft et ses conditions de
-> redistribution sont les siennes — or une police utilisée dans un PDF s'y
-> retrouve **embarquée**. Pour un projet dont le §A.2 fait de la licence un
-> critère de conception, le point mérite un arbitrage explicite. La remplacer
-> par une police OFL (Liberation Sans, DejaVu Sans) demande de modifier la
-> seule classe `SheetFontResolver`.
+## Polices embarquées
+
+| Ressource | Licence | Rôle |
+|---|---|---|
+| [DejaVu Sans](https://dejavu-fonts.github.io/) 2.37 — `src/Pawnsmith.Infrastructure/Fonts/DejaVuSans.ttf` | Bitstream Vera / DejaVu (libre, texte intégral dans `Fonts/DejaVuSans-LICENSE.txt`) | Unique police de la planche : légende de calibration et étiquette de page |
+
+> **Pourquoi une police est un sujet de licence.** Une police utilisée dans un
+> PDF y est **embarquée**, donc redistribuée avec chaque planche produite. Le
+> choix engage tous les utilisateurs aval, pas seulement ce dépôt. La licence
+> Bitstream Vera autorise explicitement la redistribution et l'incorporation
+> dans des documents.
+>
+> Elle est **embarquée dans l'assembly** plutôt que cherchée sur la machine :
+> PDFsharp 6 n'accède pas aux polices système, et l'image runtime ASP.NET n'en
+> contient aucune. C'est aussi ce qui garantit un rendu identique sous Windows,
+> en conteneur et en intégration continue.
 
 ## .NET — tests uniquement
 
