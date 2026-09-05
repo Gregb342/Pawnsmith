@@ -1,5 +1,7 @@
-/* Deliberately minimal: T1 proves the build chain and the localisation wiring,
-   not a visual identity. Styling arrives with T6. */
+/* The one global stylesheet: the CSS reset, the page frame, and nothing else.
+   Deliberately minimal — T1 proves the build chain and the localisation
+   wiring, not a visual identity. Styling arrives with T6, and whether each
+   component then gets its own stylesheet is a decision for that slice. */
 
 :root {
   font-family: system-ui, sans-serif;

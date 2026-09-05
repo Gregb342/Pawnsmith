@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { supportedLanguages, type SupportedLanguage } from './i18n';
+import { supportedLanguages, type SupportedLanguage } from '../i18n/config';
 
 /**
  * A.5 — the language selector is the only interactive element of the skeleton.

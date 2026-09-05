@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { LanguageSelector } from './LanguageSelector';
+import { LanguageSelector } from '../components/LanguageSelector';
 
 /**
  * A.5 — the whole front of T1: one page, the product name, a tagline, and a
