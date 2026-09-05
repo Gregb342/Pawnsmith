@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Resources;
 
 using Pawnsmith.Application.Ports;
 using Pawnsmith.Domain.PhysicalValues;
@@ -39,9 +38,6 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
     /// how the PDF format defines its own coordinate system.
     /// </remarks>
     private const double PointsPerMillimetre = 72.0 / 25.4;
-
-    private static readonly ResourceManager Strings =
-        new("Pawnsmith.Infrastructure.Pdf.SheetStrings", typeof(PdfSharpSheetRenderer).Assembly);
 
     /// <summary>
     /// PDFsharp holds its font resolver in a global, and refuses to have it
@@ -273,7 +269,7 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
 
         string caption = string.Format(
             culture,
-            Strings.GetString("CalibrationCaption", culture) ?? "{0} mm",
+            SheetStrings.Get("CalibrationCaption", culture),
             mark.NominalLengthMm);
 
         graphics.DrawString(
@@ -295,11 +291,11 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
     /// </remarks>
     private static void DrawPageLabel(XGraphics graphics, SheetPage page, CultureInfo culture)
     {
-        string sizeName = Strings.GetString($"Size_{page.Size}", culture) ?? page.Size.ToString();
+        string sizeName = SheetStrings.Get(SheetStrings.SizeKey(page.Size), culture);
 
         string label = string.Format(
             culture,
-            Strings.GetString("PageLabel", culture) ?? "{0} {1}/{2}",
+            SheetStrings.Get("PageLabel", culture),
             sizeName,
             page.PageNumber,
             page.PageCount);
@@ -339,8 +335,8 @@ public sealed class PdfSharpSheetRenderer : ISheetRenderer
         PlacedUnit unit,
         CultureInfo culture)
     {
-        string head = Strings.GetString("DebugHead", culture) ?? "head";
-        string feet = Strings.GetString("DebugFeet", culture) ?? "feet";
+        string head = SheetStrings.Get("DebugHead", culture);
+        string feet = SheetStrings.Get("DebugFeet", culture);
         XSolidBrush brush = new(XColor.FromArgb(200, 40, 40));
 
         // The front panel is upright: head at the top of its box, feet at the
