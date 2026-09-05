@@ -2,10 +2,12 @@
  
 | | |
 |---|---|
-| **Version** | 1.4 |
-| **Date** | 29 août 2026 |
-| **Document parent** | `pawnsmith-bible.md` v0.3 — à lire en premier |
+| **Version** | 1.5 |
+| **Date** | 2 septembre 2026 |
+| **Document parent** | `pawnsmith-bible.md` v0.10 — à lire en premier |
 | **Portée** | Squelette du dépôt, chaîne de compilation, puis moteur de mise en page et rendu PDF |
+ 
+> **Changements depuis la v1.4** — Trois corrections issues de la fusion de T2. Le champ « document parent » annonçait encore la bible **v0.3**, six révisions en arrière ; il pointe désormais la **v0.10**. Le §A.4 gagne `<Version>` dans la liste des réglages de `Directory.Build.props`, et le §A.8 la cadence d'incrémentation qui lui manquait : **une tranche livrée vaut un mineur** (DEC-058). Aucun changement de formule, de valeur ni de périmètre.
  
 > **Changements depuis la v1.3** — Application de DEC-037. Renommage des identifiants de taille et de géométrie en anglais, dans le texte comme dans les blocs JSON du §B.2 et du §B.3. Et correction du §0, qui contredisait la même fiche en affirmant encore que le vocabulaire du chapitre 2 est repris tel quel dans les noms de types — c'est la première consigne que lit un assistant de code, et elle l'envoyait vers du français là où tout le reste du dépôt est en anglais. Aucun changement de formule, de valeur ni de périmètre.
  
@@ -110,6 +112,7 @@ Pawnsmith/
 - `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`
 - `<LangVersion>latest</LangVersion>`
 - `<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>`
+- `<Version>` — le numéro de version de la solution, incrémenté d'un mineur au premier commit de chaque tranche (DEC-058). Il est lu **par réflexion sur l'assembly**, jamais recopié dans une constante, et la révision de source en est exclue : le SDK ajoute par défaut un suffixe `+3f9a1c…` à l'`AssemblyInformationalVersion`, qui désignerait un commit dans tout fichier produit et destiné à être lu par un humain. Le neutraliser demande `<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>`.
 `.editorconfig` avec les conventions C# par défaut de Microsoft, `var` autorisé uniquement quand le type est apparent à droite.
  
 ## A.5 Squelette du front
@@ -148,7 +151,7 @@ Rien d'autre à ce stade. Pas de publication, pas d'analyse, pas de couverture.
 ## A.8 Conventions
  
 - **Conventional Commits** (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`).
-- **Versionnement sémantique**, à partir de `0.1.0`.
+- **Versionnement sémantique**, à partir de `0.1.0`. **Une tranche livrée vaut un mineur** (DEC-058), incrémenté au **premier** commit de la tranche et non au dernier : le numéro dit « ce binaire relève de T2 », pas « T2 est validée ». Fondations `0.1.0`, T1 `0.2.0`, T2 `0.3.0`, et ainsi de suite jusqu'à T7 en `0.8.0` ; `1.0.0` est atteint quand T7 est close et T0b menée.
 - Messages de commit et commentaires de code **en anglais** ; documentation fonctionnelle **en français**.
 - `README.md` contient : objectif du projet, prérequis, lancement en développement hors conteneur, lancement des tests, lancement en conteneur, licence.
 ---
