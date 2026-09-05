@@ -2,10 +2,12 @@
  
 | | |
 |---|---|
-| **Version** | 1.5 |
+| **Version** | 1.6 |
 | **Date** | 2 septembre 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.10 — à lire en premier |
 | **Portée** | Squelette du dépôt, chaîne de compilation, puis moteur de mise en page et rendu PDF |
+ 
+> **Changements depuis la v1.5** — Le §A.3 décrit désormais le rangement **à l'intérieur** de chaque projet, en dossiers thématiques dont les namespaces suivent le chemin, comme l'exige déjà le `.editorconfig`. Ajout de `tests/Pawnsmith.Application.Tests`, né en T2. Et correction du statut de `docs/`, qui s'annonçait encore comme un miroir d'une base extérieure alors que les instructions du projet en font la base de connaissance elle-même. Aucun changement de formule, de valeur ni de périmètre.
  
 > **Changements depuis la v1.4** — Trois corrections issues de la fusion de T2. Le champ « document parent » annonçait encore la bible **v0.3**, six révisions en arrière ; il pointe désormais la **v0.10**. Le §A.4 gagne `<Version>` dans la liste des réglages de `Directory.Build.props`, et le §A.8 la cadence d'incrémentation qui lui manquait : **une tranche livrée vaut un mineur** (DEC-058). Aucun changement de formule, de valeur ni de périmètre.
  
@@ -82,9 +84,10 @@ Pawnsmith/
 │   ├── Pawnsmith.Application/        # cas d'usage, ports
 │   ├── Pawnsmith.Infrastructure/     # PDFsharp, système de fichiers, Serilog
 │   ├── Pawnsmith.Api/                # ASP.NET Core, sert aussi le front compilé
-│   └── Pawnsmith.Web/                # front React (squelette en T1)
+│   └── Pawnsmith.Web/                # front React (squelette en T1, voir son README)
 ├── tests/
 │   ├── Pawnsmith.Domain.Tests/
+│   ├── Pawnsmith.Application.Tests/
 │   └── Pawnsmith.Infrastructure.Tests/
 ├── tools/
 │   └── Pawnsmith.Cli/                # JETABLE — non livré, voir B.7
@@ -100,8 +103,32 @@ Pawnsmith/
 ```
  
 **Règle de dépendance, à respecter strictement** : `Domain` ne référence rien. `Application` référence `Domain`. `Infrastructure` référence `Application` et `Domain`. `Api` référence tout. Aucune flèche en sens inverse, jamais.
+
+### Rangement à l'intérieur d'un projet
+
+Les quatre projets portent le découpage en couches, et le compilateur le fait respecter. **À l'intérieur** d'un projet, les fichiers sont rangés en **dossiers thématiques**, et le namespace suit le chemin du dossier — ce que le `.editorconfig` demande déjà (`dotnet_style_namespace_match_folder`).
+
+```
+Pawnsmith.Domain/          Pawnsmith.Application/     Pawnsmith.Infrastructure/
+├── Primitives/            ├── Ports/                 ├── ManifestException.cs
+├── PhysicalValues/        ├── PhysicalValues/        ├── Json/
+├── Units/                 └── Sheets/                ├── Imaging/
+├── Sheets/                                           ├── Pdf/
+├── Projects/                                         └── Fonts/
+└── Prompts/
+```
+
+Le domaine se range par **sujet** — le vocabulaire partagé, les valeurs physiques, la géométrie d'une unité, la mise en page d'une planche, le modèle de projet, les règles de prompt. L'infrastructure se range par **technologie d'adaptateur**, parce que c'est ce qui la distingue : un adaptateur JSON, un adaptateur image, un adaptateur PDF. Les projets de test **reflètent** le rangement de ce qu'ils testent, plus un dossier `Fixtures/`.
+
+Deux conséquences à connaître avant d'ajouter un dossier.
+
+**Un dossier ne peut pas porter le nom d'un type qu'il contient.** `Pawnsmith.Domain.Calibration` avec un type `Calibration` dedans est une erreur de compilation (CS0118) : le compilateur ne sait plus si le nom désigne l'espace de noms ou le type. C'est pourquoi le dossier des valeurs de calibration s'appelle `PhysicalValues`, du nom que le §6 des instructions du projet leur donne déjà. **Le glossaire du chapitre 2 gagne toujours contre un nom de dossier** : on renomme le dossier, jamais le terme.
+
+**Ce que le rangement ne fait pas.** Il n'ajoute aucune contrainte que le compilateur vérifie. La règle de dépendance ci-dessus est portée par les **références de projet**, et rien d'autre. Les dossiers rendent le code navigable et rendent une dépendance entre thèmes visible dans les `using` ; ils ne l'empêchent pas.
  
-**Statut de `docs/`** : les documents de référence sont maintenus dans la base de connaissance du projet, qui **fait foi**. `docs/` en est un miroir, mis à jour sur demande explicite. L'assistant de code ne modifie jamais ces fichiers de sa propre initiative : un document divergent du code est pire que pas de document, et deux copies qui s'éditent chacune de leur côté divergent toujours.
+**Statut de `docs/`** : `docs/` **est** la base de connaissance du projet, et non le miroir d'une source extérieure. Elle fait foi, et c'est là qu'elle évolue — conception et code vivent dans le même dépôt. Ces documents se **modifient** quand une décision est prise ; les laisser diverger du code est un défaut. La règle du §0 s'y applique intégralement : proposer, montrer le diff, attendre la validation.
+
+> **Correction apportée en v1.6.** Ce paragraphe décrivait encore `docs/` comme un miroir mis à jour sur demande, et interdisait à l'assistant de code d'y toucher. Les instructions du projet disent l'inverse depuis qu'elles ont été réécrites, et la pratique aussi : les fiches DEC-046 à DEC-059 ont été déposées dans la bible du dépôt. Deux copies qui s'éditent chacune de leur côté divergent toujours — c'est justement pourquoi il n'y en a plus qu'une.
  
 ## A.4 Réglages de compilation
  
