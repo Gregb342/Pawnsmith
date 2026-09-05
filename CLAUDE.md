@@ -294,8 +294,8 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.8**, cahier des charges **v1.3**,
-protocole T0 **v1.2**.
+Documents de référence en vigueur : bible **v0.10**, cahier des charges T1
+**v1.5**, **cahier des charges T2 v1.1**, protocole T0 **v1.3**.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -318,7 +318,7 @@ illustrations.
 | Décision | Objet | Implémentée ? |
 |---|---|---|
 | DEC-039 | Géométrie `NoSupport`, rien sous les pieds | ✅ |
-| DEC-040 | Cotes d'onglet réglables par l'utilisateur | ❌ — touche le schéma de `Projet`, donc **T2** |
+| DEC-040 | Cotes d'onglet réglables par l'utilisateur | ❌ — spécifié en T2 (DEC-053), pas encore écrit |
 | DEC-041 | Le couple recto/verso partage une échelle | ✅ |
 | DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait, la **clause** relève de **T3** |
 
@@ -326,6 +326,33 @@ illustrations.
 production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
 licence libre autorisant l'incorporation dans un document — point important,
 puisqu'une police utilisée dans un PDF y est redistribuée.
+
+### T2 — spécifiée, pas commencée
+
+**La tranche T2 (modèle de projet et persistance) est spécifiée** par
+[`docs/pawnsmith-cahier-des-charges-t2.md`](docs/pawnsmith-cahier-des-charges-t2.md)
+v1.1 : schéma de `project.json`, chargement, sauvegarde, export et import
+d'archives, **54 tests** attendus. Aucune ligne de code n'est écrite, et le
+découpage en tâches n'est pas encore validé.
+
+Quatorze fiches sont nées de cette spécification et de sa revue, **DEC-046 à
+DEC-059**, plus **MEN-008** et **MEN-009** au chapitre 9. Les six qui changent
+quelque chose à ce qui est déjà écrit :
+
+| Décision | Ce qu'elle change |
+|---|---|
+| DEC-046 | Le fichier projet s'appelle `project.json`, pas `projet.json` |
+| DEC-049 | Le candidat fige ses **trois clauses**, pas le prompt assemblé. Supersède la forme du champ `promptUtilise` du §3.1 |
+| DEC-053 | `LoadAsync` prend la calibration en paramètre ; les surcharges de projet sont une **liste close** de deux membres, résolues en Application |
+| DEC-055 | Aucun champ de projet n'est verrouillé après création ; `SaveAsync` ne reçoit **jamais** l'état antérieur |
+| DEC-056 | Une donnée de projet n'est jamais rejetée par une donnée de machine. **Supersède la double validation de DEC-053** |
+| DEC-058 | `<Version>` vit dans `Directory.Build.props` ; une tranche livrée vaut un mineur, donc **T2 est `0.3.0`** |
+
+**DEC-059 renomme l'invocation du CLI** en `pawnsmith-cli sheet …` et lui ajoute
+quatre sous-commandes `project`. Le renommage est du **code**, écrit en dernière
+tâche de T2. Tant qu'il n'est pas fait, le §B.7 du cahier T1, le protocole T0 et
+l'invocation donnée plus bas décrivent la commande **réellement en vigueur** —
+et les trois se corrigent dans le même commit que le code, jamais avant.
 
 ### Comment faire tourner les choses
 
