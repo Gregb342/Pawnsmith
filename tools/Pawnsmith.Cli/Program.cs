@@ -1,7 +1,12 @@
 using System.Globalization;
 
-using Pawnsmith.Application;
-using Pawnsmith.Domain;
+using Pawnsmith.Application.Sheets;
+using Pawnsmith.Domain.PhysicalValues;
+using Pawnsmith.Domain.Primitives;
+using Pawnsmith.Domain.Sheets;
+using Pawnsmith.Infrastructure.Imaging;
+using Pawnsmith.Infrastructure.Json;
+using Pawnsmith.Infrastructure.Pdf;
 using Pawnsmith.Infrastructure;
 
 // B.7 — Throwaway command-line harness, not shipped and excluded from the
