@@ -13,6 +13,25 @@ namespace Pawnsmith.Infrastructure.Tests.Projects;
 /// </summary>
 public class ProjectMappingTests
 {
+    /// <summary>Compares two dictionaries by content, whatever their enumeration order.</summary>
+    /// <remarks>
+    /// Shouldly compares a dictionary as a sequence, and the round trip sorts the
+    /// optional-parameter keys on purpose (test 54). Asserting on the sequence
+    /// would therefore fail for the one reason we want, which tells us nothing
+    /// about the contents.
+    /// </remarks>
+    private static void ShouldHaveSameEntries(
+        IReadOnlyDictionary<string, string> actual,
+        IReadOnlyDictionary<string, string> expected)
+    {
+        actual.Count.ShouldBe(expected.Count);
+
+        foreach ((string key, string value) in expected)
+        {
+            actual.ShouldContainKeyAndValue(key, value);
+        }
+    }
+
     // --- C.12 n° 15 : l'aller-retour ne perd rien -------------------------
 
     [Fact]
@@ -55,7 +74,7 @@ public class ProjectMappingTests
             actual.SubjectClause.ShouldBe(expected.SubjectClause);
             actual.Quantity.ShouldBe(expected.Quantity);
             actual.ElectedCandidateId.ShouldBe(expected.ElectedCandidateId);
-            actual.OptionalParameters.ShouldBe(expected.OptionalParameters);
+            ShouldHaveSameEntries(actual.OptionalParameters, expected.OptionalParameters);
             actual.Candidates.ShouldBe(expected.Candidates);
         }
     }

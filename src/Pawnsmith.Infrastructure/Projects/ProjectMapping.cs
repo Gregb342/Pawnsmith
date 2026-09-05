@@ -100,7 +100,16 @@ public static class ProjectMapping
             Race: blueprint.Race,
             CharacterClass: blueprint.CharacterClass,
             Size: blueprint.Size.ToString(),
-            OptionalParameters: blueprint.OptionalParameters,
+            // Sorted here rather than at write time, so the document type is
+            // always the canonical form of the file. The enumeration order of a
+            // .NET dictionary is not guaranteed, which would make two saves of
+            // one project differ - test 19 is not satisfiable without this.
+            // Ordinal, never culture-aware: a culture-sensitive sort varies with
+            // the process culture and with the installed ICU version, so two
+            // machines would produce two different files for the same project.
+            OptionalParameters: new SortedDictionary<string, string>(
+                blueprint.OptionalParameters.ToDictionary(),
+                StringComparer.Ordinal),
             Details: blueprint.Details,
             SubjectClause: blueprint.SubjectClause,
             Quantity: blueprint.Quantity,

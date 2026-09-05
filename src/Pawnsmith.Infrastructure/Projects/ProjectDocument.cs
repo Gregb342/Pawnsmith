@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Pawnsmith.Infrastructure.Projects;
 
 /// <summary>
@@ -27,6 +29,14 @@ namespace Pawnsmith.Infrastructure.Projects;
 /// file is a net, not the mechanism (C.3.6).
 /// </para>
 /// <para>
+/// <b>Every key is pinned by its own attribute</b> rather than produced by a
+/// camel-case naming policy. The policy would be one line instead of thirty-seven
+/// attributes, and it would be a hidden convention: renaming a C# property would
+/// silently change the format of every project file already on a disk. The schema
+/// of C.3.4 is a contract, so the contract is written down. It is also the only
+/// way <c>characterClass</c> reads unambiguously.
+/// </para>
+/// <para>
 /// Identifiers, timestamps, enumerations and the seed are all <b>strings</b>
 /// here, even though the domain has real types for them. That is the point of a
 /// document type: it owns the wire format, and the mapping owns the conversion.
@@ -44,16 +54,27 @@ namespace Pawnsmith.Infrastructure.Projects;
 /// <param name="CreatedAt">ISO 8601, UTC, <c>Z</c> suffix.</param>
 /// <param name="ModifiedAt">Same, rewritten at every save.</param>
 public sealed record ProjectDocument(
+    [property: JsonPropertyName("versionSchema")]
     int VersionSchema,
+    [property: JsonPropertyName("projectId")]
     string ProjectId,
+    [property: JsonPropertyName("name")]
     string Name,
+    [property: JsonPropertyName("universe")]
     string Universe,
+    [property: JsonPropertyName("geometry")]
     string Geometry,
+    [property: JsonPropertyName("paperFormat")]
     string PaperFormat,
+    [property: JsonPropertyName("style")]
     StyleDocument Style,
+    [property: JsonPropertyName("calibrationOverrides")]
     CalibrationOverridesDocument CalibrationOverrides,
+    [property: JsonPropertyName("blueprints")]
     IReadOnlyList<BlueprintDocument> Blueprints,
+    [property: JsonPropertyName("createdAt")]
     string CreatedAt,
+    [property: JsonPropertyName("modifiedAt")]
     string ModifiedAt);
 
 // The order of Blueprints is functional, not cosmetic. B.5.1 of T1 paginates
@@ -72,9 +93,13 @@ public sealed record ProjectDocument(
 /// <param name="NegativeClause">Negative prompt shared by the project.</param>
 /// <param name="Palette">Free descriptor.</param>
 public sealed record StyleDocument(
+    [property: JsonPropertyName("name")]
     string Name,
+    [property: JsonPropertyName("styleClause")]
     string StyleClause,
+    [property: JsonPropertyName("negativeClause")]
     string NegativeClause,
+    [property: JsonPropertyName("palette")]
     string Palette);
 
 /// <summary>The <c>calibrationOverrides</c> object: a closed list of two.</summary>
@@ -87,7 +112,9 @@ public sealed record StyleDocument(
 /// <param name="TabWidthMm">Null means "use the calibration's value".</param>
 /// <param name="TabHeightMm">Same.</param>
 public sealed record CalibrationOverridesDocument(
+    [property: JsonPropertyName("tabWidthMm")]
     double? TabWidthMm,
+    [property: JsonPropertyName("tabHeightMm")]
     double? TabHeightMm);
 
 /// <summary>One entry of the <c>blueprints</c> array.</summary>
@@ -102,15 +129,25 @@ public sealed record CalibrationOverridesDocument(
 /// <param name="Candidates">May be empty. Order significant, for display.</param>
 /// <param name="ElectedCandidateId">Must name a candidate <b>of this blueprint</b>, or be null.</param>
 public sealed record BlueprintDocument(
+    [property: JsonPropertyName("id")]
     string Id,
+    [property: JsonPropertyName("race")]
     string Race,
+    [property: JsonPropertyName("characterClass")]
     string CharacterClass,
+    [property: JsonPropertyName("size")]
     string Size,
+    [property: JsonPropertyName("optionalParameters")]
     IReadOnlyDictionary<string, string> OptionalParameters,
+    [property: JsonPropertyName("details")]
     string Details,
+    [property: JsonPropertyName("subjectClause")]
     string SubjectClause,
+    [property: JsonPropertyName("quantity")]
     int Quantity,
+    [property: JsonPropertyName("candidates")]
     IReadOnlyList<CandidateDocument> Candidates,
+    [property: JsonPropertyName("electedCandidateId")]
     string? ElectedCandidateId);
 
 /// <summary>One entry of a blueprint's <c>candidates</c> array.</summary>
@@ -133,13 +170,23 @@ public sealed record BlueprintDocument(
 /// <param name="BackImageFile">Same.</param>
 /// <param name="GeneratedAt">ISO 8601, UTC, <c>Z</c> suffix.</param>
 public sealed record CandidateDocument(
+    [property: JsonPropertyName("id")]
     string Id,
+    [property: JsonPropertyName("seed")]
     string Seed,
+    [property: JsonPropertyName("framingClauseUsed")]
     string FramingClauseUsed,
+    [property: JsonPropertyName("subjectClauseUsed")]
     string SubjectClauseUsed,
+    [property: JsonPropertyName("styleClauseUsed")]
     string StyleClauseUsed,
+    [property: JsonPropertyName("status")]
     string Status,
+    [property: JsonPropertyName("pairedImageFile")]
     string? PairedImageFile,
+    [property: JsonPropertyName("frontImageFile")]
     string? FrontImageFile,
+    [property: JsonPropertyName("backImageFile")]
     string? BackImageFile,
+    [property: JsonPropertyName("generatedAt")]
     string GeneratedAt);
