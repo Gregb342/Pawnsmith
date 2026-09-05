@@ -294,7 +294,7 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.11**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.12**, cahier des charges T1
 **v1.6**, **cahier des charges T2 v1.1**, protocole T0 **v1.3**.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
@@ -377,9 +377,9 @@ docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 pawnsmith
 Les critères d'acceptation du §B.9 se cochent **planche imprimée en main**, donc
 après T0b.
 
-**Le filigrane est tranché** (DEC-060) : pas de marque invisible, licence MIT
-confirmée, attribution par le nom et par une **mention visible** dans la zone de
-calibration. Cette mention reste à écrire — c'est du rendu, donc T1.
+**Le filigrane est tranché et le sujet est clos** (DEC-060, DEC-061) : aucune
+marque sur les planches, ni cachée ni visible. Licence MIT confirmée. Rien à
+écrire, aucune tâche T1 ouverte à ce titre.
 
 ### T0a et T0b
 

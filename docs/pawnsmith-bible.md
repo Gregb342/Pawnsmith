@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.11 |
+| **Version du document** | 0.12 |
 | **Date** | 5 septembre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.11** — DEC-061 : la mention visible que DEC-060 prévoyait n'est pas écrite non plus. Le sujet de l'attribution est clos en entier.
  
 > **Changements depuis la v0.10** — DEC-060 : le filigrane invisible est écarté, la licence MIT est confirmée, et l'attribution passe par une mention visible et par le nom. C'était le dernier sujet réservé de T1.
  
@@ -896,6 +898,11 @@ Trois raisons techniques, cohérentes entre elles. **La sortie d'un outil n'est 
 Ce que la fiche évite au passage, et qui aurait été une régression : une marque portant quoi que ce soit d'unique par installation serait un **identifiant de traçage** dans une application sans compte ni authentification (§1.5), dont MEN-006 promet que les archives se partagent sans réflexion préalable. DEC-058 venait précisément de retirer la révision de source d'`archive.json` pour cette raison.
 Ce que cette fiche ne ferme pas : si l'objectif devenait réellement d'interdire l'usage commercial, la réponse serait une **licence** qui le dit — au prix de cesser d'être open source au sens de l'OSI, et de contredire A.2. C'est une décision de modèle, pas une technique, et elle demanderait sa propre fiche.
 La mention visible relève de **T1**, puisqu'elle touche le rendu, et se pose dans la zone de calibration qui porte déjà du texte localisé. Elle n'ajoute rien sur les pions eux-mêmes : cette zone est découpée avec le reste.
+
+**DEC-061 — La mention visible n'est pas écrite non plus ; le sujet de l'attribution est clos.**
+Choix : la mention « produit avec Pawnsmith » que DEC-060 plaçait dans la zone de calibration **n'est pas écrite**. Aucune marque, ni cachée ni visible, n'est ajoutée aux planches. Supersède la seule clause de DEC-060 qui engageait du code ; tout le reste de cette fiche demeure, licence MIT comprise.
+Conséquence : il ne reste **aucune tâche T1 ouverte** au titre de l'attribution, et le §8 des instructions du projet cesse d'en annoncer une. L'attribution repose sur le nom et sur le dépôt public, ce qui est ce que la licence garantit déjà sans que le rendu ait à s'en mêler.
+Sur la brièveté de cette fiche, qui contraste avec DEC-060 : l'analyse est faite et elle tient, elle n'est simplement pas suivie sur son dernier point. Le porteur a tranché que la planche n'a pas à porter de mention du tout. Ce qui aurait été coûteux, c'est de laisser la bible promettre un texte que personne n'écrira.
 
 ---
  
