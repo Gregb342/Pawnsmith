@@ -10,6 +10,16 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <LangVersion>latest</LangVersion>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- DEC-058 - one delivered slice is one minor, bumped at the FIRST commit
+         of the slice, not the last: the number says "this binary belongs to T2",
+         not "T2 is validated". Foundations 0.1.0, T1 0.2.0, T2 0.3.0.
+         Read by reflection on the assembly, never copied into a constant.
+         The source revision is excluded because the SDK otherwise appends
+         "+3f9a1c..." to AssemblyInformationalVersion, and that suffix would name
+         a commit inside every archive.json a human is meant to read. -->
+    <Version>0.3.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
 </Project>
