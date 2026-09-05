@@ -32,6 +32,13 @@ jobs:
         # drifted from package.json instead of quietly reconciling the two.
         run: npm ci
 
+      - name: Lint front
+        working-directory: src/Pawnsmith.Web
+        # Before the build rather than after: a lint failure is cheaper to read
+        # than a build log, and there is no reason to bundle code that will be
+        # rejected anyway.
+        run: npm run lint
+
       - name: Build front
         working-directory: src/Pawnsmith.Web
         run: npm run build

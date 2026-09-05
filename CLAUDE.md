@@ -280,7 +280,7 @@ autorise le commit.
 ```bash
 dotnet build Pawnsmith.sln
 dotnet test Pawnsmith.sln
-cd src/Pawnsmith.Web && npm run build
+cd src/Pawnsmith.Web && npm run lint && npm run build
 docker build -t pawnsmith .
 ```
 

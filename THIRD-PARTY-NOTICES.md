@@ -67,6 +67,11 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 | [vite](https://github.com/vitejs/vite) | 7.x | MIT | Outillage de compilation du front (A.1) |
 | [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) | 5.x | MIT | Prise en charge de JSX et du rafraîchissement à chaud |
 | [typescript](https://github.com/microsoft/TypeScript) | 5.9.x | Apache-2.0 | Compilateur TypeScript (A.1) |
+| [eslint](https://github.com/eslint/eslint) | 10.x | MIT | Analyse statique du front. Attrape ce que `tsc` ne peut pas voir, à commencer par les règles des hooks React |
+| [@eslint/js](https://github.com/eslint/eslint) | 10.x | MIT | Jeu de règles de base d'ESLint |
+| [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) | 8.x | MIT | Analyseur syntaxique et règles ESLint typées pour TypeScript |
+| [eslint-plugin-react-hooks](https://github.com/facebook/react) | 7.x | MIT | Règles des hooks React — la seule classe de défaut qu'un vérificateur de types ne peut structurellement pas voir |
+| [globals](https://github.com/sindresorhus/globals) | 17.x | MIT | Liste des variables globales du navigateur, pour la configuration d'ESLint |
 | [@types/react](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React |
 | [@types/react-dom](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React DOM |
 

@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { supportedLanguages, type SupportedLanguage } from '../i18n/config';
+import { supportedLanguages } from '../i18n/config';
 
 /**
  * A.5 — the language selector is the only interactive element of the skeleton.
@@ -11,7 +11,11 @@ export function LanguageSelector() {
   const { t, i18n } = useTranslation();
 
   function handleChange(event: ChangeEvent<HTMLSelectElement>) {
-    void i18n.changeLanguage(event.target.value as SupportedLanguage);
+    // No cast to SupportedLanguage here. changeLanguage accepts any string, so
+    // the assertion asserted nothing and only looked like a guarantee — the
+    // real guarantee is that the options below are built from
+    // supportedLanguages, which is the tuple that defines the type.
+    void i18n.changeLanguage(event.target.value);
   }
 
   return (

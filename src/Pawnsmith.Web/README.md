@@ -47,17 +47,14 @@ avec son premier fichier.
 - **Aucun test.** Le front de T1 est une coquille : un titre, une accroche, un
   sélecteur de langue. Les tests d'interface arrivent avec ce qu'ils testent,
   en T6.
-- **Aucun linter.** ESLint est la convention de l'écosystème, mais il ajoute une
-  poignée de dépendances de développement, et le §A.2 exige que chaque
-  dépendance soit justifiée dans le commit qui l'introduit. À trancher avant
-  T6, pas dans un commit de rangement.
 - **Aucun style par composant.** Une seule feuille globale suffit à ce que le
-  front contient. Le jour où les écrans arrivent, le choix entre modules CSS,
-  fichier par composant ou une autre approche appartient à T6.
+  front contient aujourd'hui. Le jour où les écrans arrivent, le choix entre
+  modules CSS, fichier par composant ou une autre approche appartient à T6.
 
 ## Les vérifications
 
 ```bash
+npm run lint
 npm run build
 ```
 
@@ -65,3 +62,12 @@ npm run build
 la construction, elles ne sont pas seulement signalées dans l'éditeur. Le
 `tsconfig.json` est en mode `strict`, avec `noUnusedLocals`,
 `noUnusedParameters` et `noUncheckedIndexedAccess`.
+
+`lint` lance **ESLint**, configuré dans `eslint.config.js`. Il ne fait pas
+double emploi avec `tsc` : le vérificateur de types prouve que le code est
+**cohérent**, pas qu'il est du **React correct**. La règle des hooks est
+l'exemple qui justifie l'outil à lui seul — un hook appelé dans une condition
+ou une boucle compile parfaitement et se comporte mal à l'exécution, par
+intermittence. C'est structurellement invisible pour un vérificateur de types.
+
+Les deux tournent dans l'intégration continue, `lint` avant `build`.
