@@ -295,7 +295,7 @@ Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris 
 l'intégration continue a tourné au vert sur `main`.
 
 Documents de référence en vigueur : bible **v0.12**, cahier des charges T1
-**v1.6**, **cahier des charges T2 v1.1**, protocole T0 **v1.3**.
+**v1.7**, **cahier des charges T2 v1.1**, protocole T0 **v1.4**.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -327,16 +327,16 @@ production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
 licence libre autorisant l'incorporation dans un document — point important,
 puisqu'une police utilisée dans un PDF y est redistribuée.
 
-### T2 — en cours, 11 tâches sur 13
+### T2 — code terminé, 14 tâches sur 14
 
 **La tranche T2 (modèle de projet et persistance) est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t2.md`](docs/pawnsmith-cahier-des-charges-t2.md)
 v1.1 : schéma de `project.json`, chargement, sauvegarde, export et import
 d'archives, **54 tests** attendus.
 
-Le découpage a été proposé en 11 tâches et validé ; deux d'entre elles se sont
+Le découpage a été proposé en 11 tâches et validé ; trois d'entre elles se sont
 révélées trop grosses pour tenir en une relecture et ont été coupées en deux
-(7a/7b et 9a/9b), d'où **13 tâches**.
+(7a/7b, 9a/9b et 10a/10b), d'où **14 tâches**. **Elles sont toutes écrites.**
 
 | # | Tâche | État |
 |---|---|---|
@@ -351,46 +351,76 @@ révélées trop grosses pour tenir en une relecture et ont été coupées en de
 | 8 | Sauvegarde (C.7.3) | ✅ |
 | 9a | Profils d'archive, `archive.json`, filtrage `Share` | ✅ |
 | 9b | Export : liste blanche, liens symboliques, forme du ZIP | ✅ |
-| **10** | **Import d'archive (C.9)** | ⬜ **à faire — c'est la prochaine** |
-| **11** | **CLI de C.17, et les corrections de documentation groupées** | ⬜ **à faire** |
+| 10a | Inspection de l'archive, sans rien extraire (C.9.1, étapes 1 à 6) | ✅ |
+| 10b | Extraction, échange atomique, destination (C.9.1, étapes 7-8 ; C.9.2) | ✅ |
+| 11 | CLI de C.17, et les corrections de documentation groupées | ✅ |
 
-**Tests de C.12 couverts : 1 à 40, plus 53 et 54.** Restent **41 à 52**, tous
-sur l'import. Le dépôt porte **362 tests verts** au total.
+**Les 54 tests de C.12 sont couverts.** Le dépôt porte **415 tests verts** au
+total. Ce qui reste avant de clore T2 n'est plus du code : ce sont les fiches
+DEC de C.15 à déposer au chapitre 11 de la bible, et la relecture intégrale.
 
 Le code de T2 vit dans `src/Pawnsmith.Infrastructure/Projects/`, sauf la fusion
 des surcharges (`src/Pawnsmith.Application/PhysicalValues/`) et les types de
 domaine (`src/Pawnsmith.Domain/Projects/` et `Prompts/`).
 
-#### Ce que la tâche 10 doit faire
+#### Ce que l'import a donné, et les deux limites connues
 
-L'import, spécifié en **C.9**, avec ses tests **41 à 52**.
+L'import est coupé à la frontière que MEN-001 trace lui-même — « tout est validé
+avant qu'un octet ne soit écrit ». `ArchiveInspector` est le côté validé : il
+**ne reçoit aucune destination et ne possède aucun chemin d'écriture**, donc
+« rien n'est écrit » n'est pas une règle à tenir, c'est une propriété du type.
+`ProjectImporter` est le côté qui écrit : dossier temporaire voisin de la
+destination, puis un seul `Directory.Move`.
 
-Les briques existantes qu'elle réutilise sont déjà écrites et **aucune n'a
-encore d'appelant côté import** : `ArchiveManifestFile` pour lire `archive.json`
-sans tout extraire, `ProjectValidation` pour la validation intrinsèque,
-`ProjectRepositoryOptions` pour les six bornes de ressources, `ProjectFolderName`
-pour dériver un nom de dossier sûr.
+`ZipCentralDirectory` lit **un champ du format ZIP à la main**, et c'est le seul
+endroit du dépôt qui fait ça. Motif mesuré, pas supposé : `System.IO.Compression`
+n'expose pas le bit « entrée chiffrée » **et ne le lit jamais lui-même**. Une
+archive chiffrée n'est donc pas refusée par le cadre, elle est extraite en
+chiffré, en silence. Ne rien laisser grossir dans ce fichier.
 
-Les points durs, dans l'ordre où C.9.1 les pose : refuser **avant** d'extraire
-quoi que ce soit (MEN-001), borner les ressources contre la bombe de
-décompression (C.9.3), extraire dans un dossier temporaire puis **renommer
-atomiquement**, refuser une destination déjà existante même vide
-(`IMPORT_DESTINATION_EXISTS`), et ne **pas** faire échouer l'import sur un
-diagnostic — c'est DEC-056, la même frontière qu'au chargement.
+Trois choses non couvertes, à connaître plutôt qu'à redécouvrir :
 
-#### Ce que la tâche 11 doit faire
+- **La branche Zip64** de la lecture du répertoire central. L'éprouver demande
+  une archive de plus de 4 Gio ou de 65 535 entrées.
+- **Les deux contrôles doublés que DEC-051 impose à l'extraction** — le nom
+  d'entrée revu, le chemin résolu revérifié. Ils sont inatteignables tant que
+  l'inspection refuse les doublons ; on les garde parce que la fiche les demande
+  et qu'ils coûtent deux comparaisons.
+- **L'atomicité du `Directory.Move`** elle-même, comme l'échange atomique de la
+  tâche 8. Le test montre que c'est un déplacement et non une copie, pas qu'il
+  est indivisible.
 
-Le CLI de **C.17** — `pawnsmith-cli sheet …` plus quatre sous-commandes
-`project new|check|export|import` —, **sans logique**, jetable, hors image
-Docker, sans tests. Et, **dans le même commit que ce code** parce que DEC-059
-l'exige, les quatre corrections de documentation qui ne deviennent vraies qu'à
-ce moment-là :
+Un trou assumé, mesuré lui aussi : une entrée qui **sous-déclare** sa taille
+arrive **tronquée en silence**, le cadre ne vérifiant pas le CRC. Ça ne casse
+aucun invariant de C.8 et une image abîmée échoue bruyamment en T1 et en T5.
+Fermer ça demanderait un contrôle CRC32 par entrée, que C.9 ne demande pas.
 
-1. le §B.7 du cahier T1, qui décrit l'ancienne invocation ;
-2. le protocole T0, même chose ;
-3. la ligne d'invocation du CLI plus bas dans ce fichier ;
-4. le §A.3 du cahier T1, dont le schéma des dossiers d'infrastructure ne connaît
-   pas encore `Projects/`.
+#### Le piège C# qui a coûté deux tests
+
+**Un `record` compare un membre de type interface par référence.** `Project`
+porte ses gabarits dans un `IReadOnlyList`, donc deux projets au contenu
+rigoureusement identique dans deux listes de types concrets différents sont
+« différents » pour `==`. Les tests d'import comparent les **documents
+sérialisés**, ce qui est plus fort : ça couvre tout le modèle d'un coup, ordre
+des collections compris, et le test 19 garantit déjà que l'écriture est
+déterministe.
+
+#### Ce que le CLI a demandé en plus
+
+`project new` ne pouvait pas exister sans deux briques qui manquaient, et qui
+n'avaient pas leur place dans un harnais sans logique :
+
+- **`NewProject.Create`** (domaine) — ce qu'est un projet vide est un fait sur
+  le modèle, pas sur qui le crée. L'instant est un paramètre, le domaine ne lit
+  pas d'horloge.
+- **`ProjectCreator`** (infrastructure) — la moitié de C.3.2 que
+  `ProjectFolderName` laissait dehors : suffixe de collision `-2`, `-3`, et
+  vérification que le chemin résolu est bien sous la racine. Cinq tests le
+  couvrent, bien que C.12 n'en numérote aucun : c'est de la vraie logique.
+
+**Une collision se suffixe à la création et se refuse à l'import**, et l'écart
+est voulu. Créer un second « Donjon » est ordinaire. Importer sur un dossier
+existant ne l'est pas : quelque chose est déjà là.
 
 #### Les décisions de T2
 
@@ -409,12 +439,12 @@ qui changent quelque chose à ce qui était écrit avant :
 | DEC-058 | `<Version>` vit dans `Directory.Build.props` ; une tranche livrée vaut un mineur, donc **T2 est `0.3.0`** |
 | DEC-060 / DEC-061 | Le filigrane est écarté et le sujet de l'attribution est clos. Rien à écrire, aucune tâche ouverte |
 
-**DEC-059 renomme l'invocation du CLI** en `pawnsmith-cli sheet …`. Le renommage
-est du **code**, écrit en tâche 11. Tant qu'il n'est pas fait, le §B.7, le
-protocole T0 et l'invocation donnée plus bas décrivent la commande **réellement
-en vigueur** — et les quatre se corrigent dans le même commit que le code.
+**DEC-059 a renommé l'invocation du CLI** en `pawnsmith-cli sheet …`. C'est fait,
+en tâche 11, et les quatre documents qui décrivaient l'ancienne commande ont été
+corrigés **dans le même commit que le code** : le §B.7 et le §A.3 du cahier T1
+(v1.7), le protocole T0 (v1.4), ce fichier et le README.
 
-#### Trois points ouverts, à connaître avant de reprendre
+#### Quatre points ouverts, à connaître avant de reprendre
 
 **Le chemin dans `SaveAsync`.** Le chapitre 7 de la bible donne
 `SaveAsync(Project, CancellationToken)`, sans chemin, et DEC-047 interdit qu'un
@@ -435,10 +465,18 @@ qu'un test unitaire ne sait pas faire. Tout ce qui entoure l'échange est
 couvert ; l'atomicité elle-même repose sur la lecture de dix lignes. Le porteur
 l'a accepté en connaissance de cause.
 
+**Le manifeste de T1 porte des clés en français.** `rectoFile` et `versoFile`,
+dans le §B.3 comme dans `ManifestReader`. Le code est donc conforme à sa spec,
+et c'est **la spec qui contredit DEC-037**, laquelle place les clés de fichier du
+côté anglais. Découvert en éprouvant le CLI de la tâche 11, signalé plutôt que
+corrigé en silence : renommer casserait le format du manifeste et les fichiers
+de tirage de T0b. À trancher — probablement avec une montée de `versionSchema`,
+et probablement pas avant T0b.
+
 #### Ce qui a bougé hors de T2 pendant T2
 
 - **Les sources sont rangées en dossiers thématiques** à l'intérieur de chaque
-  projet, namespaces alignés sur les chemins (§A.3 du cahier T1, v1.6). Le
+  projet, namespaces alignés sur les chemins (§A.3 du cahier T1, v1.7). Le
   domaine se range par sujet, l'infrastructure par technologie d'adaptateur.
   Un dossier ne peut pas porter le nom d'un type qu'il contient — c'est une
   erreur de compilation, d'où `PhysicalValues` plutôt que `Calibration`.
@@ -454,11 +492,23 @@ l'a accepté en connaissance de cause.
 **Produire une planche** — c'est le livrable réel de T1 :
 
 ```bash
-dotnet run --project tools/Pawnsmith.Cli -- --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
+dotnet run --project tools/Pawnsmith.Cli -- sheet --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
 ```
 
 Ajouter `--debug` imprime « tête » et « pieds » dans chaque panneau. Diagnostic
 seulement, jamais sur une planche destinée au ciseau.
+
+**Manipuler un projet** — les quatre sous-commandes de C.17. Toutes demandent
+`--calibration`, `check` compris (DEC-053).
+
+```bash
+CLI="dotnet run --project tools/Pawnsmith.Cli --"
+
+$CLI project new    --root ./data/projects --name "Donjon" --geometry TabAndSocket --paper-format A4 --calibration ./config/calibration.json
+$CLI project check  --path ./data/projects/donjon --calibration ./config/calibration.json
+$CLI project export --path ./data/projects/donjon --profile Share --out ./data/archives --calibration ./config/calibration.json
+$CLI project import --archive ./data/archives/donjon-share-…zip --root ./data/projects --name "Donjon restauré" --calibration ./config/calibration.json
+```
 
 **Lancer l'application** — elle ne sert encore que la coquille du front, sans
 aucune fonctionnalité : l'interface est T6.

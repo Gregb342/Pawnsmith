@@ -2,9 +2,11 @@
  
 | | |
 |---|---|
-| **Version** | 1.3 |
-| **Date** | 29 août 2026 |
-| **Document parent** | `pawnsmith-bible.md` v0.3, DEC-032 et DEC-033 |
+| **Version** | 1.4 |
+| **Date** | 9 septembre 2026 |
+| **Document parent** | `pawnsmith-bible.md` v0.12, DEC-032, DEC-033 et DEC-059 |
+ 
+> **Changements depuis la v1.3** — L'invocation du tirage devient `pawnsmith-cli sheet …` (DEC-059), corrigée dans le même commit que le code qui la rend vraie. Le champ « document parent » pointait encore la bible **v0.3**, neuf révisions en arrière. Aucun changement de méthode, de valeur ni de mesure à relever.
  
 > **Changements depuis la v1.2** — T0b est marquée comme reportée (DEC-044). L'étape 0 se juge désormais en rapport avec le trait de calibration et non en millimètres absolus, et passe après l'étape 2 (DEC-045) : en l'état, elle aurait fait conclure à un bug de T1 pour une simple réduction d'imprimante.
  
@@ -63,9 +65,9 @@ Pour chaque sujet, une seule génération demandant explicitement une feuille de
 > ⏸️ **T0b est reportée** à une date non fixée (DEC-044). T1 reste ouverte : écrite et testée, non validée. Le report ne bloque aucune autre tranche.
  
 **Durée estimée** : 2 heures
-**Prérequis** : le code de T1 compile et le CLI de B.7 produit un PDF. Une imprimante, du papier de plusieurs grammages, ciseaux, règle graduée ou réglet, colle en bâton, un socle de pion si disponible, un tapis de jeu quadrillé.
+**Prérequis** : le code de T1 compile et `pawnsmith-cli sheet` produit un PDF. Une imprimante, du papier de plusieurs grammages, ciseaux, règle graduée ou réglet, colle en bâton, un socle de pion si disponible, un tapis de jeu quadrillé.
  
-**Méthode de tirage** : les planches de test sont produites par le CLI de T1, avec des **fichiers de calibration variantes**. On ne modifie jamais `config/calibration.json` entre deux tirages ; on écrit `calibration-volets-5.json`, `calibration-volets-8.json`, etc., et on les passe en `--calibration`. Cela laisse une trace exacte de ce qui a produit quoi.
+**Méthode de tirage** : les planches de test sont produites par le CLI de T1, avec des **fichiers de calibration variantes**. On ne modifie jamais `config/calibration.json` entre deux tirages ; on écrit `calibration-volets-5.json`, `calibration-volets-8.json`, etc., et on les passe en `--calibration` à `pawnsmith-cli sheet` (DEC-059 : la commande de T1 est devenue une sous-commande quand T2 lui en a ajouté quatre autres). Cela laisse une trace exacte de ce qui a produit quoi.
  
 ## Étape 0 — Vérifier le moteur avant de mesurer le papier
  

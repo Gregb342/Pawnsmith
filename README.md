@@ -88,15 +88,28 @@ C'est le livrable réel de T1, et la seule chose que l'application sache faire
 de bout en bout aujourd'hui :
 
 ```bash
-dotnet run --project tools/Pawnsmith.Cli -- --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
+dotnet run --project tools/Pawnsmith.Cli -- sheet --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
 ```
 
 Ajouter `--debug` imprime « tête » et « pieds » dans chaque panneau : diagnostic
 seulement, jamais sur une planche destinée au ciseau.
 
-> Cette invocation change en fin de T2 : elle devient `pawnsmith-cli sheet …`,
-> avec quatre sous-commandes `project` à côté (DEC-059). Tant que le code n'est
-> pas écrit, c'est la commande ci-dessus qui est en vigueur.
+**Manipuler un projet** — les quatre sous-commandes de T2. Toutes demandent
+`--calibration`, `check` compris : les diagnostics relationnels en dépendent.
+
+```bash
+CLI="dotnet run --project tools/Pawnsmith.Cli --"
+
+$CLI project new    --root ./data/projects --name "Donjon" --geometry TabAndSocket --paper-format A4 --calibration ./config/calibration.json
+$CLI project check  --path ./data/projects/donjon --calibration ./config/calibration.json
+$CLI project export --path ./data/projects/donjon --profile Share --out ./data/archives --calibration ./config/calibration.json
+$CLI project import --archive ./data/archives/donjon-share-202609091309.zip --root ./data/projects --name "Donjon restauré" --calibration ./config/calibration.json
+```
+
+`check` affiche les erreurs et les diagnostics **séparément**, parce que c'est
+exactement la distinction de DEC-056 : une erreur est rendue *à la place* d'un
+projet, un diagnostic *avec* lui. `export` liste les entrées de l'archive, parce
+qu'une liste blanche se croit quand on la voit.
 
 ---
 

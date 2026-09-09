@@ -51,6 +51,73 @@ public sealed record Project(
     DateTimeOffset CreatedAt,
     DateTimeOffset ModifiedAt);
 
+/// <summary>Builds a project that holds nothing yet but is already valid.</summary>
+/// <remarks>
+/// <para>
+/// A factory rather than a caller assembling the record itself, and the reason
+/// is where the knowledge belongs: what an empty project consists of — a fresh
+/// identity, an empty style, no blueprint, no override, and one instant used for
+/// both timestamps — is a fact about the model, not about whoever happens to be
+/// creating one. Leaving it to the caller would have put that fact in the
+/// command-line harness, where C.17 forbids any rule to live.
+/// </para>
+/// <para>
+/// The instant is a parameter, never <c>DateTimeOffset.UtcNow</c> read here. The
+/// domain references nothing and reads no clock; a test that had to assert a
+/// timestamp was "roughly now" would fail once a month on a slow machine.
+/// </para>
+/// <para>
+/// It is truncated to the second because that is the precision the file records
+/// (C.3.3). Without the truncation, the project held in memory would carry
+/// milliseconds the file does not, and the first comparison between the two
+/// would disagree for a reason nobody could see.
+/// </para>
+/// </remarks>
+public static class NewProject
+{
+    /// <summary>An empty project, ready to be saved.</summary>
+    /// <param name="name">Display name, as the user typed it. The folder is derived from it separately.</param>
+    /// <param name="createdAt">The instant to stamp, in UTC.</param>
+    public static Project Create(
+        string name,
+        Universe universe,
+        Geometry geometry,
+        string paperFormatName,
+        DateTimeOffset createdAt)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(paperFormatName);
+
+        DateTimeOffset stamp = Truncate(createdAt);
+
+        return new Project(
+            ProjectId: Guid.NewGuid(),
+            Name: name,
+            Universe: universe,
+            Style: new Style(
+                Name: string.Empty,
+                StyleClause: string.Empty,
+                NegativeClause: string.Empty,
+                Palette: string.Empty),
+            Geometry: geometry,
+            PaperFormatName: paperFormatName,
+            CalibrationOverrides: CalibrationOverrides.None,
+            Blueprints: [],
+            CreatedAt: stamp,
+            ModifiedAt: stamp);
+    }
+
+    private static DateTimeOffset Truncate(DateTimeOffset instant)
+    {
+        DateTimeOffset utc = instant.ToUniversalTime();
+
+        return new DateTimeOffset(
+            utc.Year, utc.Month, utc.Day,
+            utc.Hour, utc.Minute, utc.Second,
+            TimeSpan.Zero);
+    }
+}
+
 // `ProjectId` is not a feature, it is the absence of a constraint (DEC-047).
 // DEC-011 justifies the plain-folder persistence in three words — versionable,
 // backupable, diffable — and the first two assume a folder gets renamed,

@@ -2,10 +2,12 @@
  
 | | |
 |---|---|
-| **Version** | 1.6 |
-| **Date** | 2 septembre 2026 |
-| **Document parent** | `pawnsmith-bible.md` v0.10 — à lire en premier |
+| **Version** | 1.7 |
+| **Date** | 9 septembre 2026 |
+| **Document parent** | `pawnsmith-bible.md` v0.12 — à lire en premier |
 | **Portée** | Squelette du dépôt, chaîne de compilation, puis moteur de mise en page et rendu PDF |
+ 
+> **Changements depuis la v1.6** — Les trois corrections que DEC-059 demandait de faire au moment où le code les rend vraies, et pas avant. Le §B.7 décrit l'invocation réelle, `pawnsmith-cli sheet …`. Le schéma des dossiers du §A.3 gagne `Projects/` côté infrastructure, avec le motif de son exception à la règle de rangement. Et le champ « document parent » pointe la bible **v0.12** au lieu de la v0.10. Aucun changement de formule, de valeur ni de périmètre.
  
 > **Changements depuis la v1.5** — Le §A.3 décrit désormais le rangement **à l'intérieur** de chaque projet, en dossiers thématiques dont les namespaces suivent le chemin, comme l'exige déjà le `.editorconfig`. Ajout de `tests/Pawnsmith.Application.Tests`, né en T2. Et correction du statut de `docs/`, qui s'annonçait encore comme un miroir d'une base extérieure alors que les instructions du projet en font la base de connaissance elle-même. Aucun changement de formule, de valeur ni de périmètre.
  
@@ -114,11 +116,11 @@ Pawnsmith.Domain/          Pawnsmith.Application/     Pawnsmith.Infrastructure/
 ├── PhysicalValues/        ├── PhysicalValues/        ├── Json/
 ├── Units/                 └── Sheets/                ├── Imaging/
 ├── Sheets/                                           ├── Pdf/
-├── Projects/                                         └── Fonts/
-└── Prompts/
+├── Projects/                                         ├── Projects/
+└── Prompts/                                          └── Fonts/
 ```
 
-Le domaine se range par **sujet** — le vocabulaire partagé, les valeurs physiques, la géométrie d'une unité, la mise en page d'une planche, le modèle de projet, les règles de prompt. L'infrastructure se range par **technologie d'adaptateur**, parce que c'est ce qui la distingue : un adaptateur JSON, un adaptateur image, un adaptateur PDF. Les projets de test **reflètent** le rangement de ce qu'ils testent, plus un dossier `Fixtures/`.
+Le domaine se range par **sujet** — le vocabulaire partagé, les valeurs physiques, la géométrie d'une unité, la mise en page d'une planche, le modèle de projet, les règles de prompt. L'infrastructure se range par **technologie d'adaptateur**, parce que c'est ce qui la distingue : un adaptateur JSON, un adaptateur image, un adaptateur PDF. `Projects/` est l'exception, et il vaut mieux la nommer que la laisser surprendre : il porte le dépôt de projet de T2, dont l'adaptateur n'est pas une technologie mais **le système de fichiers lui-même** — le dossier en clair de DEC-011. Le ranger sous `Json/` aurait été faux, puisqu'il écrit aussi des ZIP et déplace des dossiers. Les projets de test **reflètent** le rangement de ce qu'ils testent, plus un dossier `Fixtures/`.
 
 Deux conséquences à connaître avant d'ajouter un dossier.
 
@@ -421,10 +423,12 @@ Le moteur **ne borne rien de lui-même** : il calcule la capacité et signale z�
 `tools/Pawnsmith.Cli` — **jetable, non livré, exclu de l'image Docker.** Sa seule raison d'être est de permettre un tirage papier avant l'existence de l'interface.
  
 ```
-pawnsmith-cli --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
+pawnsmith-cli sheet --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
 ```
  
 Ne pas y mettre de logique. Il lit, appelle le cas d'usage, écrit le fichier, affiche les erreurs de validation lisiblement.
+ 
+> **`sheet` est un mot ajouté par DEC-059**, et il n'était pas là quand ce paragraphe a été écrit. T2 ajoute quatre sous-commandes `project` (C.17 du cahier T2), et une invocation sans verbe ne laissait nulle part où les accrocher. Le renommage a été fait **dans le commit qui écrit ces sous-commandes**, jamais avant : corriger la documentation d'abord aurait fait décrire par ce document une commande qu'aucun binaire n'acceptait.
  
 > **C'est aussi l'outil de calibration de T0b (DEC-033).** Le protocole T0 demande de tirer, sur une même séance, des volets de 5, 8 et 12 mm, des marges de silhouette de 0, 1,5 et 3 mm, des hauteurs de 45, 50 et 55 mm. Cela se fait avec plusieurs fichiers de calibration variantes passés en `--calibration`, sans aucune option supplémentaire et sans éditer le fichier de référence entre deux tirages. Ne rien ajouter au CLI pour cet usage.
  
