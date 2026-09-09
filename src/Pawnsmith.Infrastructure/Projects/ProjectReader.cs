@@ -70,9 +70,12 @@ public sealed class ProjectReader
 
         // Step 9, and only now: confront the project with this machine.
         List<ProjectDiagnostic> diagnostics = [];
+
+        // The one diagnostic that needs the disk stays here; the two that only
+        // need the calibration are shared with the import, which has no folder
+        // to look at (RelationalDiagnostics).
         CollectImageDiagnostics(project, resolvedDirectory, diagnostics);
-        CollectPaperFormatDiagnostic(project, calibration, diagnostics);
-        CollectOverrideDiagnostics(project, calibration, diagnostics);
+        RelationalDiagnostics.AddTo(diagnostics, project, calibration);
 
         return new LoadedProject(project, diagnostics);
     }
@@ -234,63 +237,6 @@ public sealed class ProjectReader
                     ProjectErrorCode.PathEscape,
                     $"The image at {field} is a link pointing outside the project folder.");
             }
-        }
-    }
-
-    private static void CollectPaperFormatDiagnostic(
-        Project project,
-        Calibration calibration,
-        List<ProjectDiagnostic> diagnostics)
-    {
-        if (calibration.PaperFormats.ContainsKey(project.PaperFormatName))
-        {
-            return;
-        }
-
-        diagnostics.Add(new ProjectDiagnostic(
-            ProjectDiagnosticKind.UnknownPaperFormat,
-            "paperFormat",
-            $"'{project.PaperFormatName}' is not a paper format this calibration declares. " +
-            $"Known formats are: {string.Join(", ", calibration.PaperFormats.Keys)}. " +
-            "The project opens all the same; producing a sheet will not."));
-    }
-
-    private static void CollectOverrideDiagnostics(
-        Project project,
-        Calibration calibration,
-        List<ProjectDiagnostic> diagnostics)
-    {
-        // Conditioned on the geometry, and this is the whole point of the check.
-        // Only TabAndSocket has a tab, so only there can the value be read and
-        // only there can it hurt. Warning a NoSupport project would be a warning
-        // nothing could ever clear (C.4.4).
-        if (project.Geometry != Geometry.TabAndSocket)
-        {
-            return;
-        }
-
-        if (project.CalibrationOverrides.TabWidthMm is not { } tabWidthMm)
-        {
-            return;
-        }
-
-        // One diagnostic per size actually used by a blueprint, not per size the
-        // calibration declares: a project holding only Medium pawns has no
-        // business being warned about Gargantuan ones.
-        foreach (Size size in project.Blueprints.Select(blueprint => blueprint.Size).Distinct())
-        {
-            if (!calibration.Sizes.TryGetValue(size, out PawnDimensions? dimensions)
-                || tabWidthMm <= dimensions.PawnWidthMm)
-            {
-                continue;
-            }
-
-            diagnostics.Add(new ProjectDiagnostic(
-                ProjectDiagnosticKind.OverrideExceedsPawnWidth,
-                "calibrationOverrides.tabWidthMm",
-                $"The tab is {tabWidthMm} mm wide and a {size} pawn is {dimensions.PawnWidthMm} mm. " +
-                "The project opens; calculating a sheet from it will fail, because a tab wider " +
-                "than the pawn turns the cut outline inside out."));
         }
     }
 }

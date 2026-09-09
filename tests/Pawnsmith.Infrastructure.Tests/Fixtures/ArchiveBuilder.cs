@@ -168,4 +168,90 @@ internal sealed class ArchiveBuilder
 
         File.WriteAllBytes(archivePath, bytes);
     }
+    /// <summary>
+    /// Damages the compressed bytes of one entry, so that reading it fails
+    /// partway through.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is what test 51 needs: an archive that passes every check made
+    /// before extraction and then fails during it, with real files already
+    /// written beside the broken one. Nothing else available produces that.
+    /// Understating a declared size does not — the framework simply truncates
+    /// the stream at whatever was declared, without a word — and an
+    /// already-cancelled token fails before the first file rather than among
+    /// them.
+    /// </para>
+    /// <para>
+    /// The entry has to be one the inspection does not read, or the archive
+    /// would be refused before extraction ever started, and it has to be one
+    /// that really was deflated, since damaging a stored block changes bytes
+    /// without breaking anything. An image built by
+    /// <see cref="Compressible"/> is both.
+    /// </para>
+    /// </remarks>
+    public static void CorruptEntryData(string archivePath, string entryName)
+    {
+        byte[] bytes = File.ReadAllBytes(archivePath);
+
+        const int endLength = 22;
+        int end = bytes.Length - endLength;
+
+        int count = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(end + 10));
+        int offset = (int)BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(end + 16));
+
+        for (int index = 0; index < count; index++)
+        {
+            int nameLength = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset + 28));
+            int extraLength = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset + 30));
+            int commentLength = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset + 32));
+
+            if (string.Equals(Encoding.UTF8.GetString(bytes, offset + 46, nameLength), entryName, StringComparison.Ordinal))
+            {
+                // Offset 42 of a central directory record points at the entry's
+                // local header; the data begins after that header's 30 fixed
+                // bytes and its own name and extra fields, whose lengths sit at
+                // offsets 26 and 28 of it.
+                int local = (int)BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset + 42));
+                int localName = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(local + 26));
+                int localExtra = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(local + 28));
+                int data = local + 30 + localName + localExtra;
+
+                // Well past the start of the deflate stream, so that a first
+                // block decodes and the failure lands in the middle rather than
+                // on the first byte read.
+                for (int position = data + 24; position < data + 40; position++)
+                {
+                    bytes[position] ^= 0xFF;
+                }
+
+                File.WriteAllBytes(archivePath, bytes);
+                return;
+            }
+
+            offset += 46 + nameLength + extraLength + commentLength;
+        }
+
+        throw new InvalidOperationException($"No entry called '{entryName}' in '{archivePath}'.");
+    }
+
+    /// <summary>
+    /// Content that deflate really compresses, but nowhere near the bound of
+    /// C.9.3.
+    /// </summary>
+    /// <remarks>
+    /// The two requirements pull against each other, which is why this is a
+    /// method and not a literal. It has to compress, or there is no deflate
+    /// stream to damage; and it has to stay under 100:1, or the bomb check
+    /// refuses the archive before any of that matters. Repeated prose lands at
+    /// roughly 20:1.
+    /// </remarks>
+    public static byte[] Compressible()
+    {
+        const string sentence =
+            "a goblin skirmisher wielding a short spear held vertically against the body, " +
+            "wearing leather scraps, one ear torn, a bone fetish tied to the belt; ";
+
+        return Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat(sentence, 40)));
+    }
 }
