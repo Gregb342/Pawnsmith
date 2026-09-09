@@ -10,18 +10,26 @@ compose des prompts déterministes, pilote un modèle de diffusion **local**
 avec les repères d'impression nécessaires à une découpe correcte.
 
 Sa propriété centrale est la **cohérence visuelle** : toutes les figurines d'un
-même projet partagent un style verrouillé à la création, et le couple
-recto/verso d'un même personnage est produit en une seule génération.
+même projet partagent le style du projet, et le couple recto/verso d'un même
+personnage est produit en une seule génération. Le style reste modifiable ; les
+figurines produites sous l'ancien sont alors signalées comme **désalignées**,
+plutôt que d'être interdites de changement (DEC-030).
 
-> **État d'avancement.** Ce dépôt en est aux **fondations** (partie A du cahier
-> des charges) : structure, chaîne de compilation, conteneur, intégration
-> continue, squelette de front localisé. Les projets .NET sont **vides**.
-> Aucune fonctionnalité n'est encore implémentée.
+> **État d'avancement.** Les **fondations** (partie A) et la tranche **T1**
+> — moteur de mise en page et rendu PDF — sont écrites. La tranche **T2**
+> — modèle de projet, persistance, archives — est en cours : 11 tâches sur 13,
+> l'import et le point d'entrée en ligne de commande restent à écrire.
+> **362 tests verts.**
+>
+> Il n'y a **pas encore d'interface** : elle est livrée en T6. Ce qui tourne
+> aujourd'hui se pilote par le harnais en ligne de commande de `tools/`.
+> Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
 
 Voir [`docs/pawnsmith-bible.md`](docs/pawnsmith-bible.md) pour la vision, le
-modèle de données et le journal des décisions, et
-[`docs/pawnsmith-cahier-des-charges-t1.md`](docs/pawnsmith-cahier-des-charges-t1.md)
-pour la spécification des fondations et de la première tranche.
+modèle de données et le **journal des décisions**, qui fait foi ; les cahiers
+des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md) et
+[T2](docs/pawnsmith-cahier-des-charges-t2.md) pour les spécifications
+détaillées.
 
 ---
 
@@ -65,11 +73,30 @@ front compilé, comme en production — passer par le conteneur.
 dotnet test Pawnsmith.sln
 ```
 
-Le front n'a pas encore de tests ; sa compilation vaut vérification :
+Le front n'a pas encore de tests — ils arrivent avec l'interface, en T6. Son
+analyse statique et sa compilation valent vérification :
 
 ```bash
-cd src/Pawnsmith.Web && npm run build
+cd src/Pawnsmith.Web && npm run lint && npm run build
 ```
+
+---
+
+## Produire une planche
+
+C'est le livrable réel de T1, et la seule chose que l'application sache faire
+de bout en bout aujourd'hui :
+
+```bash
+dotnet run --project tools/Pawnsmith.Cli -- --manifest ./manifeste.json --calibration ./config/calibration.json --out ./planche.pdf
+```
+
+Ajouter `--debug` imprime « tête » et « pieds » dans chaque panneau : diagnostic
+seulement, jamais sur une planche destinée au ciseau.
+
+> Cette invocation change en fin de T2 : elle devient `pawnsmith-cli sheet …`,
+> avec quatre sous-commandes `project` à côté (DEC-059). Tant que le code n'est
+> pas écrit, c'est la commande ci-dessus qui est en vigueur.
 
 ---
 
@@ -119,15 +146,22 @@ pawnsmith/
 │   ├── Pawnsmith.Application/      # cas d'usage, ports          → Domain
 │   ├── Pawnsmith.Infrastructure/   # PDFsharp, disque, Serilog    → Application, Domain
 │   ├── Pawnsmith.Api/              # ASP.NET Core, sert le front  → tout
-│   └── Pawnsmith.Web/              # front React + TypeScript
-├── tests/
+│   └── Pawnsmith.Web/              # front React + TypeScript (voir son README)
+├── tests/                          # un projet de test par couche testée
 ├── tools/Pawnsmith.Cli/            # harnais jetable, non livré
 └── Dockerfile
 ```
 
 **La règle de dépendance est stricte et sans exception** : `Domain` ne référence
 rien, `Application` référence `Domain`, `Infrastructure` référence les deux,
-`Api` référence tout. Aucune flèche en sens inverse, jamais.
+`Api` référence tout. Aucune flèche en sens inverse, jamais — et c'est le
+compilateur qui le tient, par les références de projet.
+
+À l'intérieur de chaque projet, les fichiers sont rangés en **dossiers
+thématiques** dont les namespaces suivent le chemin. Le domaine se range par
+sujet (`Primitives`, `PhysicalValues`, `Units`, `Sheets`, `Projects`,
+`Prompts`), l'infrastructure par technologie d'adaptateur (`Json`, `Imaging`,
+`Pdf`, `Projects`). Le §A.3 du cahier T1 en donne la règle et les deux pièges.
 
 ---
 

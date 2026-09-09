@@ -318,26 +318,85 @@ illustrations.
 | Décision | Objet | Implémentée ? |
 |---|---|---|
 | DEC-039 | Géométrie `NoSupport`, rien sous les pieds | ✅ |
-| DEC-040 | Cotes d'onglet réglables par l'utilisateur | ❌ — spécifié en T2 (DEC-053), pas encore écrit |
+| DEC-040 | Cotes d'onglet réglables par l'utilisateur | ✅ — écrit en T2, tâche 3 (`EffectiveCalibration`) |
 | DEC-041 | Le couple recto/verso partage une échelle | ✅ |
 | DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait, la **clause** relève de **T3** |
 
-**154 tests verts**, les 19 du §B.8 couverts. Une seule dépendance de
+T1 a livré **154 tests**, les 19 du §B.8 couverts. Une seule dépendance de
 production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
 licence libre autorisant l'incorporation dans un document — point important,
 puisqu'une police utilisée dans un PDF y est redistribuée.
 
-### T2 — spécifiée, pas commencée
+### T2 — en cours, 11 tâches sur 13
 
 **La tranche T2 (modèle de projet et persistance) est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t2.md`](docs/pawnsmith-cahier-des-charges-t2.md)
 v1.1 : schéma de `project.json`, chargement, sauvegarde, export et import
-d'archives, **54 tests** attendus. Aucune ligne de code n'est écrite, et le
-découpage en tâches n'est pas encore validé.
+d'archives, **54 tests** attendus.
 
-Quatorze fiches sont nées de cette spécification et de sa revue, **DEC-046 à
-DEC-059**, plus **MEN-008** et **MEN-009** au chapitre 9. Les six qui changent
-quelque chose à ce qui est déjà écrit :
+Le découpage a été proposé en 11 tâches et validé ; deux d'entre elles se sont
+révélées trop grosses pour tenir en une relecture et ont été coupées en deux
+(7a/7b et 9a/9b), d'où **13 tâches**.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | Types de domaine, et `<Version>0.3.0</Version>` | ✅ |
+| 2 | Assemblage du prompt et désalignement | ✅ |
+| 3 | Calibration effective (fusion des surcharges) | ✅ |
+| 4 | Nom de dossier sûr (MEN-009) | ✅ |
+| 5 | Types de document et mapping manuel | ✅ |
+| 6 | Écriture de `project.json` (règles de forme de C.3.3) | ✅ |
+| 7a | Codes d'erreur, record d'options, validation intrinsèque | ✅ |
+| 7b | Lecteur : les neuf étapes de C.7.1 et les diagnostics | ✅ |
+| 8 | Sauvegarde (C.7.3) | ✅ |
+| 9a | Profils d'archive, `archive.json`, filtrage `Share` | ✅ |
+| 9b | Export : liste blanche, liens symboliques, forme du ZIP | ✅ |
+| **10** | **Import d'archive (C.9)** | ⬜ **à faire — c'est la prochaine** |
+| **11** | **CLI de C.17, et les corrections de documentation groupées** | ⬜ **à faire** |
+
+**Tests de C.12 couverts : 1 à 40, plus 53 et 54.** Restent **41 à 52**, tous
+sur l'import. Le dépôt porte **362 tests verts** au total.
+
+Le code de T2 vit dans `src/Pawnsmith.Infrastructure/Projects/`, sauf la fusion
+des surcharges (`src/Pawnsmith.Application/PhysicalValues/`) et les types de
+domaine (`src/Pawnsmith.Domain/Projects/` et `Prompts/`).
+
+#### Ce que la tâche 10 doit faire
+
+L'import, spécifié en **C.9**, avec ses tests **41 à 52**.
+
+Les briques existantes qu'elle réutilise sont déjà écrites et **aucune n'a
+encore d'appelant côté import** : `ArchiveManifestFile` pour lire `archive.json`
+sans tout extraire, `ProjectValidation` pour la validation intrinsèque,
+`ProjectRepositoryOptions` pour les six bornes de ressources, `ProjectFolderName`
+pour dériver un nom de dossier sûr.
+
+Les points durs, dans l'ordre où C.9.1 les pose : refuser **avant** d'extraire
+quoi que ce soit (MEN-001), borner les ressources contre la bombe de
+décompression (C.9.3), extraire dans un dossier temporaire puis **renommer
+atomiquement**, refuser une destination déjà existante même vide
+(`IMPORT_DESTINATION_EXISTS`), et ne **pas** faire échouer l'import sur un
+diagnostic — c'est DEC-056, la même frontière qu'au chargement.
+
+#### Ce que la tâche 11 doit faire
+
+Le CLI de **C.17** — `pawnsmith-cli sheet …` plus quatre sous-commandes
+`project new|check|export|import` —, **sans logique**, jetable, hors image
+Docker, sans tests. Et, **dans le même commit que ce code** parce que DEC-059
+l'exige, les quatre corrections de documentation qui ne deviennent vraies qu'à
+ce moment-là :
+
+1. le §B.7 du cahier T1, qui décrit l'ancienne invocation ;
+2. le protocole T0, même chose ;
+3. la ligne d'invocation du CLI plus bas dans ce fichier ;
+4. le §A.3 du cahier T1, dont le schéma des dossiers d'infrastructure ne connaît
+   pas encore `Projects/`.
+
+#### Les décisions de T2
+
+Seize fiches sont nées de cette spécification, de sa revue et de son écriture :
+**DEC-046 à DEC-061**, plus **MEN-008** et **MEN-009** au chapitre 9. Les huit
+qui changent quelque chose à ce qui était écrit avant :
 
 | Décision | Ce qu'elle change |
 |---|---|
@@ -346,13 +405,49 @@ quelque chose à ce qui est déjà écrit :
 | DEC-053 | `LoadAsync` prend la calibration en paramètre ; les surcharges de projet sont une **liste close** de deux membres, résolues en Application |
 | DEC-055 | Aucun champ de projet n'est verrouillé après création ; `SaveAsync` ne reçoit **jamais** l'état antérieur |
 | DEC-056 | Une donnée de projet n'est jamais rejetée par une donnée de machine. **Supersède la double validation de DEC-053** |
+| DEC-057 | Les bornes de ressources sont un record d'options, pas un fichier de configuration ; le fichier arrive en T6 |
 | DEC-058 | `<Version>` vit dans `Directory.Build.props` ; une tranche livrée vaut un mineur, donc **T2 est `0.3.0`** |
+| DEC-060 / DEC-061 | Le filigrane est écarté et le sujet de l'attribution est clos. Rien à écrire, aucune tâche ouverte |
 
-**DEC-059 renomme l'invocation du CLI** en `pawnsmith-cli sheet …` et lui ajoute
-quatre sous-commandes `project`. Le renommage est du **code**, écrit en dernière
-tâche de T2. Tant qu'il n'est pas fait, le §B.7 du cahier T1, le protocole T0 et
-l'invocation donnée plus bas décrivent la commande **réellement en vigueur** —
-et les trois se corrigent dans le même commit que le code, jamais avant.
+**DEC-059 renomme l'invocation du CLI** en `pawnsmith-cli sheet …`. Le renommage
+est du **code**, écrit en tâche 11. Tant qu'il n'est pas fait, le §B.7, le
+protocole T0 et l'invocation donnée plus bas décrivent la commande **réellement
+en vigueur** — et les quatre se corrigent dans le même commit que le code.
+
+#### Trois points ouverts, à connaître avant de reprendre
+
+**Le chemin dans `SaveAsync`.** Le chapitre 7 de la bible donne
+`SaveAsync(Project, CancellationToken)`, sans chemin, et DEC-047 interdit qu'un
+projet porte son propre emplacement. Le porteur a tranché : **chemin explicite
+en paramètre, dépôt sans état**. Ce n'est pas encore consigné en fiche ; ça se
+fera quand `IProjectRepository` sera assemblé.
+
+**Le test MEN-008 est dégradé sous Windows.** Y créer un lien symbolique demande
+le privilège `SeCreateSymbolicLink`, absent du poste du porteur. Le test détecte
+la capacité, et à défaut n'exerce que la seconde couche de la contre-mesure — la
+liste blanche — en l'écrivant dans sa sortie. **C'est la CI Ubuntu qui certifie
+cette menace.**
+
+**Une mutation survit sur l'échange atomique.** Remplacer le fichier temporaire
+et `File.Replace` par une écriture en place ne fait tomber aucun test : éprouver
+l'atomicité demanderait d'interrompre le processus au milieu de l'échange, ce
+qu'un test unitaire ne sait pas faire. Tout ce qui entoure l'échange est
+couvert ; l'atomicité elle-même repose sur la lecture de dix lignes. Le porteur
+l'a accepté en connaissance de cause.
+
+#### Ce qui a bougé hors de T2 pendant T2
+
+- **Les sources sont rangées en dossiers thématiques** à l'intérieur de chaque
+  projet, namespaces alignés sur les chemins (§A.3 du cahier T1, v1.6). Le
+  domaine se range par sujet, l'infrastructure par technologie d'adaptateur.
+  Un dossier ne peut pas porter le nom d'un type qu'il contient — c'est une
+  erreur de compilation, d'où `PhysicalValues` plutôt que `Calibration`.
+- **`tests/Pawnsmith.Application.Tests`** est né : la couche n'en avait pas.
+- **ESLint** est branché sur le front et tourne dans la CI, avant la
+  construction.
+- **Un défaut de localisation a été corrigé** : les libellés du PDF retombaient
+  en silence sur des valeurs anglaises si la ressource ne se résolvait pas.
+  `SheetStrings` lève désormais, et quatre tests le gardent.
 
 ### Comment faire tourner les choses
 
