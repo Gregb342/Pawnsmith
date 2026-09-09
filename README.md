@@ -15,14 +15,15 @@ personnage est produit en une seule génération. Le style reste modifiable ; le
 figurines produites sous l'ancien sont alors signalées comme **désalignées**,
 plutôt que d'être interdites de changement (DEC-030).
 
-> **État d'avancement.** Les **fondations** (partie A) et la tranche **T1**
-> — moteur de mise en page et rendu PDF — sont écrites. La tranche **T2**
-> — modèle de projet, persistance, archives — est en cours : 11 tâches sur 13,
-> l'import et le point d'entrée en ligne de commande restent à écrire.
-> **362 tests verts.**
+> **État d'avancement.** Les **fondations** (partie A), la tranche **T1**
+> — moteur de mise en page et rendu PDF — et la tranche **T2** — modèle de
+> projet, persistance, archives — sont écrites. **418 tests verts.**
 >
 > Il n'y a **pas encore d'interface** : elle est livrée en T6. Ce qui tourne
-> aujourd'hui se pilote par le harnais en ligne de commande de `tools/`.
+> aujourd'hui se pilote **entièrement** par le harnais en ligne de commande de
+> `tools/` : produire une planche PDF, créer un projet, le vérifier, l'exporter
+> en archive, la réimporter. Le conteneur, lui, ne sert qu'une coquille de front
+> sans fonctionnalité.
 > Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
 
 Voir [`docs/pawnsmith-bible.md`](docs/pawnsmith-bible.md) pour la vision, le
