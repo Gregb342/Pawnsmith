@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.12 |
+| **Version du document** | 0.13 |
 | **Date** | 5 septembre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.12** — **DEC-062**, écrite à l'assemblage d'`IProjectRepository` en fin de T2 : le dépôt de projet est sans état et chaque opération reçoit son chemin, ce qui **supersède les signatures esquissées au chapitre 7**. La décision avait été prise pendant la tâche 8 et laissée hors des fiches, faute de port à qui l'appliquer.
  
 > **Changements depuis la v0.11** — DEC-061 : la mention visible que DEC-060 prévoyait n'est pas écrite non plus. Le sujet de l'attribution est clos en entier.
  
@@ -418,12 +420,18 @@ public interface IPromptComposer
 // SaveAsync ne reçoit PAS l'état antérieur, et ne doit jamais en recevoir : aucun
 // champ n'est verrouillé après création, donc le dépôt n'a aucune transition à
 // arbitrer. Une telle règle appartiendrait à un cas d'usage (DEC-055).
+// Sans état : chaque opération reçoit l'endroit où travailler (DEC-062).
+// Un projet ne porte jamais son propre emplacement — DEC-047.
 public interface IProjectRepository
 {
-    Task<Project> LoadAsync(string path, Calibration calibration, CancellationToken ct);
-    Task SaveAsync(Project project, CancellationToken ct);
-    Task ExportArchiveAsync(Project project, string destination, CancellationToken ct);
-    Task<Project> ImportArchiveAsync(string archivePath, string destination, CancellationToken ct);
+    Task<CreatedProjectResult> CreateAsync(string name, Universe universe, Geometry geometry,
+                                           string paperFormatName, CancellationToken ct);
+    Task<LoadedProjectResult> LoadAsync(string projectDirectory, Calibration calibration, CancellationToken ct);
+    Task<Project> SaveAsync(string projectDirectory, Project project, CancellationToken ct);
+    Task<string> ExportArchiveAsync(string projectDirectory, ArchiveProfileKind profile,
+                                    string destinationDirectory, CancellationToken ct);
+    Task<ImportedProjectResult> ImportArchiveAsync(string archivePath, string name,
+                                                   Calibration calibration, CancellationToken ct);
 }
  
 // Reçoit un modèle de planche déjà calculé par le domaine. Ne décide de rien.
@@ -903,6 +911,13 @@ La mention visible relève de **T1**, puisqu'elle touche le rendu, et se pose da
 Choix : la mention « produit avec Pawnsmith » que DEC-060 plaçait dans la zone de calibration **n'est pas écrite**. Aucune marque, ni cachée ni visible, n'est ajoutée aux planches. Supersède la seule clause de DEC-060 qui engageait du code ; tout le reste de cette fiche demeure, licence MIT comprise.
 Conséquence : il ne reste **aucune tâche T1 ouverte** au titre de l'attribution, et le §8 des instructions du projet cesse d'en annoncer une. L'attribution repose sur le nom et sur le dépôt public, ce qui est ce que la licence garantit déjà sans que le rendu ait à s'en mêler.
 Sur la brièveté de cette fiche, qui contraste avec DEC-060 : l'analyse est faite et elle tient, elle n'est simplement pas suivie sur son dernier point. Le porteur a tranché que la planche n'a pas à porter de mention du tout. Ce qui aurait été coûteux, c'est de laisser la bible promettre un texte que personne n'écrira.
+
+**DEC-062 — Le dépôt de projet est sans état ; chaque opération reçoit son chemin.**
+Choix : les cinq méthodes d'`IProjectRepository` prennent le dossier en paramètre — ou, pour l'import, le **nom** dont le dossier est dérivé. Le dépôt ne retient aucun projet « courant » et ne lit jamais un emplacement sur un projet. Supersède la signature `SaveAsync(Project, CancellationToken)` esquissée au chapitre 7, ainsi que celles de ses trois voisines.
+Conséquence : la signature du chapitre 7 supposait qu'un projet sache où il habite. **DEC-047 l'interdit** : le nom du dossier n'a aucune sémantique, un dossier ordinaire se renomme, se duplique et se restaure ailleurs sous un autre nom. Un projet qui porterait son emplacement ferait du renommage d'un dossier un changement de projet — exactement ce que `projectId` existe pour empêcher. La contradiction était donc interne au chapitre 7, et elle se tranche du côté de la fiche.
+Un dépôt sans état a un second effet, qui n'était pas le motif mais qui compte : **il n'y a rien à invalider.** Un dépôt qui aurait mémorisé le projet courant aurait dû décider quoi en faire à l'import, à l'export, et quand un dossier disparaît sous ses pieds — trois questions que personne n'a posées et dont les réponses se seraient écrites en silence.
+Ce que la fiche ne fait pas : elle ne dit rien de la concurrence. Deux écritures simultanées du même dossier restent non gérées, comme le §C.7.3 l'écrit, et le dernier écrivain gagne. L'absence d'état n'est pas un verrou et ne prétend pas en tenir lieu.
+Portée : la décision avait été prise pendant l'écriture de la tâche 8 de T2 et laissée hors des fiches, faute de port à qui l'appliquer. Elle est consignée au moment où le port est assemblé — le dernier moment où elle pouvait l'être sans être reconstituée d'après le code.
 
 ---
  

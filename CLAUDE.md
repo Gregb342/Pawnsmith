@@ -294,7 +294,7 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.12**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.13**, cahier des charges T1
 **v1.7**, **cahier des charges T2 v1.1**, protocole T0 **v1.4**.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
@@ -327,7 +327,7 @@ production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
 licence libre autorisant l'incorporation dans un document — point important,
 puisqu'une police utilisée dans un PDF y est redistribuée.
 
-### T2 — code terminé, 14 tâches sur 14
+### T2 — code terminé, 15 tâches sur 15
 
 **La tranche T2 (modèle de projet et persistance) est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t2.md`](docs/pawnsmith-cahier-des-charges-t2.md)
@@ -336,7 +336,9 @@ d'archives, **54 tests** attendus.
 
 Le découpage a été proposé en 11 tâches et validé ; trois d'entre elles se sont
 révélées trop grosses pour tenir en une relecture et ont été coupées en deux
-(7a/7b, 9a/9b et 10a/10b), d'où **14 tâches**. **Elles sont toutes écrites.**
+(7a/7b, 9a/9b et 10a/10b), et une quinzième s'est ajoutée — le port
+`IProjectRepository`, que le §C.1 met dans le périmètre et qu'aucune tâche du
+découpage ne portait. **Les quinze sont écrites.**
 
 | # | Tâche | État |
 |---|---|---|
@@ -354,8 +356,9 @@ révélées trop grosses pour tenir en une relecture et ont été coupées en de
 | 10a | Inspection de l'archive, sans rien extraire (C.9.1, étapes 1 à 6) | ✅ |
 | 10b | Extraction, échange atomique, destination (C.9.1, étapes 7-8 ; C.9.2) | ✅ |
 | 11 | CLI de C.17, et les corrections de documentation groupées | ✅ |
+| 12 | `IProjectRepository` assemblé, et DEC-062 | ✅ |
 
-**Les 54 tests de C.12 sont couverts.** Le dépôt porte **415 tests verts** au
+**Les 54 tests de C.12 sont couverts.** Le dépôt porte **418 tests verts** au
 total. Ce qui reste avant de clore T2 n'est plus du code : ce sont les fiches
 DEC de C.15 à déposer au chapitre 11 de la bible, et la relecture intégrale.
 
@@ -422,6 +425,32 @@ n'avaient pas leur place dans un harnais sans logique :
 est voulu. Créer un second « Donjon » est ordinaire. Importer sur un dossier
 existant ne l'est pas : quelque chose est déjà là.
 
+#### Le port, arrivé en dernier
+
+`IProjectRepository` est dans le périmètre au §C.1, et **aucune des onze tâches
+du découpage ne le portait** — l'oubli s'est vu en repassant sur les critères
+d'acceptation. Il est assemblé maintenant, en façade des cinq types qui
+existaient déjà : `ProjectCreator`, `ProjectReader`, `ProjectSaver`,
+`ProjectExporter`, `ProjectImporter`. **Il ne décide de rien.**
+
+Cinq types plutôt qu'une classe, et c'est délibéré : le lecteur est les neuf
+étapes de C.7.1, l'import les huit de C.9.1, et les réunir aurait donné une
+classe de mille lignes que personne ne relit d'une traite — le défaut exact que
+DEC-027 existe pour empêcher.
+
+Deux traversées de frontière valent d'être connues, parce que la règle de
+dépendance interdit à `Application` de connaître `Infrastructure` : le profil
+d'archive est **une seconde énumération** côté Application, avec un mapping
+manuel de quatre lignes ; et le type de diagnostic traverse **en tant que nom**,
+pas en tant qu'énumération miroir. Le second est un compromis assumé — on perd
+l'aide du compilateur au loin — et il tient tant que les seuls consommateurs
+sont un CLI et un test. T6 voudra une représentation plus riche de toute façon.
+
+**DEC-062** consigne au passage la décision prise oralement en tâche 8 : dépôt
+sans état, chaque opération reçoit son chemin. Elle **supersède les signatures
+du chapitre 7 de la bible**, qui supposaient qu'un projet sache où il habite —
+ce que DEC-047 interdit.
+
 #### Les décisions de T2
 
 Seize fiches sont nées de cette spécification, de sa revue et de son écriture :
@@ -444,13 +473,7 @@ en tâche 11, et les quatre documents qui décrivaient l'ancienne commande ont �
 corrigés **dans le même commit que le code** : le §B.7 et le §A.3 du cahier T1
 (v1.7), le protocole T0 (v1.4), ce fichier et le README.
 
-#### Quatre points ouverts, à connaître avant de reprendre
-
-**Le chemin dans `SaveAsync`.** Le chapitre 7 de la bible donne
-`SaveAsync(Project, CancellationToken)`, sans chemin, et DEC-047 interdit qu'un
-projet porte son propre emplacement. Le porteur a tranché : **chemin explicite
-en paramètre, dépôt sans état**. Ce n'est pas encore consigné en fiche ; ça se
-fera quand `IProjectRepository` sera assemblé.
+#### Trois points ouverts, à connaître avant de reprendre
 
 **Le test MEN-008 est dégradé sous Windows.** Y créer un lien symbolique demande
 le privilège `SeCreateSymbolicLink`, absent du poste du porteur. Le test détecte
