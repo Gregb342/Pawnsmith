@@ -38,15 +38,31 @@ public class ProjectImageFilesTests
     [Fact]
     public void APathThatEscapesTheFolderIsRefusedBeforeAnythingIsDeleted()
     {
+        // The escaping path comes SECOND on purpose. A check done inside the
+        // deletion loop would pass this test with the order reversed and
+        // destroy the first file here - the whole point is that nothing is
+        // deleted until every path has been approved (MEN-001's rule applied
+        // to a deletion, which does not roll back).
         using TempWorkspace workspace = new();
         workspace.WritePng("a-front.png", 4, 4);
 
         ProjectException error = Should.Throw<ProjectException>(() =>
-            ProjectImageFiles.Delete(workspace.Root, ["images/../../elsewhere.png", "images/a-front.png"]));
+            ProjectImageFiles.Delete(workspace.Root, ["images/a-front.png", "images/../../elsewhere.png"]));
 
         error.Code.ShouldBe(ProjectErrorCode.PathEscape);
+        File.Exists(Path.Combine(workspace.ImagesDirectory, "a-front.png")).ShouldBeTrue();
+    }
 
-        // The refusal came first: the legitimate file after it is untouched.
+    [Fact]
+    public void TheSameHoldsWhenTheEscapingPathComesFirst()
+    {
+        using TempWorkspace workspace = new();
+        workspace.WritePng("a-front.png", 4, 4);
+
+        Should.Throw<ProjectException>(() =>
+                ProjectImageFiles.Delete(workspace.Root, ["images/../../elsewhere.png", "images/a-front.png"]))
+            .Code.ShouldBe(ProjectErrorCode.PathEscape);
+
         File.Exists(Path.Combine(workspace.ImagesDirectory, "a-front.png")).ShouldBeTrue();
     }
 

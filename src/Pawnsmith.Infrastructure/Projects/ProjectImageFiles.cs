@@ -36,24 +36,39 @@ public static class ProjectImageFiles
             ? root
             : root + Path.DirectorySeparatorChar;
 
-        int removed = 0;
+        // Every path is checked before the first file is deleted, never one at
+        // a time as we go. It is the rule MEN-001 states for the archive -
+        // everything is validated before a single byte is written - applied to
+        // a deletion, where it matters more: a check inside the loop would let
+        // a list of [legitimate, escaping] destroy the first file before
+        // refusing the second, and a deletion does not roll back.
+        List<string> resolved = [];
 
         foreach (string relative in relativePaths)
         {
             ImagePathRules.Validate(relative, "file to delete");
 
-            string resolved = Path.GetFullPath(Path.Combine(root, relative.Replace(ImagePathRules.Separator, Path.DirectorySeparatorChar)));
+            string full = Path.GetFullPath(Path.Combine(
+                root,
+                relative.Replace(ImagePathRules.Separator, Path.DirectorySeparatorChar)));
 
-            if (!resolved.StartsWith(rootWithSeparator, StringComparison.Ordinal))
+            if (!full.StartsWith(rootWithSeparator, StringComparison.Ordinal))
             {
                 throw new ProjectException(
                     ProjectErrorCode.PathEscape,
                     $"The file '{relative}' resolves outside the project folder and will not be deleted.");
             }
 
-            if (File.Exists(resolved))
+            resolved.Add(full);
+        }
+
+        int removed = 0;
+
+        foreach (string path in resolved)
+        {
+            if (File.Exists(path))
             {
-                File.Delete(resolved);
+                File.Delete(path);
                 removed++;
             }
         }
