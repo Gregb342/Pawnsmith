@@ -359,8 +359,14 @@ découpage ne portait. **Les quinze sont écrites.**
 | 12 | `IProjectRepository` assemblé, et DEC-062 | ✅ |
 
 **Les 54 tests de C.12 sont couverts.** Le dépôt porte **418 tests verts** au
-total. Ce qui reste avant de clore T2 n'est plus du code : ce sont les fiches
-DEC de C.15 à déposer au chapitre 11 de la bible, et la relecture intégrale.
+total, et l'intégration continue est verte sur `main`.
+
+**Des seize critères d'acceptation de C.13, quinze sont tenus. Le seizième est
+la relecture intégrale, et c'est la seule chose qui reste avant de clore T2.**
+Les fiches DEC de C.15 sont déposées — elles l'ont été au fil des tâches, dans
+le commit du code qu'elles décidaient, et non en fin de tranche : bible v0.10
+pour DEC-046 à DEC-059, v0.11 et v0.12 pour DEC-060 et DEC-061, v0.13 pour
+DEC-062. MEN-008 et MEN-009 sont au chapitre 9.
 
 Le code de T2 vit dans `src/Pawnsmith.Infrastructure/Projects/`, sauf la fusion
 des surcharges (`src/Pawnsmith.Application/PhysicalValues/`) et les types de
