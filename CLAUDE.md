@@ -517,20 +517,23 @@ et probablement pas avant T0b.
   en silence sur des valeurs anglaises si la ressource ne se résolvait pas.
   `SheetStrings` lève désormais, et quatre tests le gardent.
 
-### T3 — code terminé, 11 tâches sur 11, relecture en attente
+### T3 — code terminé, 11 tâches sur 11, fusionnée dans `main`
 
 **La tranche T3 (composition de la clause sujet, catalogue, règles de gestion)
 est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t3.md`](docs/pawnsmith-cahier-des-charges-t3.md)
-v1.1, et **écrite en entier sur la branche `claude/pawnsmith-t3`**, non poussée,
-un commit par tâche. Le porteur a donné son feu vert à la spec et au découpage
-avec la consigne « itère jusqu'à une version testable, je relis après » — c'est
-la seule tranche écrite dans ce régime, et **la relecture intégrale reste à
-faire, commit par commit**, avant toute fusion dans `main`.
+v1.1, et **écrite en entier**, un commit par tâche, fusionnée dans `main` en
+avance rapide et poussée. Le porteur a donné son feu vert à la spec et au
+découpage avec la consigne « itère jusqu'à une version testable, je relis
+après », puis « valide et pousse tout » — c'est la seule tranche écrite dans ce
+régime, et **la relecture intégrale reste à faire, commit par commit**. Les
+quatorze commits de T3 se relisent d'une traite avec
+`git log --oneline 2ac311d..HEAD`.
 
 Le découpage a été proposé en 11 tâches ; une paire a été fusionnée à
 l'écriture (2+3, la règle de composition et son type de retour). Dix commits
-de code, deux de documentation.
+de code, deux de documentation, **deux correctifs nés de ma propre relecture**
+(voir plus bas).
 
 | # | Tâche | État |
 |---|---|---|
@@ -546,7 +549,7 @@ de code, deux de documentation.
 | 11 | CLI `blueprint …` et `project sheet`, documentation | ✅ |
 
 **Les 32 tests de D.11 sont couverts**, et quelques-uns de plus. Le dépôt porte
-**515 tests verts**. La chaîne complète a été éprouvée au CLI sur un projet
+**518 tests verts**, en Debug comme en Release. La chaîne complète a été éprouvée au CLI sur un projet
 jetable : composition avec valeur inconnue et diagnostic, recomposition après
 changement de race, édition manuelle puis non-recomposition, élection, planche
 rendue avec gabarit sans élu nommé, suppression emportant ses trois fichiers.
@@ -556,6 +559,25 @@ Le code de T3 vit dans `src/Pawnsmith.Domain/Prompts/` (types, composition),
 `src/Pawnsmith.Application/Blueprints/` (les trois cas d'usage) et
 `Prompts/` (le composeur), `src/Pawnsmith.Infrastructure/Prompts/` (les deux
 lecteurs) et `Projects/ProjectImageFiles.cs`.
+
+#### Deux défauts que j'ai trouvés en me relisant, corrigés
+
+Ils sont de la même famille — du code à moi dont le test ne prouvait pas ce
+qu'il prétendait — et ce sont les deux premiers commits à relire :
+
+- **`ProjectImageFiles.Delete` validait chaque chemin dans la boucle de
+  suppression.** Une liste `[légitime, échappant]` aurait donc supprimé le
+  premier fichier avant de refuser le second, et une suppression ne se
+  rejoue pas. Le test passait **uniquement parce qu'il rangeait le chemin
+  fautif en premier** : un test qui flatte le code au lieu de l'éprouver.
+  Les deux boucles sont désormais séparées — tout est approuvé, puis tout
+  part — ce qui est la règle de MEN-001 appliquée à une suppression.
+- **`TemplateToken.Substitute` enchaînait des `string.Replace`.** Une valeur
+  substituée était donc re-balayée par le jeton suivant : un gabarit dont la
+  race vaut littéralement `{characterClass}` sortait avec sa classe imprimée
+  deux fois. Personne ne tape ça exprès, mais race et classe sont du texte
+  libre d'utilisateur, et le comportement est invisible en relecture. La
+  substitution se fait maintenant en **une seule passe**.
 
 #### Les décisions prises en écrivant, à relire en premier
 
@@ -602,11 +624,19 @@ tranché sans lui, chaque point signalé dans le commit où il est né :
 
 #### Ce qui n'est pas couvert, à connaître plutôt qu'à redécouvrir
 
-- **`docker build` n'a pas tourné sur T3.** Docker Desktop était arrêté sur le
-  poste au moment de l'écriture, et la CI ne construit pas l'image. Les trois
-  autres vérifications du §7 sont vertes. Le `Dockerfile` copie `config/` en
-  bloc, donc les deux fichiers nouveaux y entrent sans modification — mais
-  c'est une lecture, pas une exécution. **À lancer avant la fusion.**
+- **`docker build` n'a jamais tourné sur T3, et je ne peux pas le lancer.** Le
+  service Windows `com.docker.service` est **arrêté**, et le démarrer demande
+  une élévation que l'assistant n'a pas : `Start-Service` répond « Cannot open
+  'com.docker.service' service ». Docker Desktop a été lancé, ses processus
+  tournent, mais sans le service le pipe n'existe pas. **C'est à Grégoire de
+  faire tourner `docker build -t pawnsmith .` une fois.**
+  Ce qui a été fait à la place, et qui couvre l'essentiel : l'image construit
+  avec `--configuration Release`, donc `dotnet publish src/Pawnsmith.Api -c
+  Release` **et** toute la suite de tests **en Release** ont été passés au
+  vert. Et le `Dockerfile` copie `config/` **en bloc** (`COPY config/
+  ./config/`) et les quatre projets `src/` un par un — T3 n'ajoute aucun
+  `.csproj`, donc rien n'y échappe. Le risque résiduel est celui d'un
+  environnement d'image, pas celui de cette tranche.
 - **Le chemin `UNIVERSE_MISMATCH` est inatteignable** tant que `Universe` n'a
   qu'un membre : déclarer un univers inconnu donne `*_INVALID`, pas un
   mismatch. Le code existe, le test le note, il s'exercera avec EVO-004.
