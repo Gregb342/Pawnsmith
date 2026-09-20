@@ -294,8 +294,9 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.13**, cahier des charges T1
-**v1.7**, **cahier des charges T2 v1.1**, protocole T0 **v1.4**.
+Documents de référence en vigueur : bible **v0.14**, cahier des charges T1
+**v1.7**, cahier des charges T2 **v1.1**, **cahier des charges T3 v1.1**,
+protocole T0 **v1.4**.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -320,7 +321,7 @@ illustrations.
 | DEC-039 | Géométrie `NoSupport`, rien sous les pieds | ✅ |
 | DEC-040 | Cotes d'onglet réglables par l'utilisateur | ✅ — écrit en T2, tâche 3 (`EffectiveCalibration`) |
 | DEC-041 | Le couple recto/verso partage une échelle | ✅ |
-| DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait, la **clause** relève de **T3** |
+| DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait ; la contrainte de pose voyage désormais avec chaque objet du **catalogue** (DEC-064), la clause de cadrage elle-même est **T4** |
 
 T1 a livré **154 tests**, les 19 du §B.8 couverts. Une seule dépendance de
 production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
@@ -516,6 +517,117 @@ et probablement pas avant T0b.
   en silence sur des valeurs anglaises si la ressource ne se résolvait pas.
   `SheetStrings` lève désormais, et quatre tests le gardent.
 
+### T3 — code terminé, 11 tâches sur 11, relecture en attente
+
+**La tranche T3 (composition de la clause sujet, catalogue, règles de gestion)
+est spécifiée** par
+[`docs/pawnsmith-cahier-des-charges-t3.md`](docs/pawnsmith-cahier-des-charges-t3.md)
+v1.1, et **écrite en entier sur la branche `claude/pawnsmith-t3`**, non poussée,
+un commit par tâche. Le porteur a donné son feu vert à la spec et au découpage
+avec la consigne « itère jusqu'à une version testable, je relis après » — c'est
+la seule tranche écrite dans ce régime, et **la relecture intégrale reste à
+faire, commit par commit**, avant toute fusion dans `main`.
+
+Le découpage a été proposé en 11 tâches ; une paire a été fusionnée à
+l'écriture (2+3, la règle de composition et son type de retour). Dix commits
+de code, deux de documentation.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | Types `Catalog` et `PromptTemplate`, et `<Version>0.4.0</Version>` | ✅ |
+| 2+3 | `SubjectClause.Compose` : règle, repli, diagnostics | ✅ |
+| 4 | `IPromptComposer` réduit à `ComposeSubject`, `TemplatePromptComposer` | ✅ |
+| 5 | `CatalogReader`, codes d'erreur, `config/catalog.fantasy.json` | ✅ |
+| 6 | `PromptTemplateReader`, `config/prompt-template.fantasy.json` | ✅ |
+| 7 | `BlueprintEditor` : recomposition déduite (DEC-067) | ✅ |
+| 8 | `CandidateElection` : deux détourages exigés, statut intact | ✅ |
+| 9 | `BlueprintRemoval` + `ProjectImageFiles` : tout part, fichiers compris | ✅ |
+| 10 | `ProjectSheetRequestBuilder` : gabarit sans élu ignoré et nommé | ✅ |
+| 11 | CLI `blueprint …` et `project sheet`, documentation | ✅ |
+
+**Les 32 tests de D.11 sont couverts**, et quelques-uns de plus. Le dépôt porte
+**515 tests verts**. La chaîne complète a été éprouvée au CLI sur un projet
+jetable : composition avec valeur inconnue et diagnostic, recomposition après
+changement de race, édition manuelle puis non-recomposition, élection, planche
+rendue avec gabarit sans élu nommé, suppression emportant ses trois fichiers.
+
+Le code de T3 vit dans `src/Pawnsmith.Domain/Prompts/` (types, composition),
+`src/Pawnsmith.Domain/Sheets/ProjectSheetRequest.cs` (le pont vers T1),
+`src/Pawnsmith.Application/Blueprints/` (les trois cas d'usage) et
+`Prompts/` (le composeur), `src/Pawnsmith.Infrastructure/Prompts/` (les deux
+lecteurs) et `Projects/ProjectImageFiles.cs`.
+
+#### Les décisions prises en écrivant, à relire en premier
+
+Le porteur a demandé de trancher plutôt que d'attendre. Voici ce qui a été
+tranché sans lui, chaque point signalé dans le commit où il est né :
+
+- **Le port rend un record, pas une chaîne.** `ComposeSubject` rend
+  `ComposedSubject(Clause, Diagnostics)`. La v1.0 de la spec écrivait `string`,
+  ce qui laissait les diagnostics de D.6.3 sans endroit où aller. Corrigé dans
+  la spec avant le premier commit, et consigné dans DEC-066.
+- **Une valeur optionnelle vide est « non contrainte »**, comme une clé
+  absente : ni fragment, ni diagnostic. Un avertissement sur une chaîne vide
+  serait du bruit que personne ne peut traiter.
+- **Clés et valeurs du catalogue sont comparées en ordinal, casse comprise.**
+  `Weapon` n'est pas `weapon`. C'est la règle du projet pour toute chaîne
+  libre ; une comparaison tolérante ici ferait obéir la clause composée à une
+  règle que le désalignement ne partage pas.
+- **Le fichier catalogue est un tableau ordonné, pas un objet.** L'unicité des
+  clés est vérifiée à la main dans `Catalog.Create` plutôt qu'obtenue du
+  format, parce que la composition lit l'ordre du fichier en repli.
+- **Les fichiers de données ont le régime de `calibration.json`** :
+  commentaires et virgules finales tolérés, champ inconnu ignoré. Les fichiers
+  livrés restent en JSON strict.
+- **Deux codes d'erreur de plus qu'en v1.0** : `BLUEPRINT_NOT_FOUND` et
+  `CANDIDATE_NOT_FOUND`, levés par l'Application. Une opération sur un
+  identifiant inconnu devait refuser avec un code, pas avec une exception de
+  programmation.
+- **Le composeur v1 tient un seul univers**, pas un dictionnaire d'univers.
+  Il vérifie que le template et le catalogue sont du même univers, et que le
+  projet aussi. Un second univers décidera de la forme, le cas sous les yeux.
+- **La validité des champs d'un gabarit** (race non vide, quantité ≥ 1) n'est
+  pas revérifiée par l'éditeur : c'est le sauveur qui la porte, et il nomme le
+  champ. L'éditeur ne vérifie que ce qui lui appartient — l'identifiant.
+- **`Unelect` existe**, symétrique d'`Elect`, pour qu'aucun appelant n'ait à
+  faire un `with` sur un gabarit pour défaire une élection. D.8 ne le
+  demandait pas ; T6 en aura besoin.
+- **Le nom d'un item de planche est « race classe »**, sans identifiant. Deux
+  gabarits peuvent le partager, ce qui ne brouille qu'un message.
+- **`project sheet` prend `--culture`, optionnelle, `en` par défaut.** Le
+  manifeste de T1 portait la culture ; un projet ne la porte pas.
+- **Le test du manifeste d'archive épinglait `0.3.0`** et a été passé à
+  `0.4.0` dans le commit de la tâche 7, alors qu'il appartenait à la tâche 1.
+  Défaut de découpage, signalé dans le message du commit.
+
+#### Ce qui n'est pas couvert, à connaître plutôt qu'à redécouvrir
+
+- **`docker build` n'a pas tourné sur T3.** Docker Desktop était arrêté sur le
+  poste au moment de l'écriture, et la CI ne construit pas l'image. Les trois
+  autres vérifications du §7 sont vertes. Le `Dockerfile` copie `config/` en
+  bloc, donc les deux fichiers nouveaux y entrent sans modification — mais
+  c'est une lecture, pas une exécution. **À lancer avant la fusion.**
+- **Le chemin `UNIVERSE_MISMATCH` est inatteignable** tant que `Universe` n'a
+  qu'un membre : déclarer un univers inconnu donne `*_INVALID`, pas un
+  mismatch. Le code existe, le test le note, il s'exercera avec EVO-004.
+- **Deux raisons de saut de `ProjectSheetRequestBuilder` sont inatteignables
+  par le lecteur** — `ElectedCandidateNotFound` et `ElectedCandidateNotCutOut`
+  — parce que la validation intrinsèque de T2 et `CandidateElection` les
+  refusent en amont. Elles restent parce qu'un projet en mémoire peut les
+  produire, et qu'un saut nommé vaut mieux qu'un fichier introuvable.
+- **La spec a été suivie à la lettre sur un point discutable** : D.6.2 place
+  les détails en dernier et les fragments inconnus avant, en ordinal. Un
+  utilisateur qui coche cinq valeurs hors catalogue obtient cinq mots nus,
+  triés alphabétiquement, au milieu de sa clause. C'est correct et ce n'est pas
+  beau ; le catalogue livré est là pour que ça n'arrive pas souvent.
+
+#### Ce que le CLI a demandé en plus
+
+`--param` se répète, ce que l'analyseur d'arguments de T2 ne savait pas faire :
+il ne gardait que la dernière valeur d'une option. Il garde désormais toutes les
+valeurs, dans l'ordre ; `Required` et `Optional` lisent la dernière, `All` les
+rend toutes. Aucune autre sous-commande n'y a vu de différence.
+
 ### Comment faire tourner les choses
 
 **Produire une planche** — c'est le livrable réel de T1 :
@@ -537,6 +649,20 @@ $CLI project new    --root ./data/projects --name "Donjon" --geometry TabAndSock
 $CLI project check  --path ./data/projects/donjon --calibration ./config/calibration.json
 $CLI project export --path ./data/projects/donjon --profile Share --out ./data/archives --calibration ./config/calibration.json
 $CLI project import --archive ./data/archives/donjon-share-…zip --root ./data/projects --name "Donjon restauré" --calibration ./config/calibration.json
+```
+
+**Composer des gabarits et tirer la planche d'un projet** — les sous-commandes
+de T3. `add` et `edit` demandent le template et le catalogue de l'univers.
+
+```bash
+CFG="--template ./config/prompt-template.fantasy.json --catalog ./config/catalog.fantasy.json --calibration ./config/calibration.json"
+
+$CLI blueprint add    --path ./data/projects/donjon --race goblin --class skirmisher --size Medium --param weapon=spear --details "one ear torn" --quantity 6 $CFG
+$CLI blueprint edit   --path ./data/projects/donjon --id <guid> --race orc --class skirmisher --size Medium --param weapon=axe $CFG
+$CLI blueprint clause --path ./data/projects/donjon --id <guid> --clause "..." --calibration ./config/calibration.json
+$CLI blueprint elect  --path ./data/projects/donjon --id <guid> --candidate <guid> --calibration ./config/calibration.json
+$CLI blueprint remove --path ./data/projects/donjon --id <guid> --calibration ./config/calibration.json
+$CLI project sheet    --path ./data/projects/donjon --out ./planche.pdf --calibration ./config/calibration.json
 ```
 
 **Lancer l'application** — elle ne sert encore que la coquille du front, sans

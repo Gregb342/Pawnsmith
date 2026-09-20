@@ -16,20 +16,23 @@ figurines produites sous l'ancien sont alors signalées comme **désalignées**,
 plutôt que d'être interdites de changement (DEC-030).
 
 > **État d'avancement.** Les **fondations** (partie A), la tranche **T1**
-> — moteur de mise en page et rendu PDF — et la tranche **T2** — modèle de
-> projet, persistance, archives — sont écrites. **418 tests verts.**
+> — moteur de mise en page et rendu PDF —, la tranche **T2** — modèle de
+> projet, persistance, archives — et la tranche **T3** — composition de la
+> clause sujet, catalogue, règles de gestion — sont écrites. **515 tests verts.**
 >
 > Il n'y a **pas encore d'interface** : elle est livrée en T6. Ce qui tourne
 > aujourd'hui se pilote **entièrement** par le harnais en ligne de commande de
-> `tools/` : produire une planche PDF, créer un projet, le vérifier, l'exporter
-> en archive, la réimporter. Le conteneur, lui, ne sert qu'une coquille de front
-> sans fonctionnalité.
+> `tools/` : produire une planche PDF, créer un projet, y ajouter des gabarits
+> dont la clause sujet est composée depuis un catalogue, élire un candidat,
+> tirer la planche du projet, l'exporter en archive, la réimporter. Le
+> conteneur, lui, ne sert qu'une coquille de front sans fonctionnalité.
 > Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
 
 Voir [`docs/pawnsmith-bible.md`](docs/pawnsmith-bible.md) pour la vision, le
 modèle de données et le **journal des décisions**, qui fait foi ; les cahiers
-des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md) et
-[T2](docs/pawnsmith-cahier-des-charges-t2.md) pour les spécifications
+des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md),
+[T2](docs/pawnsmith-cahier-des-charges-t2.md) et
+[T3](docs/pawnsmith-cahier-des-charges-t3.md) pour les spécifications
 détaillées.
 
 ---
@@ -111,6 +114,29 @@ $CLI project import --archive ./data/archives/donjon-share-202609091309.zip --ro
 exactement la distinction de DEC-056 : une erreur est rendue *à la place* d'un
 projet, un diagnostic *avec* lui. `export` liste les entrées de l'archive, parce
 qu'une liste blanche se croit quand on la voit.
+
+**Composer des gabarits** — les sous-commandes de T3. `add` et `edit` demandent
+le template et le catalogue de l'univers, dans `config/` ; une valeur que le
+catalogue ne connaît pas est insérée telle quelle et **signalée**, jamais
+refusée (DEC-056).
+
+```bash
+CLI="dotnet run --project tools/Pawnsmith.Cli --"
+P=./data/projects/donjon
+CFG="--template ./config/prompt-template.fantasy.json --catalog ./config/catalog.fantasy.json --calibration ./config/calibration.json"
+
+$CLI blueprint add    --path $P --race goblin --class skirmisher --size Medium --param weapon=spear --param armour=leather --details "one ear torn" --quantity 6 $CFG
+$CLI blueprint edit   --path $P --id <guid> --race orc --class skirmisher --size Medium --param weapon=axe $CFG
+$CLI blueprint clause --path $P --id <guid> --clause "a scarred orc skirmisher with a notched axe" --calibration ./config/calibration.json
+$CLI blueprint elect  --path $P --id <guid> --candidate <guid> --calibration ./config/calibration.json
+$CLI blueprint remove --path $P --id <guid> --calibration ./config/calibration.json
+$CLI project sheet    --path $P --out ./planche.pdf --calibration ./config/calibration.json
+```
+
+`edit` recompose la clause sujet **tant que personne ne l'a éditée à la main**,
+et la laisse intacte sinon — l'édition se déduit, elle n'est pas stockée
+(DEC-067). `project sheet` tire la planche du projet et **nomme** chaque gabarit
+qu'elle a laissé de côté faute de candidat élu (DEC-069).
 
 ---
 

@@ -1,15 +1,21 @@
 using System.Globalization;
 
+using Pawnsmith.Application.Blueprints;
+using Pawnsmith.Application.PhysicalValues;
+using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Prompts;
 using Pawnsmith.Application.Sheets;
 using Pawnsmith.Domain.PhysicalValues;
 using Pawnsmith.Domain.Primitives;
 using Pawnsmith.Domain.Projects;
+using Pawnsmith.Domain.Prompts;
 using Pawnsmith.Domain.Sheets;
 using Pawnsmith.Infrastructure;
 using Pawnsmith.Infrastructure.Imaging;
 using Pawnsmith.Infrastructure.Json;
 using Pawnsmith.Infrastructure.Pdf;
 using Pawnsmith.Infrastructure.Projects;
+using Pawnsmith.Infrastructure.Prompts;
 
 // B.7 and C.17 — Throwaway command-line harness, not shipped, excluded from the
 // Docker image, and without tests. Its reason to exist is DEC-027: a slice with
@@ -23,6 +29,13 @@ using Pawnsmith.Infrastructure.Projects;
 // DEC-059 — the command of T1 became the `sheet` subcommand when the project
 // subcommands arrived, because `pawnsmith-cli --manifest …` gave the sheet no
 // name and left the four others nowhere to attach.
+//
+// T3 adds the `blueprint` subcommands and `project sheet`. They exist to show
+// what thirty-two tests cannot: a composed clause on screen, a diagnostic beside
+// it, and a sheet that names the blueprint it left out. Every one of them goes
+// through BlueprintEditor, CandidateElection or BlueprintRemoval - never through
+// SaveAsync with a hand-patched blueprint, which is how a harness "without
+// logic" exercises a business rule without owning it (D.7.3).
 
 const string Usage = """
     pawnsmith-cli <command> [options]
@@ -33,6 +46,25 @@ const string Usage = """
       project check    --path <dir> --calibration <path>
       project export   --path <dir> --profile Backup|Share --out <dir> --calibration <path>
       project import   --archive <file> --root <path> --name <text> --calibration <path>
+      project sheet    --path <dir> --out <path> --calibration <path> [--culture <name>] [--debug]
+      blueprint add    --path <dir> --race <text> --class <text> --size <name>
+                       [--param key=value]... [--details <text>] [--quantity <n>]
+                       --template <path> --catalog <path> --calibration <path>
+      blueprint edit   --path <dir> --id <guid> (same options as add)
+      blueprint clause --path <dir> --id <guid> --clause <text> --calibration <path>
+      blueprint elect  --path <dir> --id <guid> --candidate <guid> --calibration <path>
+      blueprint remove --path <dir> --id <guid> --calibration <path>
+
+    Options of the blueprint subcommands:
+      --template       Sentence structure of the universe (config/prompt-template.*.json).
+      --catalog        Vocabulary of the universe (config/catalog.*.json).
+      --param          One optional parameter, as key=value. Repeat for several.
+                       A value the catalogue does not know is inserted as written
+                       and reported, never refused (DEC-056).
+      --quantity       Copies on the sheet. Defaults to 1.
+
+    project sheet options:
+      --culture        Culture of the text printed on the sheet. Defaults to en.
 
     Options common to the project subcommands:
       --calibration    Physical values, as described in B.2. Required by all of
@@ -67,6 +99,16 @@ catch (ProjectException error)
     Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
     return 1;
 }
+catch (PromptFileException error)
+{
+    Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
+    return 1;
+}
+catch (BlueprintRuleException error)
+{
+    Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
+    return 1;
+}
 catch (PageCapacityException error)
 {
     Console.Error.WriteLine($"Page capacity: {error.Message}");
@@ -92,7 +134,15 @@ async Task<int> RunAsync(string[] arguments)
         ["project", "check", .. string[] rest] => await CheckAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         ["project", "export", .. string[] rest] => await ExportAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         ["project", "import", .. string[] rest] => await ImportAsync(Arguments.Parse(rest)).ConfigureAwait(false),
-        _ => throw new ArgumentException("Expected one of: sheet, project new, project check, project export, project import."),
+        ["project", "sheet", .. string[] rest] => await ProjectSheetAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["blueprint", "add", .. string[] rest] => await BlueprintAddAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["blueprint", "edit", .. string[] rest] => await BlueprintEditAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["blueprint", "clause", .. string[] rest] => await BlueprintClauseAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["blueprint", "elect", .. string[] rest] => await BlueprintElectAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["blueprint", "remove", .. string[] rest] => await BlueprintRemoveAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        _ => throw new ArgumentException(
+            "Expected one of: sheet, project new, project check, project export, project import, project sheet, " +
+            "blueprint add, blueprint edit, blueprint clause, blueprint elect, blueprint remove."),
     };
 }
 
@@ -233,6 +283,253 @@ async Task<int> ImportAsync(Arguments arguments)
     return 0;
 }
 
+// ---- project sheet --------------------------------------------------------
+
+async Task<int> ProjectSheetAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    (string directory, LoadedProject loaded) = await LoadProjectAsync(arguments, calibration).ConfigureAwait(false);
+    Project project = loaded.Project;
+
+    // The effective calibration, never the file's: the tab overrides of the
+    // project feed the cell height (DEC-040, DEC-053).
+    Calibration effective = EffectiveCalibration.Resolve(calibration, project);
+
+    if (!effective.PaperFormats.TryGetValue(project.PaperFormatName, out PaperFormat? paperFormat))
+    {
+        throw new ArgumentException(
+            $"The project asks for the paper format '{project.PaperFormatName}', which the calibration does not declare. " +
+            $"Known formats are: {string.Join(", ", effective.PaperFormats.Keys)}.");
+    }
+
+    ProjectSheetRequest built = ProjectSheetRequestBuilder.From(project, paperFormat);
+
+    // DEC-069 - said before anything is rendered, so a sheet with a blueprint
+    // missing is never a surprise.
+    foreach (SkippedBlueprint skipped in built.Skipped)
+    {
+        Console.WriteLine($"  skipped [{skipped.Reason}]: {skipped.Message}");
+    }
+
+    if (built.Request.Items.Count == 0)
+    {
+        Console.WriteLine("Nothing to lay out: no blueprint has an elected, cut-out candidate.");
+        return 0;
+    }
+
+    RenderSheetUseCase useCase = new(
+        new FileImageSizeReader(),
+        new PdfSharpSheetRenderer(directory, arguments.Has("--debug")));
+
+    RenderedSheet sheet = await useCase.ExecuteAsync(
+        built.Request,
+        effective,
+        directory,
+        CultureInfo.GetCultureInfo(arguments.Optional("--culture") ?? "en"),
+        CancellationToken.None).ConfigureAwait(false);
+
+    string output = arguments.Required("--out");
+    await File.WriteAllBytesAsync(output, sheet.Pdf, CancellationToken.None).ConfigureAwait(false);
+
+    Console.WriteLine($"Wrote {output} ({sheet.Pdf.Length} bytes, {sheet.Layout.Pages.Count} page(s)).");
+
+    foreach (WidthLimitedItem item in sheet.Layout.WidthLimitedItems)
+    {
+        Console.WriteLine(
+            $"  note: '{item.ItemName}' ({item.Size}) prints at " +
+            $"{item.HeightUsage:P0} of its height ({item.PrintedHeightMm:F1} of " +
+            $"{item.AvailableHeightMm:F1} mm) - its width is the limiting factor.");
+    }
+
+    return 0;
+}
+
+// ---- blueprint add / edit / clause ----------------------------------------
+
+async Task<int> BlueprintAddAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    (string directory, LoadedProject loaded) = await LoadProjectAsync(arguments, calibration).ConfigureAwait(false);
+    IPromptComposer composer = await ReadComposerAsync(arguments, loaded.Project.Universe).ConfigureAwait(false);
+
+    EditedProject edited = BlueprintEditor.Add(loaded.Project, ReadFields(arguments), composer);
+
+    await SaveAsync(directory, edited.Project).ConfigureAwait(false);
+    PrintBlueprint(edited);
+
+    return 0;
+}
+
+async Task<int> BlueprintEditAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    (string directory, LoadedProject loaded) = await LoadProjectAsync(arguments, calibration).ConfigureAwait(false);
+    IPromptComposer composer = await ReadComposerAsync(arguments, loaded.Project.Universe).ConfigureAwait(false);
+
+    // DEC-067 happens inside UpdateFields, and only there: the clause follows
+    // the fields if nobody edited it, and is left alone otherwise.
+    EditedProject edited = BlueprintEditor.UpdateFields(
+        loaded.Project, ReadGuid(arguments, "--id"), ReadFields(arguments), composer);
+
+    await SaveAsync(directory, edited.Project).ConfigureAwait(false);
+    PrintBlueprint(edited);
+
+    return 0;
+}
+
+async Task<int> BlueprintClauseAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    (string directory, LoadedProject loaded) = await LoadProjectAsync(arguments, calibration).ConfigureAwait(false);
+
+    EditedProject edited = BlueprintEditor.EditSubjectClause(
+        loaded.Project, ReadGuid(arguments, "--id"), arguments.Required("--clause"));
+
+    await SaveAsync(directory, edited.Project).ConfigureAwait(false);
+    PrintBlueprint(edited);
+
+    return 0;
+}
+
+// ---- blueprint elect ------------------------------------------------------
+
+async Task<int> BlueprintElectAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    (string directory, LoadedProject loaded) = await LoadProjectAsync(arguments, calibration).ConfigureAwait(false);
+
+    EditedProject edited = CandidateElection.Elect(
+        loaded.Project, ReadGuid(arguments, "--id"), ReadGuid(arguments, "--candidate"));
+
+    await SaveAsync(directory, edited.Project).ConfigureAwait(false);
+
+    Console.WriteLine($"{edited.Blueprint.Race} {edited.Blueprint.CharacterClass} ({edited.Blueprint.Id})");
+    Console.WriteLine($"  elected {edited.Blueprint.ElectedCandidateId}");
+
+    // DEC-068 made visible: the statuses are printed so one can see none moved.
+    foreach (Candidate candidate in edited.Blueprint.Candidates)
+    {
+        string mark = candidate.Id == edited.Blueprint.ElectedCandidateId ? "*" : " ";
+        Console.WriteLine($"  {mark} {candidate.Id} {candidate.Status}");
+    }
+
+    return 0;
+}
+
+// ---- blueprint remove -----------------------------------------------------
+
+async Task<int> BlueprintRemoveAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    (string directory, LoadedProject loaded) = await LoadProjectAsync(arguments, calibration).ConfigureAwait(false);
+
+    RemovedBlueprint removed = BlueprintRemoval.Remove(loaded.Project, ReadGuid(arguments, "--id"));
+
+    // Model first, disk second (DEC-070): a save that fails leaves the files
+    // where they are; a deletion that fails leaves orphans, which are harmless.
+    await SaveAsync(directory, removed.Project).ConfigureAwait(false);
+    int deleted = ProjectImageFiles.Delete(directory, removed.ReferencedFiles);
+
+    Console.WriteLine($"Removed {removed.Removed.Race} {removed.Removed.CharacterClass} ({removed.Removed.Id}).");
+    Console.WriteLine($"  {removed.Removed.Candidates.Count} candidate(s), {deleted} of {removed.ReferencedFiles.Count} referenced file(s) deleted.");
+
+    return 0;
+}
+
+// ---- ce que les sous-commandes de gabarit partagent ----------------------
+
+async Task<(string Directory, LoadedProject Loaded)> LoadProjectAsync(Arguments arguments, Calibration calibration)
+{
+    string directory = Path.GetFullPath(arguments.Required("--path"));
+
+    ProjectReader reader = new(new ProjectRepositoryOptions(
+        Path.GetDirectoryName(directory) ?? directory));
+
+    LoadedProject loaded = await reader
+        .LoadAsync(directory, calibration, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    return (directory, loaded);
+}
+
+async Task SaveAsync(string directory, Project project) =>
+    await new ProjectSaver().SaveAsync(directory, project, CancellationToken.None).ConfigureAwait(false);
+
+async Task<IPromptComposer> ReadComposerAsync(Arguments arguments, Universe universe)
+{
+    PromptTemplate template = await PromptTemplateReader
+        .ReadAsync(arguments.Required("--template"), universe, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    Catalog catalog = await CatalogReader
+        .ReadAsync(arguments.Required("--catalog"), universe, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    return new TemplatePromptComposer(template, catalog);
+}
+
+BlueprintFields ReadFields(Arguments arguments)
+{
+    Dictionary<string, string> parameters = new(StringComparer.Ordinal);
+
+    foreach (string pair in arguments.All("--param"))
+    {
+        int equals = pair.IndexOf('=', StringComparison.Ordinal);
+
+        if (equals <= 0)
+        {
+            throw new ArgumentException($"'--param {pair}' is not of the form key=value.");
+        }
+
+        parameters[pair[..equals]] = pair[(equals + 1)..];
+    }
+
+    string quantity = arguments.Optional("--quantity") ?? "1";
+
+    return new BlueprintFields(
+        Race: arguments.Required("--race"),
+        CharacterClass: arguments.Required("--class"),
+        Size: ParseEnum<Size>(arguments.Required("--size"), "--size"),
+        OptionalParameters: parameters,
+        Details: arguments.Optional("--details") ?? string.Empty,
+        Quantity: int.TryParse(quantity, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
+            ? parsed
+            : throw new ArgumentException($"'--quantity {quantity}' is not an integer."));
+}
+
+Guid ReadGuid(Arguments arguments, string option)
+{
+    string value = arguments.Required(option);
+
+    return Guid.TryParse(value, out Guid parsed)
+        ? parsed
+        : throw new ArgumentException($"'{option} {value}' is not an identifier.");
+}
+
+// The clause and its diagnostics side by side: the point of the harness for
+// this slice. A value the catalogue did not know is in the clause as written,
+// and named underneath - which is what DEC-056 looks like on screen.
+void PrintBlueprint(EditedProject edited)
+{
+    Blueprint blueprint = edited.Blueprint;
+
+    Console.WriteLine($"{blueprint.Race} {blueprint.CharacterClass} ({blueprint.Id})");
+    Console.WriteLine($"  {blueprint.Size}, x{blueprint.Quantity}");
+    Console.WriteLine($"  subject: {blueprint.SubjectClause}");
+
+    if (edited.Diagnostics.Count == 0)
+    {
+        return;
+    }
+
+    Console.WriteLine($"  {edited.Diagnostics.Count} composition diagnostic(s) - the clause is usable all the same:");
+
+    foreach (CompositionDiagnostic diagnostic in edited.Diagnostics)
+    {
+        Console.WriteLine($"    {diagnostic.Key}={diagnostic.Value}: {diagnostic.Message}");
+    }
+}
+
 // ---- ce que tout le monde partage -----------------------------------------
 
 async Task<Calibration> ReadCalibrationAsync(Arguments arguments) =>
@@ -277,14 +574,16 @@ TEnum ParseEnum<TEnum>(string value, string option)
 /// required option. This one has a single rule — a name, then its value, unless
 /// the name is a known flag — and every subcommand asks for what it needs.
 /// </remarks>
-internal sealed record Arguments(IReadOnlyDictionary<string, string> Values)
+internal sealed record Arguments(IReadOnlyDictionary<string, List<string>> Values)
 {
     /// <summary>Options that take no value.</summary>
     private static readonly HashSet<string> Flags = new(StringComparer.Ordinal) { "--debug" };
 
     public static Arguments Parse(string[] args)
     {
-        Dictionary<string, string> values = new(StringComparer.Ordinal);
+        // Every value is kept, in order, because --param repeats. For the
+        // others, Required and Optional read the last one given.
+        Dictionary<string, List<string>> values = new(StringComparer.Ordinal);
 
         int index = 0;
 
@@ -299,7 +598,7 @@ internal sealed record Arguments(IReadOnlyDictionary<string, string> Values)
 
             if (Flags.Contains(name))
             {
-                values[name] = "true";
+                Add(values, name, "true");
                 index += 1;
                 continue;
             }
@@ -309,17 +608,32 @@ internal sealed record Arguments(IReadOnlyDictionary<string, string> Values)
                 throw new ArgumentException($"Option '{name}' has no value.");
             }
 
-            values[name] = args[index + 1];
+            Add(values, name, args[index + 1]);
             index += 2;
         }
 
         return new Arguments(values);
     }
 
+    private static void Add(Dictionary<string, List<string>> values, string name, string value)
+    {
+        if (!values.TryGetValue(name, out List<string>? list))
+        {
+            list = [];
+            values[name] = list;
+        }
+
+        list.Add(value);
+    }
+
     public string Required(string option) =>
-        Values.TryGetValue(option, out string? value)
-            ? value
-            : throw new ArgumentException($"Missing required option '{option}'.");
+        Optional(option) ?? throw new ArgumentException($"Missing required option '{option}'.");
+
+    public string? Optional(string option) =>
+        Values.TryGetValue(option, out List<string>? list) ? list[^1] : null;
+
+    public IReadOnlyList<string> All(string option) =>
+        Values.TryGetValue(option, out List<string>? list) ? list : [];
 
     public bool Has(string option) => Values.ContainsKey(option);
 }

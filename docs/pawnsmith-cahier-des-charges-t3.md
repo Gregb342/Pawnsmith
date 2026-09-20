@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 |
-| **Date** | 9 septembre 2026 |
-| **Document parent** | `pawnsmith-bible.md` v0.13 — à lire en premier, chapitres 3, 4 et 16 en particulier |
+| **Version** | 1.1 |
+| **Date** | 20 septembre 2026 |
+| **Document parent** | `pawnsmith-bible.md` v0.14 — à lire en premier, chapitres 3, 4 et 16 en particulier |
 | **Documents frères** | `pawnsmith-cahier-des-charges-t1.md` (partie B) et `-t2.md` (partie C), dont ce document reprend la forme |
 | **Portée** | Parcours utilisateur, catalogue, fichiers de templates de prompts, composeur de clause sujet, règles de gestion |
+
+> **Changements depuis la v1.0** — Écriture de la tranche, en régime « itère jusqu'à une version testable, je relis après ». Trois choses ont bougé dans le document pendant l'écriture, chacune dans le commit du code qui l'a demandée : `ComposeSubject` rend un **record** et non une chaîne, sans quoi les diagnostics de D.6.3 n'avaient nulle part où aller (D.6.1) ; deux codes d'erreur d'Application s'ajoutent à D.10, `BLUEPRINT_NOT_FOUND` et `CANDIDATE_NOT_FOUND` ; les fiches DEC ont été déposées en un commit **avant** le code, comme T2 l'avait fait, et D.14 le dit désormais correctement. Nouvelle section **D.16**, le point d'entrée en ligne de commande, que la v1.0 annonçait en D.1 sans le décrire. Les décisions prises sans arbitrage pendant l'écriture sont listées au §8 de `CLAUDE.md`, à relire en premier.
 
 > **Comment lire ce document.** Il ne redécrit pas les entités : le **chapitre 3 de la bible** fait foi sur ce qu'elles contiennent. Il ne redécrit pas non plus l'assemblage du prompt ni le désalignement : le **§C.5 de T2** les a spécifiés et le code existe. Ce document décide ce que ces deux-là laissent ouvert — d'où vient la clause sujet, quand elle se recompose, et les règles de gestion que le chapitre 16 réservait à cette tranche.
 >
@@ -604,6 +606,25 @@ Signalées plutôt que corrigées en silence.
 3. **Le §15.1 range l'étape « Gabarits » en T3 et l'étape « Génération » en T4-T5**, ce qui est correct, mais le §15.3 décrit un panneau de paramètres qui suppose le catalogue chargé sans jamais dire d'où il vient. La réponse est désormais D.4 ; le §15.3 doit y renvoyer.
 
 4. **Le §3.1 laisse le trou de D.7.1** — « produite par le composeur » et « stockée et éditable » cohabitent sans que le cas du gabarit jamais édité soit traité. DEC-067 le comble ; la ligne `clauseSujet` du tableau des gabarits doit y renvoyer.
+
+---
+
+## D.16 Point d'entrée en ligne de commande
+
+`tools/Pawnsmith.Cli` — jetable, non livré, exclu de l'image Docker, sans tests, comme en B.7 et C.17. Sa raison d'être pour cette tranche : trente-deux tests ne montrent pas une clause composée à l'écran avec son diagnostic en dessous, ni une planche qui nomme le gabarit qu'elle a laissé de côté.
+
+| Sous-commande | Arguments | Effet |
+|---|---|---|
+| `blueprint add` | `--path`, `--race`, `--class`, `--size`, `--param k=v`…, `--details`, `--quantity`, `--template`, `--catalog`, `--calibration` | Ajoute un gabarit, compose sa clause, affiche la clause **et** ses diagnostics |
+| `blueprint edit` | `--path`, `--id`, et les mêmes options | Remplace les champs ; recompose si la clause n'était pas éditée (DEC-067) |
+| `blueprint clause` | `--path`, `--id`, `--clause`, `--calibration` | Stocke une clause écrite à la main, normalisée |
+| `blueprint elect` | `--path`, `--id`, `--candidate`, `--calibration` | Élit un candidat ; affiche les statuts pour qu'on voie qu'aucun n'a bougé (DEC-068) |
+| `blueprint remove` | `--path`, `--id`, `--calibration` | Supprime le gabarit, sauvegarde, puis supprime ses fichiers et dit combien (DEC-070) |
+| `project sheet` | `--path`, `--out`, `--calibration`, `[--culture]`, `[--debug]` | Tire la planche du projet ; nomme chaque gabarit sauté **avant** de rendre (DEC-069) |
+
+**Aucune logique.** Chaque sous-commande charge le projet, appelle `BlueprintEditor`, `CandidateElection` ou `BlueprintRemoval`, sauvegarde par `ProjectSaver`, affiche. Aucune ne passe par `SaveAsync` avec un gabarit modifié à la main : c'est la seule façon dont un harnais sans logique exerce une règle de gestion sans la posséder (D.7.3).
+
+Deux choix à expliciter. **`--param` se répète**, et l'analyseur d'arguments de T2 ne gardait que la dernière valeur d'une option ; il garde désormais toutes les valeurs dans l'ordre. **`--culture` est optionnelle et vaut `en` par défaut** : le manifeste de T1 portait la culture, un projet ne la porte pas, et un harnais a le droit d'avoir un défaut documenté là où un fichier de contrat n'en aurait pas.
 
 ---
 
