@@ -178,7 +178,7 @@ public class ShareFilterTests
         ArchiveManifest manifest = ArchiveManifestFile.For(ArchiveProfile.Backup, DateTimeOffset.UtcNow);
 
         manifest.ProducedBy.ShouldStartWith("Pawnsmith ");
-        manifest.ProducedBy.ShouldContain("0.3.0");
+        manifest.ProducedBy.ShouldContain("0.4.0");
     }
 
     [Fact]

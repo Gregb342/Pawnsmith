@@ -84,6 +84,29 @@ public class ProjectSaverTests
         (await Reload(workspace, directory)).ModifiedAt.ShouldBe(written.ModifiedAt);
     }
 
+    // --- D.11 n° 27 : la sauvegarde ne recompose rien ----------------------
+
+    [Fact]
+    public async Task SavingWritesTheClauseAsGivenAndComposesNothing()
+    {
+        // The recomposition rule of DEC-067 lives in BlueprintEditor, in
+        // Application. The saver is a plain write (DEC-055): a blueprint whose
+        // race says "orc" and whose clause still says "goblin" is written
+        // exactly like that, and it is the use case's job to have decided
+        // otherwise before calling here.
+        using TempWorkspace workspace = new();
+        string directory = EmptyProjectFolder(workspace);
+        Project source = ProjectSample.Rich();
+        Blueprint stale = source.Blueprints[0] with { Race = "orc" };
+        string clauseBefore = stale.SubjectClause;
+
+        await Saver().SaveAsync(directory, source with { Blueprints = [stale] }, CancellationToken.None);
+        Project reloaded = await Reload(workspace, directory);
+
+        reloaded.Blueprints[0].Race.ShouldBe("orc");
+        reloaded.Blueprints[0].SubjectClause.ShouldBe(clauseBefore);
+    }
+
     // --- C.12 n° 12 : une surcharge fausse est refusée à la sauvegarde ----
 
     [Theory]

@@ -462,7 +462,11 @@ Ajoutés à ceux du §C.11. Ils sont rendus par l'API, jamais traduits (chapitre
 | `TEMPLATE_UNKNOWN_TOKEN` | Jeton inconnu dans `subjectHead` ou `unknownValueFragment`, nommé |
 | `TEMPLATE_SCHEMA_TOO_RECENT` | `versionSchema` du template supérieur à 1 |
 | `UNIVERSE_MISMATCH` | Le champ `universe` du fichier ne correspond pas à celui attendu |
+| `BLUEPRINT_NOT_FOUND` | Une opération de gabarit désigne un identifiant que le projet ne porte pas |
+| `CANDIDATE_NOT_FOUND` | Une élection désigne un candidat que le gabarit ne porte pas |
 | `CANDIDATE_NOT_CUT_OUT` | Tentative d'élection d'un candidat sans ses deux détourages (D.8.3) |
+
+Les six premiers sont levés par l'Infrastructure, à la lecture des fichiers. Les trois derniers sont levés par l'**Application**, là où la règle vit : ils ne parlent d'aucun fichier. Les deux `*_NOT_FOUND` n'étaient pas dans la v1.0 de ce document ; l'écriture du cas d'usage les a demandés, une opération sur un identifiant inconnu devant refuser avec un code et non avec une exception de programmation.
 
 Les valeurs inconnues du catalogue ne figurent pas ici : ce sont des **diagnostics**, pas des erreurs (D.6.3).
 
