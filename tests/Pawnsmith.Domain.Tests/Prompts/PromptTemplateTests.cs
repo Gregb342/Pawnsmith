@@ -115,4 +115,26 @@ public class PromptTemplateTests
 
         result.ShouldBe("a goblin skirmisher, a proud goblin");
     }
+
+    [Fact]
+    public void ASubstitutedValueIsNeverScannedAgain()
+    {
+        // Chained string.Replace calls would print the class twice here. The
+        // values are free user text, so the pass has to be single.
+        string result = TemplateToken.Substitute(
+            "a {race} {characterClass}",
+            new Dictionary<string, string> { ["race"] = "{characterClass}", ["characterClass"] = "goblin" });
+
+        result.ShouldBe("a {characterClass} goblin");
+    }
+
+    [Fact]
+    public void AnUnknownTokenIsLeftVisibleRatherThanBlanked()
+    {
+        string result = TemplateToken.Substitute(
+            "a {race} {mount}",
+            new Dictionary<string, string> { ["race"] = "goblin" });
+
+        result.ShouldBe("a goblin {mount}");
+    }
 }

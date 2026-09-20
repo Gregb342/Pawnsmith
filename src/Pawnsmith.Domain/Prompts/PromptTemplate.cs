@@ -231,23 +231,62 @@ public static class TemplateToken
 
     /// <summary>Replaces every <c>{token}</c> in <paramref name="pattern"/> by its value.</summary>
     /// <remarks>
-    /// Ordinal replacement, one token at a time. The pattern has been validated
-    /// by <see cref="PromptTemplate.Create"/>, so every brace pair here is a
-    /// known token and none is left behind.
+    /// <para>
+    /// <b>One single pass over the pattern</b>, never a sequence of
+    /// <c>string.Replace</c> calls. Chained replacements would let a
+    /// substituted <i>value</i> be scanned again by the next token: a blueprint
+    /// whose race is literally <c>{characterClass}</c> would come out with its
+    /// class printed twice. Nobody would type that on purpose, but the
+    /// behaviour is invisible in review and the values here are free user text
+    /// — which is exactly the sort of implicit rule section 0 of the T1
+    /// specification refuses.
+    /// </para>
+    /// <para>
+    /// A token the dictionary does not know is left as it stands. It cannot
+    /// happen on a pattern <see cref="PromptTemplate.Create"/> accepted, since
+    /// the allowed tokens are a closed list; leaving it visible is still the
+    /// right answer, because a stray <c>{name}</c> in a prompt is something a
+    /// reader notices, whereas an empty gap is not.
+    /// </para>
     /// </remarks>
     public static string Substitute(string pattern, IReadOnlyDictionary<string, string> values)
     {
         ArgumentNullException.ThrowIfNull(pattern);
         ArgumentNullException.ThrowIfNull(values);
 
-        string result = pattern;
+        System.Text.StringBuilder result = new(pattern.Length);
+        int position = 0;
 
-        foreach ((string token, string value) in values)
+        while (position < pattern.Length)
         {
-            result = result.Replace("{" + token + "}", value, StringComparison.Ordinal);
+            int open = pattern.IndexOf('{', position);
+
+            if (open < 0)
+            {
+                result.Append(pattern, position, pattern.Length - position);
+                break;
+            }
+
+            int close = pattern.IndexOf('}', open + 1);
+
+            if (close < 0)
+            {
+                result.Append(pattern, position, pattern.Length - position);
+                break;
+            }
+
+            result.Append(pattern, position, open - position);
+
+            string name = pattern[(open + 1)..close];
+
+            result.Append(values.TryGetValue(name, out string? value)
+                ? value
+                : pattern[open..(close + 1)]);
+
+            position = close + 1;
         }
 
-        return result;
+        return result.ToString();
     }
 
     internal static string Describe(IEnumerable<string> tokens) =>
