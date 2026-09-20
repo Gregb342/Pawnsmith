@@ -1,0 +1,65 @@
+{
+  "versionSchema": 1,
+  "universe": "Fantasy",
+  "parameters": [
+    {
+      "key": "weapon",
+      "entries": [
+        { "value": "sword", "fragment": "wielding a straight sword held vertically flat against the body" },
+        { "value": "axe", "fragment": "wielding a large battle axe held vertically flat against the body" },
+        { "value": "spear", "fragment": "wielding a short spear held vertically against the body" },
+        { "value": "bow", "fragment": "carrying a longbow held vertically against the side, a quiver on the back" },
+        { "value": "dagger", "fragment": "holding a dagger low against the thigh" },
+        { "value": "staff", "fragment": "holding a tall wooden staff vertically against the body" },
+        { "value": "mace", "fragment": "wielding a heavy mace held vertically flat against the body" },
+        { "value": "crossbow", "fragment": "carrying a crossbow held vertically against the chest" }
+      ]
+    },
+    {
+      "key": "shield",
+      "entries": [
+        { "value": "round", "fragment": "a round wooden shield strapped flat against the forearm" },
+        { "value": "kite", "fragment": "a tall kite shield held close against the side" },
+        { "value": "buckler", "fragment": "a small buckler strapped to the forearm" }
+      ]
+    },
+    {
+      "key": "armour",
+      "entries": [
+        { "value": "none", "fragment": "unarmoured" },
+        { "value": "leather", "fragment": "wearing leather scraps" },
+        { "value": "studded", "fragment": "wearing studded leather armour" },
+        { "value": "mail", "fragment": "wearing a mail hauberk" },
+        { "value": "plate", "fragment": "wearing full plate armour" },
+        { "value": "robes", "fragment": "wearing long layered robes" }
+      ]
+    },
+    {
+      "key": "clothing",
+      "entries": [
+        { "value": "rags", "fragment": "dressed in torn rags" },
+        { "value": "tunic", "fragment": "dressed in a simple belted tunic" },
+        { "value": "noble", "fragment": "dressed in fine embroidered noble clothes" },
+        { "value": "travel", "fragment": "dressed in worn travelling clothes" }
+      ]
+    },
+    {
+      "key": "headgear",
+      "entries": [
+        { "value": "none", "fragment": "bareheaded" },
+        { "value": "helm", "fragment": "wearing a closed steel helm" },
+        { "value": "hood", "fragment": "wearing a hood pulled up" },
+        { "value": "cap", "fragment": "wearing a leather cap" },
+        { "value": "crown", "fragment": "wearing a thin metal crown" }
+      ]
+    },
+    {
+      "key": "cloak",
+      "entries": [
+        { "value": "none", "fragment": "no cloak" },
+        { "value": "short", "fragment": "a short cloak hanging straight down against the back" },
+        { "value": "long", "fragment": "a long cloak hanging straight down against the back, not spread" }
+      ]
+    }
+  ]
+}
