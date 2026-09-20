@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.13 |
-| **Date** | 5 septembre 2026 |
+| **Version du document** | 0.14 |
+| **Date** | 20 septembre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.13** — Spécification de la tranche T3 (`pawnsmith-cahier-des-charges-t3.md` v1.0). **DEC-063 à DEC-073** : catalogue global en fichier de données, un par univers (**ferme la question D**) ; une entrée de catalogue est un fragment de phrase et non un mot, en réponse à l'adhérence imparfaite mesurée par DEC-043 ; catalogue et template en deux fichiers ; `IPromptComposer` réduit à `ComposeSubject` (**supersède la signature du chapitre 7**) ; la clause sujet se recompose tant qu'elle n'a pas été éditée, l'édition étant déduite et non stockée ; élection et statut en deux axes (**ferme la première moitié de la question B**) ; gabarit sans élu ignoré et signalé ; suppression d'un gabarit emportant ses fichiers ; élection exigeant les deux détourages ; machine à états du `Job` reportée à T4 (**scinde la question B**) ; schéma des fichiers de templates descendu en T3 (**scinde la question F**). La question A est fermée par le parcours utilisateur du §D.3. Corrections : le chapitre 7 écrivait encore `IPromptComposer` en franglais ; le §3.1 laissait ouvert le cas du gabarit jamais édité ; le §15.3 supposait un catalogue sans dire d'où il venait ; la question C du chapitre 16 demandait de trancher une sous-question que T1 avait déjà réglée.
  
 > **Changements depuis la v0.12** — **DEC-062**, écrite à l'assemblage d'`IProjectRepository` en fin de T2 : le dépôt de projet est sans état et chaque opération reçoit son chemin, ce qui **supersède les signatures esquissées au chapitre 7**. La décision avait été prise pendant la tâche 8 et laissée hors des fiches, faute de port à qui l'appliquer.
  
@@ -150,7 +152,7 @@ Ce vocabulaire est contraignant en tant que **concept** : un terme désigne une 
 | `taille` | Taille | Obligatoire. Clé de regroupement en pages. |
 | `parametresOptionnels` | dictionnaire | Clés du catalogue (arme, armure, vêtement, couleur…). Une clé absente signifie « non contraint », **pas** « absent de l'illustration ». |
 | `details` | texte | Champ libre, intégré à la clause sujet lors de sa composition. |
-| `clauseSujet` | texte | Produite par le composeur à partir des champs ci-dessus. **Stockée et éditable.** Seul segment du prompt que l'utilisateur peut modifier (DEC-028). Ne se régénère pas toute seule après édition. |
+| `clauseSujet` | texte | Produite par le composeur à partir des champs ci-dessus. **Stockée et éditable.** Seul segment du prompt que l'utilisateur peut modifier (DEC-028). Ne se régénère pas toute seule après édition — et **tant qu'elle n'a pas été éditée, elle suit les champs** ; l'édition se déduit par comparaison, elle n'est pas stockée (DEC-067). |
 | `promptResolu` | *(dérivé)* | `clauseCadrage + clauseSujet + clauseStyle`. **Non persisté, non éditable.** Affiché en lecture seule. |
 | `quantite` | entier ≥ 1 | Nombre d'exemplaires du même pion sur la planche. |
 | `candidats` | liste de Candidat | |
@@ -403,15 +405,16 @@ public interface IBackgroundRemover
     Task<TransparentImage> RemoveAsync(RawImage image, CancellationToken ct);
 }
  
-// Deux méthodes, deux responsabilités distinctes — voir DEC-028.
-// ComposeSubject produit la clause sujet initiale ; l'utilisateur peut ensuite l'éditer.
-// Assemble reconstruit le prompt complet à partir d'une clause sujet éventuellement éditée.
-// Aucune signature ne permet de fournir une clause cadrage ou une clause style depuis
-// le niveau du gabarit : le verrouillage est porté par le type, pas par une convention.
+// Une seule méthode, et c'est le point (DEC-066). ComposeSubject produit la clause
+// sujet initiale, que l'utilisateur peut ensuite éditer, avec les diagnostics de
+// composition — une valeur inconnue du catalogue, par exemple (DEC-063).
+// L'assemblage du prompt n'est PAS ici : c'est ResolvedPrompt.From, fonction pure
+// de domaine écrite en T2, qui n'aura jamais de seconde implémentation (EVO-001
+// ne réécrit que la clause sujet). Aucune signature ne reçoit ni ne rend une clause
+// cadrage ou une clause style : le verrouillage de DEC-028 est porté par le type.
 public interface IPromptComposer
 {
-    string ComposeSubject(Gabarit gabarit, Univers univers);
-    string Assemble(string clauseSujet, Style style);
+    ComposedSubject ComposeSubject(Blueprint blueprint, Universe universe);
 }
  
 // LoadAsync reçoit la calibration : valider une surcharge d'onglet suppose de la
@@ -919,6 +922,59 @@ Un dépôt sans état a un second effet, qui n'était pas le motif mais qui comp
 Ce que la fiche ne fait pas : elle ne dit rien de la concurrence. Deux écritures simultanées du même dossier restent non gérées, comme le §C.7.3 l'écrit, et le dernier écrivain gagne. L'absence d'état n'est pas un verrou et ne prétend pas en tenir lieu.
 Portée : la décision avait été prise pendant l'écriture de la tâche 8 de T2 et laissée hors des fiches, faute de port à qui l'appliquer. Elle est consignée au moment où le port est assemblé — le dernier moment où elle pouvait l'être sans être reconstituée d'après le code.
 
+**DEC-063 — Le catalogue est global, en fichier de données, un fichier par univers.**
+Choix : le catalogue des paramètres optionnels — arme, armure, vêtement… — est une donnée de l'**application**, livrée en `config/catalog.{univers}.json`, éditable par l'utilisateur, et jamais embarquée dans un projet. **Ferme la question D du chapitre 16.**
+Conséquence : le critère est celui de DEC-052 — *qui détermine la valeur*. Le vocabulaire d'équipement est déterminé par l'univers, pas par le projet, et Pawnsmith est mono-utilisateur (§1.5) : une propriété de l'univers est ici une propriété globale. L'embarquer par projet obligerait la même personne à ressaisir « hache d'armes » partout, et produirait des projets divergeant sur un vocabulaire qui n'avait aucune raison de varier. C'est le régime que DEC-010 donne déjà aux templates de prompts, parce que les deux ont la même nature.
+Le contre-argument — un projet `Share` arrive chez quelqu'un dont le catalogue diffère — ne tient pas, et c'est DEC-056 qui le dit : le catalogue est une donnée de machine, il ne rejette jamais un projet. La clause sujet voyage **stockée** sur le gabarit, et le destinataire lit le texte de l'expéditeur même si son propre catalogue est vide. Une valeur inconnue produit un fragment de repli et un diagnostic, jamais une erreur. Voir §D.4 du cahier T3.
+
+**DEC-064 — Une entrée de catalogue porte un fragment de phrase, pas un mot.**
+Choix : chaque entrée associe à un couple (clé, valeur) un `fragment` — un groupe de mots anglais complet, inséré tel quel dans la clause sujet. `weapon: axe` ne donne pas « axe » mais « wielding a large battle axe held vertically against the body ».
+Conséquence : la décision vient d'une mesure. DEC-043 a relevé, sur le premier sujet de T0a, une **adhérence imparfaite à l'équipement** — `a large battle axe` demandée, deux dagues obtenues. T3 ne peut pas rendre un modèle obéissant ; il peut cesser de lui donner un mot isolé. Le prompt de référence de DEC-043 ne dit pas `spear` mais *une lance courte tenue verticalement contre le corps*, et la fiche mesure que cette contrainte de pose « a tenu sur les trois sujets ». Deux bénéfices pour un seul champ : une périphrase pèse plus qu'un mot dans un encodeur de texte, et **la contrainte de pose compacte de DEC-042 se trouve portée par chaque objet qui pourrait élargir la silhouette**, au lieu d'être une phrase générale parlant d'objets que le modèle ne sait pas encore qu'il va dessiner.
+Ce que cela coûte : un catalogue plus long à écrire, une phrase par entrée. C'est du contenu, pas du code, et c'est le fichier que DEC-010 rend éditable pour qu'il s'améliore à l'usage. L'alternative — dériver le fragment du mot par un patron `wielding a {value}` — recrée une convention implicite et ne saurait produire ni `wearing`, ni la contrainte de pose.
+
+**DEC-065 — Catalogue et template de prompt sont deux fichiers distincts.**
+Choix : un univers a deux fichiers, `catalog.{univers}.json` et `prompt-template.{univers}.json`, et non un seul.
+Conséquence : ils ont la même portée, et la tentation de les réunir est réelle. Ce qui les sépare est l'argument de DEC-029 appliqué un cran plus bas — **ils n'ont pas le même rayon d'explosion**. Le template porte la *structure* de la phrase ; une faute y produit une clause malformée pour tous les gabarits. Le catalogue porte le *vocabulaire* ; une faute y touche une valeur. L'un s'édite rarement et par quelqu'un d'averti, l'autre souvent et par l'utilisateur ordinaire. Les réunir mettrait la structure de phrase à portée de main de qui venait ajouter « hallebarde ».
+
+**DEC-066 — `IPromptComposer` se réduit à `ComposeSubject` ; l'assemblage n'est pas un port.**
+Choix : le port ne porte plus qu'une méthode, `ComposeSubject(Blueprint, Universe)`, qui rend la clause **et** ses diagnostics. La méthode `Assemble` du chapitre 7 est supprimée. **Supersède la signature d'`IPromptComposer` esquissée au chapitre 7**, comme DEC-062 l'a fait pour `IProjectRepository`.
+Conséquence : T2 a écrit l'assemblage en fonction pure de domaine, `ResolvedPrompt.From`, dont le §C.5.5 fait une surface de compatibilité sous fiche. Le motif de la réduction n'est pas d'éviter une duplication — c'est ce qu'est un port : **une interface existe pour qu'on puisse en substituer l'implémentation.** Or EVO-001, seule seconde implémentation prévue, « ne réécrit que la clause sujet ; les clauses style et cadrage lui restent inaccessibles ». L'assemblage n'aura donc jamais de seconde implémentation, et le mettre derrière une interface promettrait une substitution que la conception interdit.
+Le verrouillage de DEC-028 en sort **renforcé** : aucune méthode du port ne reçoit ni ne rend une clause de style ou de cadrage. La garantie est portée par une interface qui ne les mentionne pas du tout.
+Sur le type de retour, un record plutôt qu'une chaîne : une valeur inconnue du catalogue doit produire un diagnostic à côté de la clause (DEC-063). Une méthode rendant `string` n'aurait nulle part où le mettre, et devrait soit le taire, soit lever — les deux étant ce que DEC-056 interdit.
+
+**DEC-067 — La clause sujet se recompose tant qu'elle n'a pas été éditée, et l'édition se déduit au lieu d'être stockée.**
+Choix : quand un champ de composition d'un gabarit change — race, classe, paramètre optionnel, détails — la clause stockée est comparée à celle que le composeur produirait **pour les anciens champs**. Identiques, personne n'y a touché : on recompose avec les nouveaux. Différentes, l'utilisateur l'a éditée : on n'y touche pas. Aucun champ n'est ajouté au gabarit ; `versionSchema` de `project.json` reste à 1. La règle vit dans un cas d'usage d'Application, jamais dans le dépôt (DEC-055).
+Conséquence : le §3.1 laissait un trou. Il dit que la clause est « produite par le composeur » — donc dérivée — et « stockée et éditable », ne se régénérant pas « après édition » — donc figée. Le gabarit **jamais édité** dont on change un champ n'était écrit nulle part ; sans règle, il affiche `orc` et demande un gobelin au modèle. Le parcours utilisateur du §D.3 l'a fait surgir.
+Trois propriétés font préférer la déduction à un booléen stocké. **Aucun champ ajouté**, alors que DEC-048 pose qu'il n'existe pas d'ajout compatible : un `subjectClauseEdited` ferait passer le schéma en version 2, sur un schéma que T2 vient de figer. **C'est le réflexe du projet** : `promptResolu` et `desaligne` sont calculés et jamais persistés, parce qu'une valeur calculée qu'on persiste ment dès la première modification manquée — un drapeau d'édition ment dès qu'on restaure un `project.json` à la main. **Le repli est du bon côté** : si le template ou le catalogue changent, la comparaison échoue et la clause est traitée comme éditée. Se tromper coûte une recomposition manquée, jamais un texte d'utilisateur écrasé.
+La comparaison est ordinale, sur les deux chaînes normalisées — même règle que le désalignement, pour le même motif.
+
+**DEC-068 — L'élection et le statut sont deux axes ; l'ancien élu ne change pas de statut.**
+Choix : élire un candidat fait pointer `electedCandidateId` ailleurs, et rien d'autre. Le statut de l'ancien élu n'est pas modifié. **Ferme la première moitié de la question B du chapitre 16.**
+Conséquence : fusionner l'élection et le jugement est le piège que le §3.1 nomme déjà pour le désalignement — cela rendrait impossible de distinguer « rejeté par l'utilisateur » de « simplement pas retenu cette fois ». Un candidat `Valid` qu'on cesse d'élire **reste `Valid`** : l'utilisateur l'a jugé bon, et en préférer un autre ne le rend pas mauvais. Le repasser à `Draft` effacerait un jugement qu'il avait porté, sans qu'il l'ait demandé.
+
+**DEC-069 — Un gabarit sans candidat élu est ignoré à la mise en page, et signalé ; jamais de page vide.**
+Choix : un gabarit sans élu ne produit aucune cellule, et un groupe de taille dont aucun gabarit n'a d'élu ne produit aucune page. La mise en page rend un **diagnostic** nommant les gabarits sautés. L'export n'est jamais bloqué pour ce motif.
+Conséquence : le parcours utilisateur du §D.3 montre qu'une planche partielle est un usage normal — on élit six gobelins et on tire la page pendant que l'ogre se génère. Bloquer casserait ce parcours. Mais ignorer **silencieusement** ferait disparaître un gabarit déclaré avec une quantité de six sans que rien ne le dise ; l'utilisateur le découvrirait feuille en main. Le diagnostic est le motif que DEC-056 a installé pour `paperFormat` et pour la surcharge d'onglet : on n'empêche rien, on dit ce qu'on a fait. Une page vide n'est pas un signalement, c'est du papier perdu.
+Deux sous-questions de C se ferment ici, parce qu'elles étaient la même règle vue des deux bouts. Une troisième — « quantité dépassant la capacité de page » — est **sans objet** : `Pagination.Plan` de T1 pagine déjà, et seule une capacité nulle est une erreur, déjà levée en nommant la taille. Le chapitre 16 a été écrit avant que T1 n'existe.
+
+**DEC-070 — Supprimer un gabarit emporte ses candidats et leurs fichiers image.**
+Choix : la suppression d'un gabarit supprime ses candidats et les PNG que ceux-ci référencent, qu'un candidat soit élu ou non. Aucun refus, aucune étape préalable de dé-élection. Le disque est touché **après** le modèle, et seuls les fichiers que le gabarit supprimé référençait sont retirés — jamais un balayage d'`images/`.
+Conséquence : un fichier que plus rien ne référence n'est pas une sauvegarde. Il est invisible depuis l'application, inconsultable autrement qu'au gestionnaire de fichiers, et il alourdit chaque archive `Backup` pour toujours. Conserver les PNG donnerait l'illusion d'un filet sans en être un. Ce qui rend la décision tenable : **un projet est un dossier ordinaire** (DEC-011), et le profil `Backup` existe précisément pour ça — le filet est là, il est explicite, et il ne dépend pas de fichiers orphelins.
+Refuser tant qu'un candidat est élu aurait protégé d'un geste malheureux, au prix d'une étape qui n'explique pas pourquoi elle existe, et que l'utilisateur décidé exécute machinalement.
+
+**DEC-071 — Le statut d'un candidat n'exige aucun fichier ; l'élection exige les deux détourages.**
+Choix : un candidat peut porter n'importe quel statut sans posséder ses détourages. Seul un candidat possédant `frontImageFile` **et** `backImageFile` peut être élu ; sinon, `CANDIDATE_NOT_CUT_OUT`.
+Conséquence : le statut est le **jugement** de l'utilisateur, et il juge sur l'image jumelée, bien avant qu'un détourage n'existe (§D.3). Lui interdire de valider ce qu'il a sous les yeux serait absurde et créerait une dépendance de T3 vers T5. L'élection n'est pas un jugement : c'est la désignation de ce que la planche va consommer, et la planche consomme deux PNG détourés. La contrainte se pose là, une seule fois, à l'endroit où elle sert. Sans elle, le défaut ressortirait à la mise en page sous la forme d'un fichier introuvable — une erreur technique là où il fallait une règle métier, et à l'étape 5 pour une faute commise à l'étape 4.
+Ferme la sixième sous-question de C, que le code de T2 renvoyait explicitement à cette tranche.
+
+**DEC-072 — La machine à états du `Job` descend en T4 ; la question B est scindée.**
+Choix : les états d'un travail de génération — en file, en cours, échoué, annulé — ne sont pas tranchés en T3. La question B du chapitre 16 est scindée : sa première moitié est fermée par DEC-068, sa seconde change d'échéance et passe **avant T4**.
+Conséquence : le `Job` est l'objet de la génération, et T3 ne génère rien. En fixer les états sans le client ComfyUI reviendrait à concevoir pour une tranche à venir, ce que le §0 de T1 interdit. Les états dépendent de ce que le générateur sait réellement rendre — une file interrogeable, un identifiant de tâche, une annulation qui aboutit ou non — et rien de tout cela n'est connu avant T4. La première moitié, elle, touchait le modèle que T2 a écrit, et était bien à sa place.
+
+**DEC-073 — La question F est scindée : le schéma des fichiers de templates est T3, le workflow ComfyUI reste T4.**
+Choix : le fichier de templates de prompts par univers — `prompt-template.{univers}.json`, son schéma et ses jetons — est spécifié et lu en **T3**. Le template de workflow ComfyUI et ses jetons restent en T4. La ligne F du chapitre 16 est corrigée en conséquence.
+Conséquence : le chapitre 16 groupait les deux sous une même échéance, T4. Ils ne l'ont pas : le template de workflow porte la clause de cadrage que seul T4 sait lire (DEC-029, §C.5.2), tandis que le fichier de templates de prompts est **ce que le composeur de T3 lit pour exister** — sans lui, `ComposeSubject` n'a pas de patron de phrase. Les jetons de ce fichier forment une liste close, énumérée dans le code, et un jeton inconnu fait rejeter le fichier en le nommant : écrire `{taille}` ne doit pas produire une clause contenant littéralement « {taille} », qui partirait au modèle sans que rien ne le signale.
+
 ---
  
 ## 12. Découpage en tranches
@@ -967,9 +1023,9 @@ Entités, sérialisation, chargement, sauvegarde, export et import d'archives. P
  
 ### T3 — Composition de prompts et catalogue
  
-Templates en fichiers, gabarits, catalogue éditable, clause sujet stockée et modifiable.
+Templates en fichiers, gabarits, catalogue éditable, clause sujet stockée et modifiable, et les règles de gestion que le chapitre 16 réservait à cette tranche. Plus un point d'entrée en ligne de commande, jetable comme ceux de T1 et T2.
  
-**Critères d'acceptation** : composition déterministe (même entrée, même sortie) ; les clauses style et cadrage sont inatteignables depuis l'interface de gabarit, et la signature de `IPromptComposer` le rend structurellement vrai ; le désalignement est correctement calculé après édition d'une clause sujet, d'un style ou d'un univers.
+**Critères d'acceptation** : voir le **§D.12 du cahier des charges T3**, qui fait foi. Il reprend et précise ceux-ci — composition déterministe (même entrée, même sortie) ; les clauses style et cadrage sont inatteignables depuis l'interface de gabarit, et la signature de `IPromptComposer` le rend structurellement vrai ; le désalignement est correctement calculé après édition d'une clause sujet, d'un style ou d'un univers ; `versionSchema` de `project.json` reste à 1.
  
 ### T4 — Client générateur et production de couples
  
@@ -1112,7 +1168,7 @@ La distinction obligatoire / optionnel est celle de DEC-024, et elle est structu
 | Niveau | Champs | Sémantique d'un champ laissé vide |
 |---|---|---|
 | **Obligatoires** | `race`, `classe`, `taille` | — ils ne peuvent pas être vides |
-| **Optionnels** | clés du catalogue : arme, armure, vêtement, couleur… | **« non contraint »**, et non « absent de l'illustration » |
+| **Optionnels** | clés du catalogue : arme, armure, vêtement, couleur… Le catalogue est global, un fichier par univers, et chaque valeur porte un fragment de phrase (DEC-063, DEC-064 ; §D.4 du cahier T3) | **« non contraint »**, et non « absent de l'illustration » |
 | **Libres** | `details`, puis la `clauseSujet`, stockée et éditable | — |
 | **Lecture seule** | le `promptResolu`, dérivé et affiché tel quel (DEC-028) | — |
 
@@ -1167,12 +1223,10 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 
 | Réf. | Sujet | À trancher avant |
 |---|---|---|
-| **A** | **Parcours utilisateur.** La documentation décrit la mécanique, jamais l'usage : créer un projet, ajouter un gabarit, lancer un lot, comparer, élire, exporter. À écrire tôt — il révèle la moitié des règles de gestion sans avoir à les chercher. | T3 |
-| **B** | **Machines à états.** *Partiellement résolue par DEC-030.* Restent à définir : ce que devient l'ancien élu quand on en élit un nouveau, et la machine à états du Job (en file, en cours, échoué, annulé). | T3 |
-| **C** | **Règles de gestion.** *Partiellement résolue par DEC-030.* Restent ouvertes : export avec des gabarits sans candidat élu ? **Export avec un candidat élu mais désaligné — bloquer, avertir, ou passer outre ?** Quantité dépassant la capacité de page ? Suppression d'un gabarit dont un candidat est élu ? Groupe de taille sans élu : page vide ou ignorée ? Couplage entre le statut d'un candidat et la présence de ses fichiers ? | T3 |
-| **D** | **Entité Catalogue.** DEC-024 prévoit des listes de valeurs éditables, le modèle de données n'en définit aucune. Global à l'application ou embarqué par projet ? Penchant : global. | T3 |
-| **E** | **Contrat d'API.** Points de terminaison, verbes, charges utiles, liste complète des codes d'erreur. Le §C.11 du cahier T2 en fixe déjà dix : ils ne sont pas à réinventer, seulement à exposer. | T6 |
-| **F** | **Schémas des fichiers externes.** Template de workflow ComfyUI et ses jetons, fichiers de templates de prompts par univers. Ce sont des contrats publics, et DEC-029 fait du premier le seul point d'accès à la clause de cadrage. | T4 |
+| **B** | **Machine à états du `Job`** — en file, en cours, échoué, annulé. *Scindée par DEC-072* : la moitié « sort de l'ancien élu » est fermée par DEC-068 ; celle-ci dépend de ce que le générateur sait réellement rendre, et ne se tranche pas avant que le client existe. | T4 |
+| **C** | **Export avec un candidat élu mais désaligné — bloquer, avertir, ou passer outre ?** *Seule sous-question restante.* Les cinq autres sont fermées par DEC-069, DEC-070 et DEC-071, ou sans objet (la pagination de T1 règle déjà la quantité). Celle-ci est un comportement d'export, renvoyée à T6 par le §C.5.6. | T6 |
+| **E** | **Contrat d'API.** Points de terminaison, verbes, charges utiles, liste complète des codes d'erreur. Les §C.11 et §D.10 en fixent déjà dix-sept : ils ne sont pas à réinventer, seulement à exposer. | T6 |
+| **F** | **Template de workflow ComfyUI et ses jetons.** *Scindée par DEC-073* : le fichier de templates de prompts par univers est spécifié au §D.5 du cahier T3. Reste le workflow, contrat public dont DEC-029 fait le seul point d'accès à la clause de cadrage. | T4 |
 | **G** | **Valeurs non fonctionnelles.** Délai d'attente d'une génération, plafond de candidats par lot, dimensions maximales en entrée, durée acceptable d'un détourage sur processeur. Sans chiffres, MEN-005 et MEN-007 ne sont pas implémentables. Précédent utile : DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas, et qu'elles vivent en paramètres tant qu'aucun hôte ne lit de fichier. | T5 |
 | **H** | **Dépôt public ou privé.** *Visibilité toujours non confirmée.* Elle est citée par DEC-058, qui exclut la révision de source de la version pour ne pas publier d'identifiant de commit dans une archive — précaution qui vaut dans les deux cas, donc la question ne bloque rien. | Libre |
 | **I** | **Loi de progression des hauteurs.** DEC-032 pose la contrainte — plafond d'environ 112 mm sur US Letter — mais pas les valeurs. Se tranche en T0b, tapis sous les yeux, les cinq tailles montées côte à côte. | T0b |
@@ -1191,6 +1245,13 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 | Ordre T0 / T1, et prérequis de T0 | DEC-033 puis DEC-044 — T0a d'abord, T0b après le code de T1, puis reportée |
 | Niveau de `gutterMm` et de `silhouetteMarginMm` | DEC-052 — ils restent dans la calibration |
 | Identité d'un projet | DEC-047 — un `projectId` opaque ; le nom du dossier n'a aucune sémantique |
+| **A** — Parcours utilisateur | §D.3 du cahier T3 — six étapes, T3 ne touche que la deuxième. Pas de fiche : un parcours est une description, pas une décision |
+| **B** — Sort de l'ancien élu | DEC-068 — il redevient non élu, son statut ne bouge pas |
+| **C** — Gabarit sans élu, groupe de taille sans élu | DEC-069 — ignoré et signalé, jamais de page vide |
+| **C** — Suppression d'un gabarit dont un candidat est élu | DEC-070 — tout part, fichiers compris |
+| **C** — Couplage statut / fichiers | DEC-071 — le statut n'exige rien, l'élection exige les deux détourages |
+| **C** — Quantité dépassant la capacité | Sans objet — `Pagination.Plan` de T1 pagine, seule une capacité nulle est une erreur |
+| **D** — Entité Catalogue | DEC-063 — global, en fichier de données, un par univers |
 
 > **Un point mineur laissé de côté, qui n'a pas de fiche.** La demande initiale « on fait attention aux règles de l'OWASP » a été traitée par un modèle de menace déduit de l'architecture (chapitre 9) plutôt que par une checklist générique. C'est un arbitrage assumé. DEC-054 en montre la contrepartie : une menace ne se déduit que d'un code qui existe, donc le chapitre 9 se revoit **à chaque tranche** qui ouvre une surface, et non une seule fois en T7.
 
