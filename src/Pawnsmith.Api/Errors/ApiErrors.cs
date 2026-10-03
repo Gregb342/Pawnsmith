@@ -26,6 +26,7 @@ public static class ApiCodes
     public const string JobNotFound = "JOB_NOT_FOUND";
     public const string JobAlreadyFinished = "JOB_ALREADY_FINISHED";
     public const string ImageNotFound = "IMAGE_NOT_FOUND";
+    public const string LogNotFound = "LOG_NOT_FOUND";
     public const string UniverseNotFound = "UNIVERSE_NOT_FOUND";
     public const string UploadTooLarge = "UPLOAD_TOO_LARGE";
     public const string GeneratorNotConfigured = "GENERATOR_NOT_CONFIGURED";
@@ -48,7 +49,7 @@ public static class ErrorStatus
         "CROSS_ORIGIN_REFUSED" => StatusCodes.Status403Forbidden,
 
         "ROUTE_NOT_FOUND" or "PROJECT_NOT_FOUND" or "BLUEPRINT_NOT_FOUND" or "CANDIDATE_NOT_FOUND"
-            or "JOB_NOT_FOUND" or "IMAGE_NOT_FOUND" or "UNIVERSE_NOT_FOUND" => StatusCodes.Status404NotFound,
+            or "JOB_NOT_FOUND" or "IMAGE_NOT_FOUND" or "UNIVERSE_NOT_FOUND" or "LOG_NOT_FOUND" => StatusCodes.Status404NotFound,
 
         "IMPORT_DESTINATION_EXISTS" or "JOB_ALREADY_FINISHED" => StatusCodes.Status409Conflict,
 

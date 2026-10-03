@@ -173,6 +173,8 @@ public static class ApiHost
             provider.GetRequiredService<IImageSizeReader>(),
             directory => new PdfSharpSheetRenderer(directory)));
 
+        services.AddSingleton(new LogDirectory(settings.Logs.Directory));
+
         services.AddSingleton<BlueprintEndpoints.Edit>();
         services.AddSingleton(new JobRegistry());
         services.AddHostedService<GenerationWorker>();
@@ -213,6 +215,7 @@ public static class ApiHost
         JobEndpoints.Map(app);
         SheetEndpoints.Map(app);
         ArchiveEndpoints.Map(app);
+        LogEndpoints.Map(app);
 
         // An /api route that does not exist answers with a code, not with the
         // page of the front: a client calling a wrong route must not receive
