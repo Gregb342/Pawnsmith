@@ -1,11 +1,11 @@
 namespace Pawnsmith.Infrastructure.Projects;
 
 /// <summary>
-/// Deletes image files of a project folder, and nothing outside it.
+/// Writes and deletes image files of a project folder, and nothing outside it.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The disk half of DEC-070. It receives the exact list
+/// <b>Deletion</b> is the disk half of DEC-070. It receives the exact list
 /// <c>BlueprintRemoval</c> produced and deletes those files, one by one. It
 /// never lists <c>images/</c> to find orphans — see that class for why.
 /// </para>
@@ -23,6 +23,85 @@ namespace Pawnsmith.Infrastructure.Projects;
 /// </remarks>
 public static class ProjectImageFiles
 {
+    /// <summary>Writes the paired image of a new candidate, and returns the path to store on it.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The name is Pawnsmith's</b>: <c>images/{candidateId}-pair.png</c>, as
+    /// C.3.1 lays out. Nothing the generator said about its own file reaches
+    /// the disk (§E.7.2).
+    /// </para>
+    /// <para>
+    /// <b>Written to a temporary name, then moved.</b> A file that is half
+    /// written when the process stops must not carry the name a candidate is
+    /// about to reference. The move never overwrites: a file already at that
+    /// name means something is wrong, and replacing it would hide what.
+    /// </para>
+    /// <para>
+    /// <b>An <c>images</c> folder that is a symbolic link is refused</b>, for
+    /// the reason MEN-008 gives at export: the prefix check on the path is made
+    /// on the path as written, and a link would make that path land elsewhere.
+    /// </para>
+    /// </remarks>
+    /// <returns>The path relative to the project folder, with <c>/</c> as separator.</returns>
+    /// <exception cref="ProjectException">
+    /// <c>PROJECT_NOT_FOUND</c> when the folder does not exist;
+    /// <c>PROJECT_PATH_ESCAPE</c> when <c>images</c> is a link or the path would leave the folder.
+    /// </exception>
+    /// <exception cref="IOException">A file already sits at that name.</exception>
+    public static async Task<string> WritePairedAsync(
+        string projectDirectory,
+        Guid candidateId,
+        byte[] png,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
+        ArgumentNullException.ThrowIfNull(png);
+
+        string root = Path.GetFullPath(projectDirectory);
+
+        if (!Directory.Exists(root))
+        {
+            throw new ProjectException(
+                ProjectErrorCode.NotFound,
+                $"The project folder '{projectDirectory}' does not exist; the image has nowhere to go.");
+        }
+
+        string relative = $"{ImagePathRules.ImagesFolder}{ImagePathRules.Separator}{candidateId:D}-pair.png";
+        ImagePathRules.Validate(relative, "paired image");
+
+        string images = Path.Combine(root, ImagePathRules.ImagesFolder);
+
+        if (new DirectoryInfo(images).LinkTarget is not null)
+        {
+            throw new ProjectException(
+                ProjectErrorCode.PathEscape,
+                $"The '{ImagePathRules.ImagesFolder}' folder of '{projectDirectory}' is a symbolic link; " +
+                "nothing is written through it (MEN-008).");
+        }
+
+        string full = Resolve(root, relative);
+        Directory.CreateDirectory(images);
+
+        string temporary = Path.Combine(images, $".{candidateId:D}-pair.png.tmp");
+
+        try
+        {
+            await File.WriteAllBytesAsync(temporary, png, cancellationToken).ConfigureAwait(false);
+            File.Move(temporary, full, overwrite: false);
+        }
+        finally
+        {
+            // Gone after a successful move; left behind by a failed write or a
+            // refused move, and removed here so no ".tmp" outlives the call.
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
+
+        return relative;
+    }
+
     /// <summary>Deletes the given files, relative to the project folder.</summary>
     /// <returns>The number of files actually removed.</returns>
     /// <exception cref="ProjectException"><c>PROJECT_PATH_ESCAPE</c> for a path that leaves the folder.</exception>
@@ -32,9 +111,6 @@ public static class ProjectImageFiles
         ArgumentNullException.ThrowIfNull(relativePaths);
 
         string root = Path.GetFullPath(projectDirectory);
-        string rootWithSeparator = root.EndsWith(Path.DirectorySeparatorChar)
-            ? root
-            : root + Path.DirectorySeparatorChar;
 
         // Every path is checked before the first file is deleted, never one at
         // a time as we go. It is the rule MEN-001 states for the archive -
@@ -47,19 +123,7 @@ public static class ProjectImageFiles
         foreach (string relative in relativePaths)
         {
             ImagePathRules.Validate(relative, "file to delete");
-
-            string full = Path.GetFullPath(Path.Combine(
-                root,
-                relative.Replace(ImagePathRules.Separator, Path.DirectorySeparatorChar)));
-
-            if (!full.StartsWith(rootWithSeparator, StringComparison.Ordinal))
-            {
-                throw new ProjectException(
-                    ProjectErrorCode.PathEscape,
-                    $"The file '{relative}' resolves outside the project folder and will not be deleted.");
-            }
-
-            resolved.Add(full);
+            resolved.Add(Resolve(root, relative));
         }
 
         int removed = 0;
@@ -74,5 +138,26 @@ public static class ProjectImageFiles
         }
 
         return removed;
+    }
+
+    /// <summary>The full path of a stored path, refused if it would leave the project folder (C.3.5).</summary>
+    private static string Resolve(string root, string relative)
+    {
+        string rootWithSeparator = root.EndsWith(Path.DirectorySeparatorChar)
+            ? root
+            : root + Path.DirectorySeparatorChar;
+
+        string full = Path.GetFullPath(Path.Combine(
+            root,
+            relative.Replace(ImagePathRules.Separator, Path.DirectorySeparatorChar)));
+
+        if (!full.StartsWith(rootWithSeparator, StringComparison.Ordinal))
+        {
+            throw new ProjectException(
+                ProjectErrorCode.PathEscape,
+                $"The file '{relative}' resolves outside the project folder; nothing is done with it.");
+        }
+
+        return full;
     }
 }
