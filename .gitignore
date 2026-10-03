@@ -71,3 +71,11 @@ src/Pawnsmith.Api/wwwroot/*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ---------------------------------------------------------------------------
+# Machine-specific configuration
+# ---------------------------------------------------------------------------
+# The real ComfyUI workflow is exported from the owner's own machine and names
+# that machine's model files (section E.5.4 of the T4 specification). Only the
+# example, config/workflow.comfyui.example.json, belongs in the repository.
+config/workflow.comfyui.json

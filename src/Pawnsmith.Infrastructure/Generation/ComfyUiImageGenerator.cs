@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -144,7 +145,7 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
 
             throw new GeneratorException(
                 GeneratorErrorCode.Timeout,
-                $"The generator produced nothing within {options.GenerationTimeout.TotalMinutes:0.#} min (§E.9).",
+                string.Create(CultureInfo.InvariantCulture, $"The generator produced nothing within {options.GenerationTimeout.TotalMinutes:0.#} min (§E.9)."),
                 error);
         }
         catch (OperationCanceledException)
@@ -193,7 +194,7 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
 
         JsonNode? answer = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
 
-        if (answer?["prompt_id"] is JsonValue value && value.TryGetValue(out string? promptId) && promptId.Length > 0)
+        if (Text(Child(answer, "prompt_id")) is { Length: > 0 } promptId)
         {
             return promptId;
         }
@@ -237,22 +238,38 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         }
 
         // ComfyUI answers {} until the task is over, then { "<id>": { … } }.
-        return byPrompt[promptId] as JsonObject;
+        // Anything else under the identifier is not "not yet": it is an answer
+        // that cannot be read, and waiting for it would only end in a timeout.
+        return Child(byPrompt, promptId) switch
+        {
+            null => null,
+            JsonObject entry => entry,
+            _ => throw new GeneratorException(
+                GeneratorErrorCode.OutputInvalid,
+                $"The generator's history entry for task {promptId} is not a JSON object."),
+        };
     }
 
     /// <summary>Reads the outcome of a finished task: an execution error, or exactly one image.</summary>
     private ImageReference ImageOf(JsonObject entry, string promptId)
     {
-        if (entry["status"]?["status_str"] is JsonValue status
-            && status.TryGetValue(out string? state)
-            && state == "error")
+        JsonNode? status = Child(entry, "status");
+
+        if (status is not null and not JsonObject)
+        {
+            throw new GeneratorException(
+                GeneratorErrorCode.OutputInvalid,
+                $"The generator's status for task {promptId} is not a JSON object.");
+        }
+
+        if (Text(Child(status, "status_str")) == "error")
         {
             throw new GeneratorException(
                 GeneratorErrorCode.Failed,
-                $"The generator ran task {promptId} and it ended in error: {Excerpt(entry["status"]?["messages"]?.ToJsonString())}");
+                $"The generator ran task {promptId} and it ended in error: {Excerpt(Child(status, "messages")?.ToJsonString())}");
         }
 
-        var images = entry["outputs"]?[workflow.OutputNodeId]?["images"] as JsonArray;
+        var images = Child(Child(Child(entry, "outputs"), workflow.OutputNodeId), "images") as JsonArray;
         int count = images?.Count ?? 0;
 
         // Exactly one. Keeping the first of several would silently throw away
@@ -267,14 +284,14 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         }
 
         JsonNode? image = images![0];
-        string? fileName = Text(image?["filename"]);
+        string? fileName = Text(Child(image, "filename"));
 
         if (string.IsNullOrEmpty(fileName))
         {
             throw new GeneratorException(GeneratorErrorCode.OutputInvalid, "The generator named an image without a file name.");
         }
 
-        return new ImageReference(fileName, Text(image?["subfolder"]) ?? string.Empty, Text(image?["type"]) ?? "output");
+        return new ImageReference(fileName, Text(Child(image, "subfolder")) ?? string.Empty, Text(Child(image, "type")) ?? "output");
     }
 
     /// <summary><c>GET /view</c>: the bytes of the image, bounded and checked on their header.</summary>
@@ -418,6 +435,38 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         return text.Length <= Shown ? text : text[..Shown] + "…";
     }
 
+    /// <summary>
+    /// The member <paramref name="key"/> of <paramref name="node"/>, or null when
+    /// the node is not an object or has no such member.
+    /// </summary>
+    /// <remarks>
+    /// The indexer of <see cref="JsonNode"/> throws when the node is not an
+    /// object, and when the object repeats a key. Both are shapes a generator
+    /// may answer with, and the answer is untrusted (§E.0): each has to end as a
+    /// coded refusal, not as an exception nobody planned for — which a batch
+    /// would report as <c>JOB_UNEXPECTED_ERROR</c>. Every read of an answer goes
+    /// through here.
+    /// </remarks>
+    private static JsonNode? Child(JsonNode? node, string key)
+    {
+        if (node is not JsonObject obj)
+        {
+            return null;
+        }
+
+        try
+        {
+            return obj[key];
+        }
+        catch (ArgumentException error)
+        {
+            throw new GeneratorException(
+                GeneratorErrorCode.OutputInvalid,
+                $"The generator answered with a JSON object that repeats a key: {error.Message}",
+                error);
+        }
+    }
+
     private static string? Text(JsonNode? node) =>
         node is JsonValue value && value.TryGetValue(out string? text) ? text : null;
 
@@ -448,7 +497,7 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         {
             throw new GeneratorException(
                 GeneratorErrorCode.Timeout,
-                $"The generator did not answer {request.RequestUri} within {timeout.TotalSeconds:0.#} s.",
+                string.Create(CultureInfo.InvariantCulture, $"The generator did not answer {request.RequestUri} within {timeout.TotalSeconds:0.#} s."),
                 error);
         }
         catch (HttpRequestException error)
@@ -528,7 +577,7 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         {
             throw new GeneratorException(
                 GeneratorErrorCode.Timeout,
-                $"The generator did not finish sending its {what} within {options.RequestTimeout.TotalSeconds:0.#} s.",
+                string.Create(CultureInfo.InvariantCulture, $"The generator did not finish sending its {what} within {options.RequestTimeout.TotalSeconds:0.#} s."),
                 error);
         }
         catch (IOException error)

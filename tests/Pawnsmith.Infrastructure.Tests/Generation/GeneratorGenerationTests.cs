@@ -402,4 +402,36 @@ public class GeneratorGenerationTests
 
         condition().ShouldBeTrue("the fake server never saw the expected request");
     }
+
+    // --- Relecture : une réponse de forme inattendue reste un refus codé -------------
+
+    [Theory]
+    [InlineData("""[ "not", "an", "object" ]""", null)]
+    [InlineData("""{ "prompt_id": { "nested": true } }""", null)]
+    [InlineData("""{ "prompt_id": "x", "prompt_id": "y" }""", null)]
+    [InlineData("""{ "prompt_id": "x" }""", """{ "x": { "status": "error", "outputs": { } } }""")]
+    [InlineData("""{ "prompt_id": "x" }""", """{ "x": { "outputs": [ 1, 2 ] } }""")]
+    [InlineData("""{ "prompt_id": "x" }""", """{ "x": { "outputs": { "9": { "images": [ "just-a-name.png" ] } } } }""")]
+    [InlineData("""{ "prompt_id": "x" }""", """{ "x": { "outputs": { "9": "nothing" } } }""")]
+    [InlineData("""{ "prompt_id": "x" }""", """{ "x": { }, "x": { } }""")]
+    [InlineData("""{ "prompt_id": "x" }""", """{ "x": "finished" }""")]
+    public async Task AnAnswerOfAnUnexpectedShapeIsACodedRefusal(string submitAnswer, string? history)
+    {
+        await using var server = new FakeHttpServer(request => (request.Method, request.Path) switch
+        {
+            ("POST", "/prompt") => FakeResponse.Json(submitAnswer),
+            ("GET", "/history/x") => FakeResponse.Json(history ?? "{}"),
+            _ => FakeResponse.Png(TestPng.Create(4, 4)),
+        });
+
+        using ComfyUiImageGenerator client = Client(server.BaseAddress);
+
+        // A generator is an untrusted input: whatever shape it answers with,
+        // the outcome is a GeneratorException with a code - never an exception
+        // nobody planned for, which would end a job as JOB_UNEXPECTED_ERROR.
+        GeneratorException error = await Should.ThrowAsync<GeneratorException>(() =>
+            client.GenerateAsync(Request, CancellationToken.None));
+
+        error.Code.ShouldBe(GeneratorErrorCode.OutputInvalid);
+    }
 }

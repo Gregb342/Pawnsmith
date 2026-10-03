@@ -752,8 +752,28 @@ injecter le certificat du proxy réseau de la session dans une **copie
 temporaire** du `Dockerfile` ; celui du dépôt n'a pas changé. La note de T3
 ci-dessus (« `docker build` n'a jamais tourné ») est donc levée.
 
+#### Ce que ma relecture de T4 a trouvé, et corrigé
+
+- **Une réponse JSON de forme inattendue échappait au code d'erreur.**
+  L'indexeur de `JsonNode` lève quand le nœud n'est pas un objet, ou quand
+  l'objet répète une clé. Un générateur qui répondait `"status": "error"` en
+  chaîne, ou `{ "x": "finished" }`, produisait donc une exception imprévue —
+  que le lot aurait rangée en `JOB_UNEXPECTED_ERROR` — ou, pire, dix minutes
+  d'attente avant un faux `GENERATOR_TIMEOUT`. Toute lecture d'une réponse
+  passe désormais par une méthode `Child` qui rend `null` ou un refus codé ;
+  neuf formes hostiles sont testées, et huit échouaient avant le correctif.
+- **Trois messages formataient une durée selon la culture du processus**
+  (`0,2 s` sous `fr-FR`). Ce n'était pas une comparaison, mais un message
+  anglais se formate de façon invariante ; corrigé.
+- **`config/workflow.comfyui.json` est ignoré par git** : c'est le workflow
+  exporté de ta machine, qui nomme ses fichiers de modèles. Seul l'exemple
+  appartient au dépôt.
+
 #### Ce qui n'est pas couvert, à connaître plutôt qu'à redécouvrir
 
+- **Une annulation pendant `POST /prompt`** ne peut pas retirer la tâche,
+  dont elle ne connaît pas encore l'identifiant (§E.7.3). Fenêtre de quelques
+  millisecondes.
 - **Aucun ComfyUI réel n'a été appelé.** Le workflow livré est un exemple
   construit d'après DEC-043 ; les types de nœuds y sont plausibles, pas
   vérifiés. **Le vrai `config/workflow.comfyui.json` est à fabriquer chez

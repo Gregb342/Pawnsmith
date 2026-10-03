@@ -341,6 +341,8 @@ Les mêmes deux appels partent quand c'est le **délai de génération** qui exp
 
 **Au mieux** veut dire : avec un délai propre et court — celui de l'état de santé, `CheckTimeout`, ces appels étant aussi petits —, indépendant du jeton annulé — sinon les deux appels seraient annulés avant de partir —, et sans que leur échec masque l'annulation. Sans eux, un lot annulé côté Pawnsmith continuerait d'occuper la carte graphique pendant toute sa génération en cours, et l'utilisateur relançant aussitôt un lot attendrait sans comprendre.
 
+> **Une fenêtre non couverte, à connaître.** Une annulation qui tombe **pendant** `POST /prompt` — la requête partie, la réponse pas encore revenue — ne connaît pas l'identifiant de la tâche, et ne peut donc pas la retirer. ComfyUI l'exécute jusqu'au bout et garde son image chez lui. La fenêtre dure le temps d'un aller-retour local, quelques millisecondes ; la fermer demanderait d'attendre la réponse d'une requête qu'on vient d'annuler.
+
 > **Une limite de version, à connaître.** Les versions anciennes de ComfyUI ignorent le corps de `/interrupt` et interrompent **l'exécution en cours, quelle qu'elle soit**. Sur un poste mono-utilisateur, c'est presque toujours la tâche de Pawnsmith ; si l'utilisateur génère en même temps depuis l'interface de ComfyUI, il peut perdre la sienne. Le risque est accepté et documenté, pas contourné.
 
 ### E.7.4 Le client HTTP
