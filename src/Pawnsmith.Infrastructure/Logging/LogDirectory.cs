@@ -89,8 +89,11 @@ public sealed class LogDirectory(string directory)
         // keep writing, and retention delete an old file under the reader.
         await using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
 
-        long start = Math.Max(0, stream.Length - MaxReadBytes);
-        byte[] window = new byte[stream.Length - start];
+        // Read once: the sink may lengthen the file while this runs, and the
+        // window must not grow past its bound with it.
+        long length = stream.Length;
+        long start = Math.Max(0, length - MaxReadBytes);
+        byte[] window = new byte[length - start];
         stream.Seek(start, SeekOrigin.Begin);
         int read = await stream.ReadAtLeastAsync(window, window.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
 
