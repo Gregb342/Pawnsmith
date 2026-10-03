@@ -15,7 +15,12 @@ internal sealed record FakeRequest(string Method, string Target, string Body)
 }
 
 /// <summary>What the fake server answers.</summary>
-internal sealed record FakeResponse(int Status, byte[] Body, string ContentType, string? Location = null)
+/// <param name="Chunked">
+/// Sends the body with <c>Transfer-Encoding: chunked</c> and no
+/// <c>Content-Length</c>, so that the client cannot know the size in advance and
+/// has to enforce its bound while reading.
+/// </param>
+internal sealed record FakeResponse(int Status, byte[] Body, string ContentType, string? Location = null, bool Chunked = false)
 {
     public static FakeResponse Json(string json, int status = 200) =>
         new(status, Encoding.UTF8.GetBytes(json), "application/json");
@@ -198,7 +203,14 @@ internal sealed class FakeHttpServer : IAsyncDisposable
         var head = new StringBuilder();
         head.Append(System.Globalization.CultureInfo.InvariantCulture, $"HTTP/1.1 {response.Status} Fake\r\n");
         head.Append(System.Globalization.CultureInfo.InvariantCulture, $"Content-Type: {response.ContentType}\r\n");
-        head.Append(System.Globalization.CultureInfo.InvariantCulture, $"Content-Length: {response.Body.Length}\r\n");
+        if (!response.Chunked)
+        {
+            head.Append(System.Globalization.CultureInfo.InvariantCulture, $"Content-Length: {response.Body.Length}\r\n");
+        }
+        else
+        {
+            head.Append("Transfer-Encoding: chunked\r\n");
+        }
 
         if (response.Location is not null)
         {
@@ -208,7 +220,19 @@ internal sealed class FakeHttpServer : IAsyncDisposable
         head.Append("Connection: close\r\n\r\n");
 
         await stream.WriteAsync(Encoding.ASCII.GetBytes(head.ToString()), stopping.Token);
-        await stream.WriteAsync(response.Body, stopping.Token);
+
+        if (!response.Chunked)
+        {
+            await stream.WriteAsync(response.Body, stopping.Token);
+        }
+        else
+        {
+            // One chunk with the whole body, then the empty chunk that ends it.
+            string size = response.Body.Length.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+            await stream.WriteAsync(Encoding.ASCII.GetBytes($"{size}\r\n"), stopping.Token);
+            await stream.WriteAsync(response.Body, stopping.Token);
+            await stream.WriteAsync("\r\n0\r\n\r\n"u8.ToArray(), stopping.Token);
+        }
         await stream.FlushAsync(stopping.Token);
     }
 
