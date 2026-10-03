@@ -171,6 +171,27 @@ public class SheetRoutesTests
         (await ApiHarness.ErrorOf(response)).ShouldBe((HttpStatusCode.UnprocessableEntity, "SHEET_INPUT_INVALID"));
     }
 
+    // --- H.8 n° 19 (T7) : MEN-005, une image trop grande n'est jamais décodée ----------------------
+
+    [Fact]
+    public async Task AnElectedImageTooLargeToDecodeIsRefusedBeforeTheSheetIsRendered()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        (string folder, _, Guid candidate) = await ReadyToPrintAsync(api);
+
+        // What an imported archive can carry: a few bytes announcing 60 000 ×
+        // 60 000 pixels, fourteen gigabytes once decoded.
+        await File.WriteAllBytesAsync(
+            Path.Combine(api.ProjectsRoot, folder, "images", $"{candidate}-front.png"),
+            TestPng.HeaderOnly(60000, 60000));
+
+        using HttpResponseMessage pdf = await api.Client.GetAsync($"/api/projects/{folder}/sheet.pdf?culture=en");
+        (await ApiHarness.ErrorOf(pdf)).ShouldBe((HttpStatusCode.UnprocessableEntity, "SHEET_INPUT_INVALID"));
+
+        using HttpResponseMessage report = await api.Client.GetAsync($"/api/projects/{folder}/sheet/report");
+        (await ApiHarness.ErrorOf(report)).ShouldBe((HttpStatusCode.UnprocessableEntity, "SHEET_INPUT_INVALID"));
+    }
+
     [Fact]
     public async Task AnUnknownPaperFormatIsRefusedWhenASheetIsAskedFor()
     {
