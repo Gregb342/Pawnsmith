@@ -1,5 +1,8 @@
 using System.Text.Json.Serialization;
 
+using Serilog;
+using Serilog.Core;
+
 using Pawnsmith.Api.Endpoints;
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Api.Jobs;
@@ -13,6 +16,7 @@ using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
 using Pawnsmith.Infrastructure.Imaging;
 using Pawnsmith.Infrastructure.Json;
+using Pawnsmith.Infrastructure.Logging;
 using Pawnsmith.Infrastructure.Pdf;
 using Pawnsmith.Infrastructure.Projects;
 using Pawnsmith.Infrastructure.Prompts;
@@ -67,6 +71,40 @@ public static class ApiHost
         }
 
         var settings = PawnsmithSettings.From(builder.Configuration, builder.Environment.ContentRootPath);
+
+        // Built before anything is read, so that a start-up that fails is
+        // written to the log before the process ends: that line is the one an
+        // operator comes looking for when a container restarts in a loop
+        // (§H.4.1). Null when logging is disabled.
+        Logger? log = LogSink.Create(settings.Logs);
+
+        try
+        {
+            WebApplication app = await BuildAsync(builder, settings, log, replaceServices);
+            return app;
+        }
+        catch (Exception error)
+        {
+            log?.Fatal(error, "Pawnsmith could not start: {Reason}", error.Message);
+            log?.Dispose();
+            throw;
+        }
+    }
+
+    private static async Task<WebApplication> BuildAsync(
+        WebApplicationBuilder builder,
+        PawnsmithSettings settings,
+        Logger? log,
+        Action<IServiceCollection>? replaceServices)
+    {
+        if (log is not null)
+        {
+            // Serilog becomes one more provider behind ILogger<T>, beside
+            // ASP.NET's console: the events of the application and those of the
+            // framework reach the same files in the same format (DEC-090). The
+            // host disposes it, flushing the files, when it stops.
+            builder.Logging.AddSerilog(log, dispose: true);
+        }
 
         // Read before the first request, so that a broken file stops the
         // start-up with its message rather than failing the first user.

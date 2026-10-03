@@ -45,6 +45,12 @@ internal sealed class ApiHarness : IAsyncDisposable
     /// <summary>The projects root the host was given.</summary>
     public string ProjectsRoot => Path.Combine(Root, "projects");
 
+    /// <summary>The folder the host writes its log files to.</summary>
+    public string LogsDirectory => Path.Combine(Root, "logs");
+
+    /// <summary>Every event the host has logged so far, oldest first.</summary>
+    public IReadOnlyList<JsonNode> LogEvents() => LogFiles.Events(LogsDirectory);
+
     /// <summary>A client pointed at the host, with no proxy and no cookie.</summary>
     public HttpClient Client { get; }
 
@@ -74,6 +80,7 @@ internal sealed class ApiHarness : IAsyncDisposable
             $"--contentRoot={root}",
             $"--Pawnsmith:ProjectsRoot={Path.Combine(root, "projects")}",
             $"--Pawnsmith:ConfigDirectory={config}",
+            $"--Pawnsmith:Logs:Directory={Path.Combine(root, "logs")}",
             .. settings.Select(setting => $"--{setting}"),
         ];
 
