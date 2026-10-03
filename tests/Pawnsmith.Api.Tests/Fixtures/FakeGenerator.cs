@@ -16,8 +16,11 @@ internal sealed class FakeGenerator : IImageGenerator
     /// <summary>What the health check answers.</summary>
     public GeneratorAvailability Availability { get; set; } = GeneratorAvailability.Available;
 
-    /// <summary>When set, every generation waits for it before returning.</summary>
+    /// <summary>When set, generations from <see cref="HoldFromCall"/> on wait for it before returning.</summary>
     public TaskCompletionSource? Hold { get; set; }
+
+    /// <summary>The first call, counted from zero, that waits for <see cref="Hold"/>.</summary>
+    public int HoldFromCall { get; set; }
 
     /// <summary>The most generations ever seen running at once.</summary>
     public int MostAtOnce { get; private set; }
@@ -34,11 +37,11 @@ internal sealed class FakeGenerator : IImageGenerator
     {
         int now = Interlocked.Increment(ref running);
         MostAtOnce = Math.Max(MostAtOnce, now);
-        Started++;
+        int call = Started++;
 
         try
         {
-            if (Hold is { } hold)
+            if (Hold is { } hold && call >= HoldFromCall)
             {
                 await hold.Task.WaitAsync(cancellationToken);
             }

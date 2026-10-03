@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 
 using Pawnsmith.Api.Endpoints;
 using Pawnsmith.Api.Errors;
+using Pawnsmith.Api.Jobs;
 using Pawnsmith.Application.Generation;
 using Pawnsmith.Application.Ports;
 using Pawnsmith.Application.Projects;
@@ -86,9 +87,11 @@ public static class ApiHost
         Register(builder.Services, settings, calibration, catalog, template, generator);
         replaceServices?.Invoke(builder.Services);
 
-        // The bound on an imported archive is enforced by the server while the
-        // body arrives, not after it has been held in memory.
-        builder.WebHost.ConfigureKestrel(kestrel => kestrel.Limits.MaxRequestBodySize = settings.MaxUploadBytes);
+        // Every body is bounded by the server while it arrives, not after it
+        // has been held in memory. The bound is small - a JSON request is a
+        // few hundred bytes, and an array of a hundred million seeds must not
+        // fit (MEN-007) - and the import raises it for itself alone (§G.9).
+        builder.WebHost.ConfigureKestrel(kestrel => kestrel.Limits.MaxRequestBodySize = settings.MaxRequestBytes);
 
         WebApplication app = builder.Build();
         Configure(app);
@@ -123,6 +126,8 @@ public static class ApiHost
             directory => new PdfSharpSheetRenderer(directory)));
 
         services.AddSingleton<BlueprintEndpoints.Edit>();
+        services.AddSingleton(new JobRegistry());
+        services.AddHostedService<GenerationWorker>();
 
         services.ConfigureHttpJsonOptions(options =>
         {
@@ -157,6 +162,7 @@ public static class ApiHost
         ReferenceEndpoints.Map(app);
         ProjectEndpoints.Map(app);
         BlueprintEndpoints.Map(app);
+        JobEndpoints.Map(app);
 
         // An /api route that does not exist answers with a code, not with the
         // page of the front: a client calling a wrong route must not receive

@@ -62,6 +62,7 @@ DEC-057 l'avait annoncé : les bornes de T2, et plus tard celles de T4, vivent e
 | `Pawnsmith:Generator:Url` | *(vide)* | Adresse du ComfyUI. Vide : génération non configurée |
 | `Pawnsmith:Generator:WorkflowFile` | `config/workflow.comfyui.json` | Le workflow exporté de la machine de l'utilisateur |
 | `Pawnsmith:MaxUploadBytes` | 1 Gio | Plus grosse archive acceptée à l'import, en octets |
+| `Pawnsmith:MaxRequestBytes` | 1 Mio | Plus gros corps de toute autre requête. Une requête JSON pèse quelques kilo-octets ; une liste de cent millions de graines ne doit pas tenir en mémoire avant d'être refusée (MEN-007). Seul l'import relève la borne, pour lui seul |
 | `AllowedHosts` | `localhost;127.0.0.1;[::1]` | Noms d'hôte acceptés (G.11). La valeur restrictive est posée **par le code** quand le réglage est absent, pas seulement par `appsettings.json` : un déploiement qui aurait perdu le fichier ne doit pas rouvrir le rebinding DNS en silence |
 
 Les bornes des records d'options de T2 et T4 **gardent leurs valeurs par défaut** et ne sont pas exposées dans le fichier. Les exposer toutes en ferait autant de réglages à documenter pour un besoin que personne n'a exprimé ; en exposer une plus tard est une ligne.
@@ -109,7 +110,7 @@ Toute erreur rend un statut HTTP et un corps JSON d'**une seule clé** :
 | `503` | `GENERATOR_NOT_CONFIGURED`, et les codes de configuration du générateur (`WORKFLOW_*`, `GENERATOR_URL_INVALID`) |
 | `500` | `INTERNAL_ERROR` — tout ce qu'aucun code ne décrit |
 
-**Une seule réponse échappe à cette forme** : le refus d'un `Host` étranger (G.11). Il est rendu par le filtrage d'hôtes du framework, avant toute route et avant le gestionnaire d'erreurs, avec un `400` sans corps JSON. Aucun client légitime ne le reçoit, et réécrire ce filtrage pour lui donner un code serait remplacer du code éprouvé par du code neuf sur une barrière de sécurité.
+**Deux réponses échappent à cette forme**, toutes deux produites par le serveur avant ou par-dessus l'application. Le refus d'un `Host` étranger (G.11) est rendu par le filtrage d'hôtes du framework, avant toute route, avec un `400` sans corps JSON : aucun client légitime ne le reçoit, et réécrire ce filtrage pour lui donner un code serait remplacer du code éprouvé par du code neuf sur une barrière de sécurité. Un corps de requête qui dépasse sa borne reçoit un `413` **sans corps** : Kestrel produit lui-même cette réponse et écarte celle de l'application. Le code `UPLOAD_TOO_LARGE` reste dans la table pour le jour où un autre hôte le laisserait passer ; le statut, lui, suffit à le dire.
 
 La table est écrite dans le code une fois, en `switch` exhaustif sur la chaîne du code : un code qui n'y figure pas tombe sur `500`, ce qu'un test parcourant tous les codes connus empêche d'arriver en silence.
 

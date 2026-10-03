@@ -11,7 +11,7 @@ namespace Pawnsmith.Api.Hosting;
 /// the <c>Pawnsmith</c> section onto this record by reflection, matching
 /// property names to keys; that is exactly the kind of hidden convention §2 of
 /// CLAUDE.md asks to avoid — a renamed property would silently stop reading its
-/// key. Six explicit reads are shorter to review than one binding to trust.
+/// key. Seven explicit reads are shorter to review than one binding to trust.
 /// </para>
 /// <para>
 /// The sources are ASP.NET's own: <c>appsettings.json</c>, then the environment
@@ -25,12 +25,14 @@ namespace Pawnsmith.Api.Hosting;
 /// <param name="GeneratorUrl">The ComfyUI address, or null when generation is not configured.</param>
 /// <param name="WorkflowFile">Absolute path of the workflow template.</param>
 /// <param name="MaxUploadBytes">Largest archive accepted by the import.</param>
+/// <param name="MaxRequestBytes">Largest body of any other request.</param>
 public sealed record PawnsmithSettings(
     string ProjectsRoot,
     string ConfigDirectory,
     string? GeneratorUrl,
     string WorkflowFile,
-    long MaxUploadBytes)
+    long MaxUploadBytes,
+    long MaxRequestBytes)
 {
     /// <summary>Reads the settings, resolving relative paths against the application's folder.</summary>
     /// <param name="configuration">ASP.NET's configuration.</param>
@@ -42,6 +44,7 @@ public sealed record PawnsmithSettings(
 
         string? url = configuration["Pawnsmith:Generator:Url"];
         string? upload = configuration["Pawnsmith:MaxUploadBytes"];
+        string? request = configuration["Pawnsmith:MaxRequestBytes"];
 
         return new PawnsmithSettings(
             ProjectsRoot: Resolve(contentRoot, configuration["Pawnsmith:ProjectsRoot"] ?? "data/projects"),
@@ -51,7 +54,11 @@ public sealed record PawnsmithSettings(
 
             // One gibibyte: a Backup archive of a large project is legitimately
             // big, and the import applies its own bounds afterwards (C.9.3).
-            MaxUploadBytes: upload is null ? 1024L * 1024 * 1024 : long.Parse(upload, NumberStyles.None, CultureInfo.InvariantCulture));
+            MaxUploadBytes: upload is null ? 1024L * 1024 * 1024 : long.Parse(upload, NumberStyles.None, CultureInfo.InvariantCulture),
+
+            // One mebibyte: the largest JSON request - a blueprint, settings, a
+            // list of twenty seeds - is a few kilobytes.
+            MaxRequestBytes: request is null ? 1024L * 1024 : long.Parse(request, NumberStyles.None, CultureInfo.InvariantCulture));
     }
 
     // Path.Combine returns the second argument when it is absolute, so an
