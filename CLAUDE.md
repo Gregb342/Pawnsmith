@@ -308,6 +308,14 @@ Chaque décision est une fiche DEC (DEC-074 à DEC-081 pour T4, DEC-082 à
 DEC-089 pour T6, DEC-090 à DEC-097 pour T7) et revient dans le message du
 commit où elle est née.
 
+**Les trois tranches sont fusionnées dans `main`** le 3 octobre 2026, par trois
+PR empilées (Gregb342/Pawnsmith#1, #2, #3), chacune avec la CI verte. Tu m'as
+délégué ces fusions. Elles sont faites par **commits de fusion**, pas par
+écrasement : chaque commit de tâche garde son identité, et la relecture commit
+par commit reste possible. **Cette relecture intégrale n'est pas faite** — c'est
+ce qui reste avant de clore T4, l'API de T6 et T7, comme pour T3. Les branches
+de tranche n'ont pas été supprimées.
+
 #### Pour T4 — branche `claude/charming-babbage-uuft5v`
 
 La plus engageante d'abord.
@@ -802,7 +810,7 @@ il ne gardait que la dernière valeur d'une option. Il garde désormais toutes l
 valeurs, dans l'ordre ; `Required` et `Optional` lisent la dernière, `All` les
 rend toutes. Aucune autre sous-commande n'y a vu de différence.
 
-### T4 — code terminé, 10 tâches sur 10
+### T4 — code terminé, 10 tâches sur 10, fusionnée dans `main`
 
 **La tranche T4 (client du générateur et production de couples) est
 spécifiée** par
@@ -884,7 +892,7 @@ ci-dessus (« `docker build` n'a jamais tourné ») est donc levée.
   chaque image. L'image jumelée les garde, sans conséquence puisque `Share` la
   retire. **T5 devra réencoder** les moitiés détourées (DEC-079).
 
-### T6, première partie : l'API — code terminé, 10 tâches sur 10
+### T6, première partie : l'API — code terminé, 10 tâches sur 10, fusionnée dans `main`
 
 **L'API de T6 est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t6.md`](docs/pawnsmith-cahier-des-charges-t6.md)
@@ -938,7 +946,7 @@ sont dans `tests/Pawnsmith.Api.Tests/`, nouveau projet.
   {characterClass}`. Contenu de `config/`, à reprendre avec le catalogue au
   premier lot réel.
 
-### T7 — code terminé, 5 tâches sur 5
+### T7 — code terminé, 5 tâches sur 5, fusionnée dans `main`
 
 **T7 est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t7.md`](docs/pawnsmith-cahier-des-charges-t7.md)
