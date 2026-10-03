@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 3 octobre 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.16 — chapitres 9, 10, 12, 15 et 16 en particulier |
 | **Documents frères** | les cahiers T1 à T4 (parties B à E), dont ce document reprend la forme |
 | **Portée** | Les points de terminaison HTTP au-dessus des cas d'usage existants. **Pas le front.** |
+
+> **Changements depuis la v1.0** — Écriture de la tranche. Ce qui a bougé, chacun dans le commit du code qui l'a demandé : deux codes de plus, `ROUTE_NOT_FOUND` et `SHEET_EMPTY` ; un réglage de plus, `Pawnsmith:MaxRequestBytes`, qui borne tout corps de requête sauf celui de l'import ; `AllowedHosts` restreint par le code quand il manque ; et deux réponses du serveur — le `400` d'un `Host` refusé, le `413` d'un corps trop gros — qui n'ont pas la forme `{ code }`, écrites au §G.3.
 
 > **Régime d'écriture.** Comme T4, ce document a été écrit et tranché **sans arbitrage du porteur**. Chaque décision est une fiche du chapitre 11 (DEC-082 à DEC-089), reprise au §8 de `CLAUDE.md` sous « Décisions prises sans toi ».
 
