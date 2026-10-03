@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 3 octobre 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.15 — à lire en premier, chapitres 4, 6.4, 7, 9 et 16 en particulier |
 | **Documents frères** | `pawnsmith-cahier-des-charges-t1.md` (partie B), `-t2.md` (partie C) et `-t3.md` (partie D), dont ce document reprend la forme |
 | **Portée** | Client du générateur ComfyUI, template de workflow, machine à états du `Job`, production des candidats d'un lot, règle de découpe de l'image jumelée |
+
+> **Changements depuis la v1.0** — Écriture de la tranche. Trois choses ont bougé dans le document, chacune dans le commit du code qui l'a demandée : l'exemple de workflow termine sa clause de cadrage par `Subject:` (E.5.5) ; le délai de génération retire la tâche chez ComfyUI comme une annulation (E.7.3) ; les graines sont tirées par `Random.Shared` et non par une source cryptographique (E.4.1).
 
 > **Régime d'écriture.** Ce document a été écrit et tranché **sans arbitrage du porteur**, dans le régime « itère sans attendre, tranche et consigne » ouvert pour T4 et l'API de T6. Chaque décision prise sans son arbitrage est une fiche DEC du chapitre 11, et la liste est reprise au §8 de `CLAUDE.md`, sous « Décisions prises sans toi, à relire en premier ». Rien ici n'est définitif au sens où une relecture ne pourrait pas le rouvrir.
 

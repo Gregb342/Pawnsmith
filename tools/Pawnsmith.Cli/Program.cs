@@ -1,16 +1,19 @@
 using System.Globalization;
 
 using Pawnsmith.Application.Blueprints;
+using Pawnsmith.Application.Generation;
 using Pawnsmith.Application.PhysicalValues;
 using Pawnsmith.Application.Ports;
 using Pawnsmith.Application.Prompts;
 using Pawnsmith.Application.Sheets;
 using Pawnsmith.Domain.PhysicalValues;
+using Pawnsmith.Domain.Jobs;
 using Pawnsmith.Domain.Primitives;
 using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
 using Pawnsmith.Domain.Sheets;
 using Pawnsmith.Infrastructure;
+using Pawnsmith.Infrastructure.Generation;
 using Pawnsmith.Infrastructure.Imaging;
 using Pawnsmith.Infrastructure.Json;
 using Pawnsmith.Infrastructure.Pdf;
@@ -36,6 +39,10 @@ using Pawnsmith.Infrastructure.Prompts;
 // through BlueprintEditor, CandidateElection or BlueprintRemoval - never through
 // SaveAsync with a hand-patched blueprint, which is how a harness "without
 // logic" exercises a business rule without owning it (D.7.3).
+//
+// T4 adds `generator check` and `candidate generate` (E.18). The second is the
+// only way to see, without writing a test, that a batch interrupted with Ctrl+C
+// leaves the candidates it produced in the project.
 
 const string Usage = """
     pawnsmith-cli <command> [options]
@@ -54,6 +61,9 @@ const string Usage = """
       blueprint clause --path <dir> --id <guid> --clause <text> --calibration <path>
       blueprint elect  --path <dir> --id <guid> --candidate <guid> --calibration <path>
       blueprint remove --path <dir> --id <guid> --calibration <path>
+      generator check  --workflow <path> --generator-url <url>
+      candidate generate --path <dir> --id <guid> (--count <n> | --seed <n>...)
+                       --workflow <path> --generator-url <url> --calibration <path>
 
     Options of the blueprint subcommands:
       --template       Sentence structure of the universe (config/prompt-template.*.json).
@@ -62,6 +72,15 @@ const string Usage = """
                        A value the catalogue does not know is inserted as written
                        and reported, never refused (DEC-056).
       --quantity       Copies on the sheet. Defaults to 1.
+
+    Options of generator check and candidate generate:
+      --workflow       The ComfyUI workflow template (config/workflow.comfyui.json).
+                       The repository ships only an example, to replace by the
+                       workflow exported from your own machine.
+      --generator-url  Address of the ComfyUI server, e.g. http://127.0.0.1:8188.
+      --count          Number of candidates, with seeds drawn at random.
+      --seed           One candidate with this seed. Repeat for several.
+                       Ctrl+C cancels the batch; what was produced stays.
 
     project sheet options:
       --culture        Culture of the text printed on the sheet. Defaults to en.
@@ -109,6 +128,16 @@ catch (BlueprintRuleException error)
     Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
     return 1;
 }
+catch (GeneratorConfigException error)
+{
+    Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
+    return 1;
+}
+catch (GenerationRuleException error)
+{
+    Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
+    return 1;
+}
 catch (PageCapacityException error)
 {
     Console.Error.WriteLine($"Page capacity: {error.Message}");
@@ -140,9 +169,12 @@ async Task<int> RunAsync(string[] arguments)
         ["blueprint", "clause", .. string[] rest] => await BlueprintClauseAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         ["blueprint", "elect", .. string[] rest] => await BlueprintElectAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         ["blueprint", "remove", .. string[] rest] => await BlueprintRemoveAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["generator", "check", .. string[] rest] => await GeneratorCheckAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["candidate", "generate", .. string[] rest] => await CandidateGenerateAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         _ => throw new ArgumentException(
             "Expected one of: sheet, project new, project check, project export, project import, project sheet, " +
-            "blueprint add, blueprint edit, blueprint clause, blueprint elect, blueprint remove."),
+            "blueprint add, blueprint edit, blueprint clause, blueprint elect, blueprint remove, " +
+            "generator check, candidate generate."),
     };
 }
 
@@ -536,6 +568,105 @@ async Task<Calibration> ReadCalibrationAsync(Arguments arguments) =>
     await CalibrationReader
         .ReadAsync(arguments.Required("--calibration"), CancellationToken.None)
         .ConfigureAwait(false);
+
+// ---- generator, candidate ------------------------------------------------
+
+async Task<int> GeneratorCheckAsync(Arguments arguments)
+{
+    using ComfyUiImageGenerator generator = await BuildGeneratorAsync(arguments).ConfigureAwait(false);
+
+    Console.WriteLine("framing clause:");
+
+    foreach (string line in generator.FramingClause.Split('\n'))
+    {
+        Console.WriteLine($"  {line}");
+    }
+
+    GeneratorAvailability availability = await generator.CheckAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"generator: {availability}");
+
+    // Unreachable is an ordinary state (E.7.1), so it is not a failure of the
+    // command: the exit code says whether the check ran, not what it found.
+    return 0;
+}
+
+async Task<int> CandidateGenerateAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    string directory = Path.GetFullPath(arguments.Required("--path"));
+
+    using ComfyUiImageGenerator generator = await BuildGeneratorAsync(arguments).ConfigureAwait(false);
+
+    // The projects root only matters to create and import; here it is the
+    // folder above the project, so that the reader's bounds apply as usual.
+    var repository = new FileSystemProjectRepository(
+        new ProjectRepositoryOptions(Path.GetDirectoryName(directory) ?? directory));
+
+    var useCase = new CandidateGeneration(generator, repository, new GenerationOptions());
+
+    using var cancellation = new CancellationTokenSource();
+
+    // Ctrl+C cancels the batch instead of killing the process, so that the
+    // cancellation reaches ComfyUI and the job reports what it kept.
+    Console.CancelKeyPress += (_, press) =>
+    {
+        press.Cancel = true;
+        cancellation.Cancel();
+    };
+
+    Job job = await useCase.RunAsync(
+        new GenerationBatch(directory, ReadGuid(arguments, "--id"), ReadSeeds(arguments), generator.FramingClause, calibration),
+        PrintJob,
+        cancellation.Token).ConfigureAwait(false);
+
+    return job.State == JobState.Completed ? 0 : 1;
+}
+
+async Task<ComfyUiImageGenerator> BuildGeneratorAsync(Arguments arguments)
+{
+    WorkflowTemplate workflow = await WorkflowTemplateReader
+        .ReadAsync(arguments.Required("--workflow"), CancellationToken.None)
+        .ConfigureAwait(false);
+
+    return new ComfyUiImageGenerator(new ComfyUiOptions(arguments.Required("--generator-url")), workflow);
+}
+
+IReadOnlyList<ulong> ReadSeeds(Arguments arguments)
+{
+    IReadOnlyList<string> seeds = arguments.All("--seed");
+    string? count = arguments.Optional("--count");
+
+    if (seeds.Count > 0 == (count is not null))
+    {
+        throw new ArgumentException("Give either --count or one or more --seed, not both and not neither.");
+    }
+
+    if (count is not null)
+    {
+        return int.TryParse(count, NumberStyles.None, CultureInfo.InvariantCulture, out int n)
+            ? RandomSeeds.Draw(n)
+            : throw new ArgumentException($"'--count {count}' is not a whole number.");
+    }
+
+    return [.. seeds.Select(seed => ulong.TryParse(seed, NumberStyles.None, CultureInfo.InvariantCulture, out ulong parsed)
+        ? parsed
+        : throw new ArgumentException($"'--seed {seed}' is not a seed."))];
+}
+
+// Every state of the job, as it happens: the harness's whole reason to exist
+// for T4. A cancelled or failed batch prints what it kept.
+void PrintJob(Job job)
+{
+    string line = job.State switch
+    {
+        JobState.Running when job.Produced.Count > 0 =>
+            $"  candidate {job.Produced.Count}/{job.Requested}: {job.Produced[^1]}",
+        JobState.Failed => $"{job.State}: {job.Failure!.Code} - {job.Failure.Message}",
+        _ => $"{job.State} ({job.Produced.Count}/{job.Requested} produced)",
+    };
+
+    Console.WriteLine(line);
+}
 
 // Printed apart from the errors, and never mixed with them, because that
 // separation *is* DEC-056: an error is returned instead of a project, a
