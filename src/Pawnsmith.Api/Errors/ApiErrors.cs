@@ -76,7 +76,10 @@ public static class ErrorStatus
 /// sentences (chapter 10); and the messages of this code base name absolute
 /// paths, which would tell anyone reading a response the layout of the server
 /// disk — the very leak chapter 8 keeps the logs away from archives for. The
-/// messages are for the logs of T7.
+/// message goes to the log instead (§H.4.2): a coded refusal as a warning, with
+/// its code and message; anything without a code as an error, with the whole
+/// exception. The path is logged without its query string, and the body never
+/// is — a body carries the user's own text (DEC-092).
 /// </para>
 /// <para>
 /// Three exceptions have no code of their own and get one here, each for a
@@ -86,7 +89,7 @@ public static class ErrorStatus
 /// (<c>SHEET_INPUT_INVALID</c>); and anything else (<c>INTERNAL_ERROR</c>).
 /// </para>
 /// </remarks>
-public sealed class ErrorMiddleware(RequestDelegate next)
+public sealed class ErrorMiddleware(RequestDelegate next, ILogger<ErrorMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -101,9 +104,31 @@ public sealed class ErrorMiddleware(RequestDelegate next)
         catch (Exception error) when (!context.Response.HasStarted)
         {
             string code = CodeOf(error);
+            int status = ErrorStatus.For(code);
+
+            if (code == ApiCodes.InternalError)
+            {
+                logger.LogError(
+                    error,
+                    "Request {Method} {Path} failed without a code: {Code} ({Status})",
+                    context.Request.Method,
+                    context.Request.Path.Value,
+                    code,
+                    status);
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Request {Method} {Path} refused: {Code} ({Status}). {Reason}",
+                    context.Request.Method,
+                    context.Request.Path.Value,
+                    code,
+                    status,
+                    error.Message);
+            }
 
             context.Response.Clear();
-            context.Response.StatusCode = ErrorStatus.For(code);
+            context.Response.StatusCode = status;
             await context.Response.WriteAsJsonAsync(new ErrorBody(code));
         }
     }

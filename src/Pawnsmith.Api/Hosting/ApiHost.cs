@@ -134,6 +134,16 @@ public static class ApiHost
         WebApplication app = builder.Build();
         Configure(app);
 
+        // Once the server listens, and not before: only then are its
+        // addresses known (§H.5). The generator is read back from the
+        // container, so that a test which swapped it is reported as it runs.
+        app.Lifetime.ApplicationStarted.Register(() => StartupReport.Write(
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(StartupReport).FullName!),
+            settings,
+            app.Services.GetRequiredService<GeneratorSetup>(),
+            app.Urls,
+            inContainer: string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase)));
+
         return app;
     }
 

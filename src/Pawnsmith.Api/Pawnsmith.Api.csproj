@@ -11,6 +11,10 @@
     <ProjectReference Include="..\Pawnsmith.Infrastructure\Pawnsmith.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- DEC-090 - the bridge between ASP.NET's ILogger<T> and Serilog. The API
+       also uses Serilog.Context.LogContext, from the Serilog package this one
+       depends on and Pawnsmith.Infrastructure references explicitly; the
+       version is the one Infrastructure pins. -->
   <ItemGroup>
     <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
   </ItemGroup>
