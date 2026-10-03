@@ -108,6 +108,25 @@ public class StartupLogTests
         Directory.GetFiles(api.LogsDirectory).ShouldAllBe(file => file.EndsWith(".ndjson", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task TheLevelIsAspNetsOwnSettingForTheFilesToo()
+    {
+        // Information by default, Microsoft.AspNetCore at Warning: neither the
+        // framework's routing chatter nor its debug events reach the files.
+        await using ApiHarness api = await ApiHarness.StartAsync(
+            generator: null,
+            "Logging:LogLevel:Default=Information",
+            "Logging:LogLevel:Microsoft.AspNetCore=Warning");
+
+        using HttpResponseMessage response = await api.Client.GetAsync("/api/configuration");
+        response.EnsureSuccessStatusCode();
+
+        IReadOnlyList<JsonNode> events = api.LogEvents();
+        events.ShouldNotBeEmpty();
+        events.ShouldAllBe(logEvent => logEvent["Level"]!.GetValue<string>() != "Debug" && logEvent["Level"]!.GetValue<string>() != "Verbose");
+        events.ShouldNotContain(logEvent => logEvent["MessageTemplate"]!.GetValue<string>().StartsWith("Executing endpoint", StringComparison.Ordinal));
+    }
+
     // --- H.8 n° 2 : désactivée, aucun dossier ------------------------------------------------
 
     [Fact]

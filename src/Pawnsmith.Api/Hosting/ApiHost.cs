@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 
-using Serilog;
 using Serilog.Core;
+using Serilog.Extensions.Logging;
 
 using Pawnsmith.Api.Endpoints;
 using Pawnsmith.Api.Errors;
@@ -101,9 +101,18 @@ public static class ApiHost
         {
             // Serilog becomes one more provider behind ILogger<T>, beside
             // ASP.NET's console: the events of the application and those of the
-            // framework reach the same files in the same format (DEC-090). The
-            // host disposes it, flushing the files, when it stops.
-            builder.Logging.AddSerilog(log, dispose: true);
+            // framework reach the same files in the same format (DEC-090).
+            //
+            // Registered by hand, not with the package's AddSerilog extension:
+            // that one also adds a filter letting every level through to
+            // Serilog, and in ASP.NET a rule aimed at one provider beats the
+            // general Logging:LogLevel - debug and trace events of the framework
+            // then filled the files. Without it, Logging:LogLevel is the one
+            // level setting, for the console and the files alike (DEC-091).
+            //
+            // A factory, so that the container disposes the provider, and with
+            // it the logger and its files, when the host stops.
+            builder.Services.AddSingleton<ILoggerProvider>(_ => new SerilogLoggerProvider(log, dispose: true));
         }
 
         // Read before the first request, so that a broken file stops the
