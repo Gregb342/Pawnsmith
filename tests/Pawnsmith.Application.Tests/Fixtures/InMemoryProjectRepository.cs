@@ -98,6 +98,15 @@ internal sealed class InMemoryProjectRepository : IProjectRepository
         return Task.FromResult(path);
     }
 
+    public Task<int> DeleteImagesAsync(string projectDirectory, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Not used by the batch.");
+
+    public Task<Stream?> OpenImageAsync(string projectDirectory, string relativePath, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Not used by the batch.");
+
+    public Task<IReadOnlyList<ProjectListing>> ListAsync(Calibration calibration, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Not used by the batch.");
+
     public Task<CreatedProjectResult> CreateAsync(string name, Universe universe, Geometry geometry, string paperFormatName, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Not used by the batch.");
 

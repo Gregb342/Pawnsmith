@@ -103,6 +103,41 @@ public interface IProjectRepository
         byte[] png,
         CancellationToken cancellationToken);
 
+    /// <summary>Deletes image files of a project, exactly those listed (DEC-070).</summary>
+    /// <remarks>
+    /// Added in T6, so that the API can finish what <c>BlueprintRemoval</c>
+    /// starts without reaching into Infrastructure; the command line of T3
+    /// calls the same code directly. Every path is checked before the first
+    /// file is deleted.
+    /// </remarks>
+    /// <returns>How many files were actually removed.</returns>
+    Task<int> DeleteImagesAsync(
+        string projectDirectory,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken);
+
+    /// <summary>Opens an image file of a project for reading, or returns null if it is not there.</summary>
+    /// <remarks>
+    /// The path must pass the rules of C.3.5; whether the project
+    /// <i>references</i> it is not the repository's question but the caller's
+    /// (DEC-088).
+    /// </remarks>
+    Task<Stream?> OpenImageAsync(
+        string projectDirectory,
+        string relativePath,
+        CancellationToken cancellationToken);
+
+    /// <summary>Every project under the projects root, including those that do not load.</summary>
+    /// <remarks>
+    /// Added in T6 (DEC-083). A project that fails to load is listed with its
+    /// code rather than left out: it opens to be corrected, it does not vanish
+    /// (DEC-056). Sorted by folder name, ordinal, so that two calls give the
+    /// same order.
+    /// </remarks>
+    Task<IReadOnlyList<ProjectListing>> ListAsync(
+        Calibration calibration,
+        CancellationToken cancellationToken);
+
     /// <summary>Writes an archive of <paramref name="projectDirectory"/>.</summary>
     /// <returns>The full path of the archive written.</returns>
     Task<string> ExportArchiveAsync(
@@ -165,3 +200,10 @@ public sealed record ImportedProjectResult(
 /// <param name="Field">Where it was found, down to the index.</param>
 /// <param name="Message">What to tell the user, in terms they can act on.</param>
 public sealed record ProjectMismatch(string Kind, string Field, string Message);
+
+/// <summary>One folder under the projects root, and what it holds.</summary>
+/// <param name="Folder">The folder's name, which is how the API addresses it (DEC-083).</param>
+/// <param name="Directory">The folder's full path.</param>
+/// <param name="Project">The project, when it loads.</param>
+/// <param name="ErrorCode">The code that stopped it loading, when it does not.</param>
+public sealed record ProjectListing(string Folder, string Directory, Project? Project, string? ErrorCode);

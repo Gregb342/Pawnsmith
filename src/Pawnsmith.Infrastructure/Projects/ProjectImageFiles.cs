@@ -102,6 +102,38 @@ public static class ProjectImageFiles
         return relative;
     }
 
+    /// <summary>Opens an image of the project for reading, or returns null when it is not on the disk.</summary>
+    /// <remarks>
+    /// The same three checks as the other operations: the stored-path rules of
+    /// C.3.5, the resolved prefix, and no <c>images</c> folder that is a link.
+    /// Whether the project references the file is the caller's question
+    /// (DEC-088); this only guarantees that the path cannot leave the folder.
+    /// </remarks>
+    /// <exception cref="ProjectException"><c>PROJECT_PATH_ESCAPE</c>.</exception>
+    public static Stream? OpenForReading(string projectDirectory, string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
+
+        ImagePathRules.Validate(relativePath, "image to read");
+
+        string root = Path.GetFullPath(projectDirectory);
+        string images = Path.Combine(root, ImagePathRules.ImagesFolder);
+
+        if (new DirectoryInfo(images).LinkTarget is not null)
+        {
+            throw new ProjectException(
+                ProjectErrorCode.PathEscape,
+                $"The '{ImagePathRules.ImagesFolder}' folder of '{projectDirectory}' is a symbolic link; " +
+                "nothing is read through it (MEN-008).");
+        }
+
+        string full = Resolve(root, relativePath);
+
+        return File.Exists(full)
+            ? new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read)
+            : null;
+    }
+
     /// <summary>Deletes the given files, relative to the project folder.</summary>
     /// <returns>The number of files actually removed.</returns>
     /// <exception cref="ProjectException"><c>PROJECT_PATH_ESCAPE</c> for a path that leaves the folder.</exception>
