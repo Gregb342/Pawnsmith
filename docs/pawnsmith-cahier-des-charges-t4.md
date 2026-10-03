@@ -136,7 +136,7 @@ Un lot est la réponse à « montre-moi N variantes de ce gabarit ». Les graine
 
 Les **graines sont choisies par l'appelant**, et le lot les reçoit en liste. Le lot ne tire aucun nombre au hasard : rejouer une graine précise est un usage légitime, et un cas d'usage qui tirerait ses graines lui-même ne serait pas testable sans substituer son générateur aléatoire. Un utilitaire de l'Application, `RandomSeeds.Draw(count)`, tire des graines uniformes sur `[0, 2^63)` pour qui n'en a pas de préférées.
 
-> **Pourquoi 2^63 et pas 2^64.** Le §3.1 type la graine en `ulong` parce que ComfyUI accepte jusqu'à 2^64 − 1, et ce choix ne bouge pas : une graine arrivant d'ailleurs garde toute sa plage. Le tirage, lui, se contente de 63 bits, parce que c'est ce que `RandomNumberGenerator` rend sans manipulation de bits — et neuf milliards de milliards de graines suffisent.
+> **Pourquoi 2^63 et pas 2^64.** Le §3.1 type la graine en `ulong` parce que ComfyUI accepte jusqu'à 2^64 − 1, et ce choix ne bouge pas : une graine arrivant d'ailleurs garde toute sa plage. Le tirage, lui, se contente de 63 bits, parce que c'est ce que `Random.NextInt64` rend sans manipulation de bits — et neuf milliards de milliards de graines suffisent. Aucune source cryptographique n'est nécessaire : une graine n'est pas un secret, elle est écrite en clair dans chaque `project.json`.
 
 ### E.4.2 Chaque candidat est sauvegardé dès qu'il existe
 
