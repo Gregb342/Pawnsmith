@@ -17,13 +17,15 @@ plutôt que d'être interdites de changement (DEC-030).
 
 > **État d'avancement.** Les **fondations** (partie A), la tranche **T1**
 > — moteur de mise en page et rendu PDF —, la tranche **T2** — modèle de
-> projet, persistance, archives — et la tranche **T3** — composition de la
-> clause sujet, catalogue, règles de gestion — sont écrites. **515 tests verts.**
+> projet, persistance, archives —, la tranche **T3** — composition de la
+> clause sujet, catalogue, règles de gestion — et la tranche **T4** — client
+> du générateur ComfyUI, lots de candidats — sont écrites. **690 tests verts.**
 >
 > Il n'y a **pas encore d'interface** : elle est livrée en T6. Ce qui tourne
 > aujourd'hui se pilote **entièrement** par le harnais en ligne de commande de
 > `tools/` : produire une planche PDF, créer un projet, y ajouter des gabarits
-> dont la clause sujet est composée depuis un catalogue, élire un candidat,
+> dont la clause sujet est composée depuis un catalogue, générer des candidats
+> auprès d'un ComfyUI, élire un candidat,
 > tirer la planche du projet, l'exporter en archive, la réimporter. Le
 > conteneur, lui, ne sert qu'une coquille de front sans fonctionnalité.
 > Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
@@ -31,8 +33,9 @@ plutôt que d'être interdites de changement (DEC-030).
 Voir [`docs/pawnsmith-bible.md`](docs/pawnsmith-bible.md) pour la vision, le
 modèle de données et le **journal des décisions**, qui fait foi ; les cahiers
 des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md),
-[T2](docs/pawnsmith-cahier-des-charges-t2.md) et
-[T3](docs/pawnsmith-cahier-des-charges-t3.md) pour les spécifications
+[T2](docs/pawnsmith-cahier-des-charges-t2.md),
+[T3](docs/pawnsmith-cahier-des-charges-t3.md) et
+[T4](docs/pawnsmith-cahier-des-charges-t4.md) pour les spécifications
 détaillées.
 
 ---
@@ -137,6 +140,23 @@ $CLI project sheet    --path $P --out ./planche.pdf --calibration ./config/calib
 et la laisse intacte sinon — l'édition se déduit, elle n'est pas stockée
 (DEC-067). `project sheet` tire la planche du projet et **nomme** chaque gabarit
 qu'elle a laissé de côté faute de candidat élu (DEC-069).
+
+**Générer des candidats** — les sous-commandes de T4. Il faut un ComfyUI qui
+tourne, et un `config/workflow.comfyui.json` **exporté de ta propre machine** :
+le dépôt n'en livre qu'un exemple, `config/workflow.comfyui.example.json`, et
+`config/README.md` dit comment fabriquer le vrai.
+
+```bash
+GEN="--workflow ./config/workflow.comfyui.json --generator-url http://127.0.0.1:8188"
+
+$CLI generator check    $GEN
+$CLI candidate generate --path $P --id <guid> --count 4 $GEN --calibration ./config/calibration.json
+```
+
+`generator check` affiche la clause de cadrage et l'état du générateur ; un
+générateur éteint est un état, pas une erreur. `candidate generate` affiche
+chaque transition du lot ; chaque candidat est sauvegardé dès qu'il existe, et
+`Ctrl+C` annule le lot en gardant ce qui a été produit (DEC-074, DEC-075).
 
 ---
 

@@ -83,6 +83,26 @@ public interface IProjectRepository
         Project project,
         CancellationToken cancellationToken);
 
+    /// <summary>Writes the paired image of a new candidate into the project folder.</summary>
+    /// <remarks>
+    /// <para>
+    /// Added in T4, for the batch (DEC-075): the image is written <b>before</b>
+    /// the candidate that references it is saved, so that a <c>project.json</c>
+    /// never points to a file that does not exist yet.
+    /// </para>
+    /// <para>
+    /// The repository chooses the name, <c>images/{candidateId}-pair.png</c>,
+    /// and returns it: the file layout of C.3.1 is the repository's to know, and
+    /// nothing the generator said about its own file reaches the disk.
+    /// </para>
+    /// </remarks>
+    /// <returns>The path to store in <c>pairedImageFile</c>, relative to the project folder.</returns>
+    Task<string> WritePairedImageAsync(
+        string projectDirectory,
+        Guid candidateId,
+        byte[] png,
+        CancellationToken cancellationToken);
+
     /// <summary>Writes an archive of <paramref name="projectDirectory"/>.</summary>
     /// <returns>The full path of the archive written.</returns>
     Task<string> ExportArchiveAsync(

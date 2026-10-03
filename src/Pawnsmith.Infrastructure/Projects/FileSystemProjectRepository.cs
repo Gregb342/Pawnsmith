@@ -18,7 +18,9 @@ namespace Pawnsmith.Infrastructure.Projects;
 /// be a rule with two homes.
 /// </para>
 /// <para>
-/// <b>Why five types and not one class from the start.</b> Each of them is a
+/// <b>Why five types and not one class from the start.</b> (A sixth door, the
+/// paired image of T4, goes to <see cref="ProjectImageFiles"/>, which already
+/// held the deletion of DEC-070.) Each of them is a
 /// separate reading: the reader is the nine steps of C.7.1, the importer the
 /// eight of C.9.1, and putting them in one file would have made a thousand-line
 /// class nobody reviews in one sitting — the exact failure DEC-027 exists to
@@ -87,6 +89,13 @@ public sealed class FileSystemProjectRepository : IProjectRepository
         Project project,
         CancellationToken cancellationToken) =>
         saver.SaveAsync(projectDirectory, project, cancellationToken);
+
+    public Task<string> WritePairedImageAsync(
+        string projectDirectory,
+        Guid candidateId,
+        byte[] png,
+        CancellationToken cancellationToken) =>
+        ProjectImageFiles.WritePairedAsync(projectDirectory, candidateId, png, cancellationToken);
 
     public Task<string> ExportArchiveAsync(
         string projectDirectory,

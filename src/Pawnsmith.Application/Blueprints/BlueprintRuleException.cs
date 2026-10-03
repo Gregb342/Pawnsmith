@@ -35,7 +35,7 @@ public static class BlueprintRuleCodeExtensions
 }
 
 /// <summary>A blueprint operation that refuses, with its code and message.</summary>
-public sealed class BlueprintRuleException : Exception
+public sealed class BlueprintRuleException : Exception, ICodedException
 {
     public BlueprintRuleException(BlueprintRuleCode code, string message)
         : base(message)

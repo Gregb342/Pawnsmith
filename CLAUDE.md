@@ -294,9 +294,57 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.14**, cahier des charges T1
-**v1.7**, cahier des charges T2 **v1.1**, **cahier des charges T3 v1.1**,
-protocole T0 **v1.4**.
+Documents de référence en vigueur : bible **v0.15**, cahier des charges T1
+**v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
+**cahier des charges T4 v1.1**, protocole T0 **v1.4**.
+
+### Décisions prises sans toi, à relire en premier
+
+**T4 a été spécifiée et écrite sans ton arbitrage**, dans le régime que tu as
+ouvert pour cette session : une branche par tranche, un commit par tâche, et
+« quand un choix est ouvert, tranche et consigne ». Chaque décision est une
+fiche DEC (DEC-074 à DEC-081) et revient dans le message du commit où elle est
+née. Voici la liste, la plus engageante d'abord.
+
+1. **Le `Job` vit en mémoire et n'est jamais persisté** (DEC-074). Cinq états,
+   trois terminaux, un échec arrête le lot. Rien n'est perdu par un
+   redémarrage, parce que chaque candidat est sauvegardé dès qu'il existe.
+2. **Chaque candidat est sauvegardé dès qu'il existe, en relisant le projet
+   à chaque graine** (DEC-075). C'est ce qui tient « un lot interrompu
+   conserve ses candidats », et ce qui évite d'écraser une modification faite
+   pendant le lot. Ce n'est pas un verrou : l'API de T6 devra sérialiser les
+   écritures d'un même projet.
+3. **`IPawnPairProducer` n'est pas écrit** (DEC-078). T0a a retiré le risque
+   qu'il couvrait ; `IImageGenerator` est le seul port. Supersède le
+   chapitre 7 et le §4.2 de la bible sur ce point.
+4. **La découpe est décidée en T4, exécutée en T5** (DEC-079). Face à gauche,
+   colonne du milieu perdue sur une largeur impaire. Les pixels ne sont pas
+   découpés : le schéma n'a pas de place pour des moitiés non détourées, et
+   décoder un PNG est un choix de bibliothèque qui t'appartient avec T5.
+5. **`{{WIDTH}}` et `{{HEIGHT}}` ne sont plus des jetons** (DEC-076). Trois
+   jetons seulement, et un jeton est une valeur entière : un
+   `"{{POSITIVE}}, masterpiece"` est refusé au chargement, parce qu'il ferait
+   partir autre chose que le prompt que le candidat fige (DEC-049).
+6. **La clause négative n'est pas figée sur le candidat** (DEC-077). Elle
+   n'est pas une des trois clauses, et à CFG 1,0 le modèle l'ignore.
+7. **MEN-003 se traite en interdisant à l'API de modifier l'adresse du
+   générateur**, pas par une liste blanche de ports (DEC-081). Ni redirection
+   suivie, ni proxy.
+8. **Les bornes** (DEC-080) : 20 candidats par lot, 10 min par génération,
+   30 s par appel, 64 Mio et 8192 px par image, 16 Mio par réponse JSON.
+9. **Le délai de génération retire aussi la tâche chez ComfyUI**, pas
+   seulement l'annulation (tâche 6) : une tâche abandonnée n'a pas à occuper
+   la carte graphique.
+10. **L'exemple de workflow finit sa clause de cadrage par `Subject:`** (tâche
+    3), pour que le sujet arrive étiqueté comme dans T0a. L'ordre reste
+    différent de T0a : le sujet vient désormais après **tout** le cadrage.
+    **À vérifier au premier lot réel**, c'est le risque le plus concret de la
+    tranche (§E.5.5).
+11. **`ICodedException`**, une interface d'Application à une propriété, est
+    implémentée par toutes les exceptions codées du dépôt. Sans elle, un
+    `PROJECT_INVALID` levé pendant un lot finirait en `JOB_UNEXPECTED_ERROR`.
+12. **Les graines sont tirées par `Random.Shared`**, pas par une source
+    cryptographique : une graine est écrite en clair dans `project.json`.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -321,7 +369,7 @@ illustrations.
 | DEC-039 | Géométrie `NoSupport`, rien sous les pieds | ✅ |
 | DEC-040 | Cotes d'onglet réglables par l'utilisateur | ✅ — écrit en T2, tâche 3 (`EffectiveCalibration`) |
 | DEC-041 | Le couple recto/verso partage une échelle | ✅ |
-| DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait ; la contrainte de pose voyage désormais avec chaque objet du **catalogue** (DEC-064), la clause de cadrage elle-même est **T4** |
+| DEC-042 | La clause de cadrage impose la pose | Partiellement — le **signalement** est fait ; la contrainte de pose voyage avec chaque objet du **catalogue** (DEC-064) ; la clause de cadrage vit dans le workflow (T4, DEC-076), mais le dépôt n'en livre qu'un **exemple** |
 
 T1 a livré **154 tests**, les 19 du §B.8 couverts. Une seule dépendance de
 production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
@@ -658,6 +706,88 @@ il ne gardait que la dernière valeur d'une option. Il garde désormais toutes l
 valeurs, dans l'ordre ; `Required` et `Optional` lisent la dernière, `All` les
 rend toutes. Aucune autre sous-commande n'y a vu de différence.
 
+### T4 — code terminé, 10 tâches sur 10
+
+**La tranche T4 (client du générateur et production de couples) est
+spécifiée** par
+[`docs/pawnsmith-cahier-des-charges-t4.md`](docs/pawnsmith-cahier-des-charges-t4.md)
+v1.1 **et écrite en entier**, sur la branche `claude/charming-babbage-uuft5v`,
+partie de `main` (`d753728`). Un commit de documentation (spec et fiches),
+puis un commit par tâche. Elle se relit d'une traite avec
+`git log --oneline d753728..`.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | `Job` et `JobState`, et `<Version>0.5.0</Version>` | ✅ |
+| 2 | `PairSplit` (règle de découpe) | ✅ |
+| 3 | `WorkflowTemplate`, son lecteur, l'exemple de workflow | ✅ |
+| 4 | Port `IImageGenerator`, `ICodedException`, adresse, `CheckAsync`, faux serveur | ✅ |
+| 5 | `GenerateAsync` : soumission, interrogation, rapatriement, bornes | ✅ |
+| 6 | Annulation jusqu'au générateur | ✅ |
+| 7 | `IProjectRepository.WritePairedImageAsync` | ✅ |
+| 8 | Cas d'usage du lot `CandidateGeneration` | ✅ |
+| 9 | Test de bout en bout | ✅ |
+| 10 | CLI `generator check` et `candidate generate`, documentation | ✅ |
+
+**Les 42 tests de E.12 sont couverts**, et une trentaine de plus. Le dépôt
+porte **690 tests verts**. Aucune dépendance ajoutée : le faux serveur
+ComfyUI est un serveur HTTP écrit à la main sur une socket, les images de test
+sont des PNG fabriqués en code (zlib du framework, CRC écrit à la main), et
+les faux d'Application sont deux classes lisibles. Aucun binaire commité.
+
+Le code vit dans `src/Pawnsmith.Domain/Jobs/` et `Generation/`,
+`src/Pawnsmith.Application/Generation/` et `Ports/IImageGenerator.cs`,
+`src/Pawnsmith.Infrastructure/Generation/` et `Imaging/PngHeader.cs`.
+
+**La chaîne a été éprouvée au CLI** contre un faux ComfyUI en Python (dans le
+bac à sable de la session, pas dans le dépôt) : lot nominal, générateur
+injoignable (`Failed`, code `GENERATOR_UNREACHABLE`, rien d'écrit), lot trop
+grand (`BATCH_SIZE_INVALID`), et **Ctrl+C au milieu d'un lot de trois** — le
+job finit `Cancelled` avec un candidat conservé, et le faux serveur a bien
+reçu le retrait de file et l'interruption ciblée.
+
+**`docker build` a enfin tourné**, dans le conteneur de cette session, sur
+T3 puis sur T4 : l'image se construit et répond `200` sur `/`. Il a fallu
+injecter le certificat du proxy réseau de la session dans une **copie
+temporaire** du `Dockerfile` ; celui du dépôt n'a pas changé. La note de T3
+ci-dessus (« `docker build` n'a jamais tourné ») est donc levée.
+
+#### Ce que ma relecture de T4 a trouvé, et corrigé
+
+- **Une réponse JSON de forme inattendue échappait au code d'erreur.**
+  L'indexeur de `JsonNode` lève quand le nœud n'est pas un objet, ou quand
+  l'objet répète une clé. Un générateur qui répondait `"status": "error"` en
+  chaîne, ou `{ "x": "finished" }`, produisait donc une exception imprévue —
+  que le lot aurait rangée en `JOB_UNEXPECTED_ERROR` — ou, pire, dix minutes
+  d'attente avant un faux `GENERATOR_TIMEOUT`. Toute lecture d'une réponse
+  passe désormais par une méthode `Child` qui rend `null` ou un refus codé ;
+  neuf formes hostiles sont testées, et huit échouaient avant le correctif.
+- **Trois messages formataient une durée selon la culture du processus**
+  (`0,2 s` sous `fr-FR`). Ce n'était pas une comparaison, mais un message
+  anglais se formate de façon invariante ; corrigé.
+- **`config/workflow.comfyui.json` est ignoré par git** : c'est le workflow
+  exporté de ta machine, qui nomme ses fichiers de modèles. Seul l'exemple
+  appartient au dépôt.
+
+#### Ce qui n'est pas couvert, à connaître plutôt qu'à redécouvrir
+
+- **Une annulation pendant `POST /prompt`** ne peut pas retirer la tâche,
+  dont elle ne connaît pas encore l'identifiant (§E.7.3). Fenêtre de quelques
+  millisecondes.
+- **Aucun ComfyUI réel n'a été appelé.** Le workflow livré est un exemple
+  construit d'après DEC-043 ; les types de nœuds y sont plausibles, pas
+  vérifiés. **Le vrai `config/workflow.comfyui.json` est à fabriquer chez
+  toi**, avec *Export (API)*, en suivant `config/README.md`.
+- **L'interruption ciblée** (`/interrupt` avec `prompt_id`) dépend de la
+  version de ComfyUI ; les anciennes interrompent ce qui tourne, quoi que ce
+  soit. Risque accepté et écrit (§E.7.3).
+- **`FileImageSizeReader` (T1) et `PngHeader` (T4) lisent les mêmes 24
+  octets**, chacun de son côté. Laissé tel quel pour ne pas toucher du code de
+  T1 non encore validé sur papier ; dix lignes de doublon.
+- **Les métadonnées PNG** : ComfyUI inscrit le graphe et le prompt dans
+  chaque image. L'image jumelée les garde, sans conséquence puisque `Share` la
+  retire. **T5 devra réencoder** les moitiés détourées (DEC-079).
+
 ### Comment faire tourner les choses
 
 **Produire une planche** — c'est le livrable réel de T1 :
@@ -693,6 +823,18 @@ $CLI blueprint clause --path ./data/projects/donjon --id <guid> --clause "..." -
 $CLI blueprint elect  --path ./data/projects/donjon --id <guid> --candidate <guid> --calibration ./config/calibration.json
 $CLI blueprint remove --path ./data/projects/donjon --id <guid> --calibration ./config/calibration.json
 $CLI project sheet    --path ./data/projects/donjon --out ./planche.pdf --calibration ./config/calibration.json
+```
+
+**Générer des candidats** — les sous-commandes de T4. Il faut un ComfyUI qui
+tourne, et **ton** workflow exporté (le dépôt n'a qu'un exemple). `Ctrl+C`
+annule le lot ; ce qui a été produit reste dans le projet.
+
+```bash
+GEN="--workflow ./config/workflow.comfyui.json --generator-url http://127.0.0.1:8188"
+
+$CLI generator check    $GEN
+$CLI candidate generate --path ./data/projects/donjon --id <guid> --count 4 $GEN --calibration ./config/calibration.json
+$CLI candidate generate --path ./data/projects/donjon --id <guid> --seed 42 --seed 43 $GEN --calibration ./config/calibration.json
 ```
 
 **Lancer l'application** — elle ne sert encore que la coquille du front, sans
