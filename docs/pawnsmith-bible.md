@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.15 |
+| **Version du document** | 0.16 |
 | **Date** | 3 octobre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.15** — Spécification de la première partie de T6, l'API (`pawnsmith-cahier-des-charges-t6.md` v1.0), écrite sans arbitrage du porteur. **DEC-082 à DEC-089** : l'export d'un élu désaligné passe outre et le signale (**ferme la question C**) ; un projet s'adresse par son nom de dossier canonique ; une erreur d'API rend un code et rien d'autre, les messages portant des chemins absolus ; les lots sont validés avant la file et un seul tourne à la fois ; les écritures d'un projet passent par une porte par dossier ; la configuration passe par `appsettings.json` et l'environnement ; une image n'est servie que si un candidat la référence ; **MEN-010** — requêtes intersites et rebinding DNS — entre au chapitre 9. La question E est fermée pour sa partie serveur.
  
 > **Changements depuis la v0.14** — Spécification de la tranche T4 (`pawnsmith-cahier-des-charges-t4.md` v1.0), écrite sans arbitrage du porteur, dans le régime « tranche et consigne » ouvert pour cette session. **DEC-074 à DEC-081** : machine à états du `Job` en cinq états, en mémoire seulement (**ferme la question B**) ; un lot fige un prompt pour N graines et sauvegarde chaque candidat dès qu'il existe ; schéma du template de workflow, trois jetons en liste close dont aucun de dimension (**ferme la question F**, corrige le §6.4) ; ce qui part au générateur est exactement le prompt résolu, la clause négative n'est pas figée ; `IPawnPairProducer` n'est pas écrit (**supersède le chapitre 7 et le §4.2** sur ce point) ; la découpe est décidée en T4 et exécutée en T5 ; bornes de la génération en records d'options (**scinde la question G**) ; l'adresse du générateur est un réglage de déploiement, ce qui remplace la liste blanche de ports de MEN-003.
  
@@ -477,6 +479,7 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 | MEN-007 | **Consommation de ressources** | Lot de génération de taille non bornée | Plafond configurable du nombre de candidats par lot. Annulation coopérative des jobs. |
 | MEN-008 | **Exfiltration par lien symbolique à l'export** | Un lien symbolique déposé dans le dossier d'un projet et pointant hors de celui-ci — volume des journaux, dossier personnel, `/etc`. L'export le suit et le place dans une archive que l'utilisateur envoie lui-même | Ne jamais suivre un lien : résoudre le chemin absolu et vérifier le préfixe, comme MEN-001 à l'import. L'export **échoue** en nommant le lien plutôt que de l'ignorer. Doublé par la liste blanche de DEC-050, qui n'autorise que des `.png` et des `.pdf` référencés |
 | MEN-009 | **Traversée de chemin par le nom de projet** | `name` est une chaîne libre, issue de l'utilisateur ou d'une archive tierce, et sert à fabriquer le nom du dossier de projet | Translittération vers une liste blanche de caractères, longueur bornée, noms réservés Windows exclus, points et espaces finaux interdits. Vérification que le chemin résolu est sous la racine des projets **avant** toute création. Jamais de concaténation directe, comme l'exige déjà MEN-002 |
+| MEN-010 | **Requête intersite et rebinding DNS** | L'API n'a pas d'authentification (§1.5) et le navigateur de l'utilisateur est sur la boucle locale : une page tierce peut lui faire envoyer un formulaire `POST` vers l'API, ou faire résoudre son propre domaine vers `127.0.0.1` pour devenir de même origine | Une requête autre que `GET`/`HEAD` portant un `Origin` différent de l'hôte est refusée (`CROSS_ORIGIN_REFUSED`). `AllowedHosts` restreint par défaut aux noms locaux, ce qui refuse le `Host` d'un domaine rebindé. Aucun en-tête CORS émis. Voir DEC-089 |
  
 ---
  
@@ -1022,6 +1025,38 @@ Choix : l'adresse se règle par configuration ou variable d'environnement, **jam
 Conséquence : une SSRF suppose qu'un attaquant choisisse l'adresse que le serveur appelle. Une adresse que seul l'opérateur écrit, dans un fichier de son poste, n'est choisie par personne d'autre ; c'est retirer le vecteur plutôt que le filtrer. Filtrer les ports que l'opérateur a lui-même écrits ne protège de rien, et casserait le jour où ComfyUI tourne ailleurs que sur 8188. Les deux règles du client sont ce qui rend la validation de l'adresse effective : une redirection suivie laisserait le serveur validé désigner lui-même la cible suivante, et un proxy enverrait les prompts à un tiers alors que DEC-007 a choisi un générateur local. L'interdiction des identifiants dans l'URI suit MEN-006 : un secret dans une adresse finit dans un journal.
 Ce que la fiche engage pour T6 : l'interface pourra **afficher** l'adresse et l'état du générateur, jamais la modifier.
 
+**DEC-082 — L'export d'un candidat élu mais désaligné passe outre, et le signale clause par clause.**
+Choix : la planche est produite avec l'élu tel qu'il est. Le rapport de planche liste chaque élu désaligné et les clauses qui ont bougé ; il dit aussi quand le désalignement est **inconnu**, faute de workflow configuré. Aucun blocage, aucune confirmation. **Ferme la question C du chapitre 16**, dont c'était la dernière sous-question.
+Conséquence : bloquer forcerait à régénérer un pion pour pouvoir l'imprimer, alors que l'image n'est pas fausse — elle a été produite sous un autre prompt, ce qui est une information et non un défaut ; l'utilisateur qui change de style pour ses prochains pions peut vouloir garder les anciens. Avertir par une confirmation au moment de l'export est le mécanisme de consentement que DEC-030 a écarté. Passer outre en le disant est le motif de DEC-056 et DEC-069 : on n'empêche rien, on dit ce qu'on a fait, là où l'information sert — à côté de l'aperçu, avant l'impression. Le cas « inconnu » est signalé parce que se taire laisserait croire à un alignement.
+
+**DEC-083 — Un projet s'adresse par le nom de son dossier, sous sa forme canonique ; jamais par son `projectId`.**
+Choix : les routes de l'API désignent un projet par `/api/projects/{folder}`. Le nom n'est accepté que s'il est déjà canonique — `ProjectFolderName.From(folder)` lui est égal, en ordinal — et si le chemin résolu est un enfant direct de la racine des projets. Tout écart rend `PROJECT_NOT_FOUND`, sans distinguer un nom mal formé d'un dossier absent. La liste des projets rend aussi ceux qui ne se chargent pas, avec leur code.
+Conséquence : le `projectId` n'est pas unique, par décision (DEC-047) — deux imports de la même archive le partagent —, et une adresse doit désigner une seule chose ; le nom de dossier l'est, par le système de fichiers. Le nom venant d'une URL, il est traité comme MEN-002 et MEN-009 l'exigent : la forme canonique est une liste blanche, la vérification de préfixe une seconde barrière. Un projet cassé reste dans la liste parce qu'il s'ouvre pour être corrigé (DEC-056). Le doublon de `projectId` n'est pas arbitré par l'API : elle l'expose, et la question posée à l'utilisateur appartient au front.
+
+**DEC-084 — Une erreur d'API rend un code, et rien d'autre.**
+Choix : toute erreur rend un statut HTTP et le corps `{ "code": "…" }`. Le message n'est jamais renvoyé ; il ira aux journaux en T7. Le statut se déduit du code par une table unique ; un code absent de la table rend `500`, et une exception sans code rend `INTERNAL_ERROR`. Neuf codes naissent dans l'API (`REQUEST_INVALID`, `CROSS_ORIGIN_REFUSED`, `JOB_NOT_FOUND`, `JOB_ALREADY_FINISHED`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND`, `UPLOAD_TOO_LARGE`, `GENERATOR_NOT_CONFIGURED`, `INTERNAL_ERROR`) et trois dans l'Application pour la planche (`PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED`, `SHEET_INPUT_INVALID`).
+Conséquence : le chapitre 10 voulait des codes et non des messages traduits ; un message anglais n'est pas traduit, mais un texte affiché tel quel est ce qu'il interdit. Le second motif est nouveau et suffirait seul : **les messages contiennent des chemins absolus**, qui disent l'arborescence du serveur à quiconque lit la réponse. Le chapitre 8 tient les journaux hors des archives pour cette raison ; un corps de réponse est un canal de plus. Contrepartie assumée : `PROJECT_INVALID` nommait le champ fautif dans son message (C.11) ; l'API ne le transmet pas. Si le front en a besoin, ce sera un champ structuré, pas une phrase.
+
+**DEC-085 — Les lots sont validés avant la file, un seul tourne à la fois, et le registre est borné.**
+Choix : une requête de lot est validée tout de suite — taille, gabarit, générateur configuré — et mise en file ; un seul lot s'exécute à la fois, dans l'ordre d'arrivée. `CandidateGeneration` est scindé en `QueueAsync`, qui valide et rend un job `Queued`, et `RunAsync`, qui le mène à son terme ; l'enchaînement des deux reste disponible. Les clauses sont figées au démarrage du lot, pas à la mise en file. Le registre garde les cent derniers jobs terminés. Une annulation retire un job en file sans qu'il tourne, et annule un job en cours.
+Conséquence : un générateur local a une carte graphique ; deux lots simultanés se partageraient la file de ComfyUI sans aller plus vite, et l'ordre de leurs candidats deviendrait illisible. Valider avant la file garde la règle de §E.4.4 — une requête mal formée est un job qui n'a jamais existé — quand le job ne démarre plus aussitôt. Figer au démarrage plutôt qu'à la mise en file respecte l'intention de l'utilisateur qui corrige sa clause pendant que son lot attend. Le registre est borné parce qu'il vit en mémoire (DEC-074) et que rien ne justifie qu'il grossisse sans fin.
+
+**DEC-086 — Les écritures d'un même projet passent par une porte par dossier, dans le processus.**
+Choix : toute séquence « charger, modifier, sauvegarder » sur un projet franchit `ProjectWriteGate`, un verrou par dossier tenu par l'Application. Les points de terminaison qui écrivent la franchissent ; le lot la franchit pour chaque candidat. Les lectures ne la franchissent pas.
+Conséquence : DEC-075 avait réduit la fenêtre de concurrence d'un lot à quelques millisecondes en relisant le projet à chaque graine, en annonçant que ce n'était pas un verrou. L'API crée le second écrivain réel — l'utilisateur qui modifie un gabarit pendant qu'un lot ajoute un candidat —, et la fenêtre devient un risque de perte. Les lectures s'en passent parce que la sauvegarde remplace le fichier d'un bloc (§C.7.3). La porte est dans le processus : deux instances sur la même racine ne se voient pas, ce qui n'est pas un usage prévu d'une application mono-utilisateur (§1.5). DEC-062 reste vrai pour le dépôt, qui n'a toujours aucun état : la porte n'est pas dans le dépôt.
+
+**DEC-087 — La configuration passe par `appsettings.json` et l'environnement ; un générateur mal configuré n'empêche pas de démarrer.**
+Choix : l'hôte lit sa configuration par le mécanisme standard d'ASP.NET — `appsettings.json`, surchargé par les variables `Pawnsmith__…`. Racine des projets, dossier de configuration, adresse du générateur, fichier de workflow, taille maximale d'une archive importée. Une calibration, un catalogue ou un template invalides font échouer le démarrage. Une adresse de générateur vide, un workflow absent ou invalide laissent démarrer : le générateur est alors non configuré ou mal configuré, avec son code, et seules les routes de génération le refusent.
+Conséquence : c'est l'arrivée annoncée par DEC-057 — le fichier se crée avec le composant qui le lit. Le mécanisme standard est préféré à un fichier propre parce que tout opérateur Docker sait déjà passer une variable d'environnement, et qu'il ne demande aucun code de lecture. Les bornes des records d'options de T2 et T4 gardent leurs défauts et ne sont pas exposées : aucune demande ne le justifie, et en exposer une plus tard est une ligne. La distinction entre ce qui bloque et ce qui ne bloque pas est DEC-056 appliqué à la machine : sans calibration rien ne marche, sans générateur on travaille encore ses projets.
+
+**DEC-088 — Une image n'est servie que si un candidat du projet la référence.**
+Choix : la route d'image sert `images/{fichier}` seulement si ce chemin est référencé par un candidat du projet, s'il passe les règles de C.3.5 et la vérification de préfixe. Sinon, `IMAGE_NOT_FOUND`.
+Conséquence : ce n'est pas un serveur de fichiers statiques sur `images/`, c'est la liste blanche de l'export (DEC-050) appliquée à la lecture. Un fichier déposé à la main, un orphelin, un fichier temporaire restent invisibles, et un nom de fichier venu d'une URL ne désigne jamais autre chose que ce que le projet déclare (MEN-002).
+
+**DEC-089 — MEN-010 : un navigateur est un client ; requêtes intersites et rebinding DNS sont refusés.**
+Choix : ajouter MEN-010 au chapitre 9. Une requête autre que `GET` ou `HEAD` qui porte un en-tête `Origin` différent de l'hôte de la requête est refusée par `CROSS_ORIGIN_REFUSED`. `AllowedHosts` est restreint par défaut à `localhost`, `127.0.0.1` et `[::1]`. L'API n'émet aucun en-tête CORS ; ses corps sont `application/json` ou `application/zip`.
+Conséquence : MEN-004 publie l'application sur la boucle locale, ce qui la protège du réseau mais pas du navigateur de l'utilisateur, qui est sur la boucle locale et exécute le code de n'importe quel onglet. Un formulaire HTML forgé envoie un `POST` sans vérification préalable — annuler un lot, par exemple ; le contrôle d'origine le refuse. Un domaine tiers résolu vers `127.0.0.1` rend la page et l'API de même origine aux yeux du navigateur, et le contrôle d'origine passe ; c'est l'en-tête `Host`, alors étranger, que le filtrage d'hôtes refuse. Un utilisateur qui publie volontairement l'application sur son réseau ajoute son nom d'hôte, en connaissance de cause. La menace manquait au chapitre 9 pour la raison que DEC-054 a donnée : elle se déduit d'un code qui n'existait pas encore.
+
 ---
  
 ## 12. Découpage en tranches
@@ -1091,6 +1126,8 @@ Runtime ONNX, fournisseur d'exécution configurable, plafonds d'entrée.
 ### T6 — API et interface
  
 Points de terminaison, front React, galerie de candidats, validation, export, localisation complète.
+
+Scindée en deux. La **première partie, l'API**, est spécifiée par le cahier des charges T6 (`pawnsmith-cahier-des-charges-t6.md`), dont le §G.12 fait foi pour elle. La seconde partie, le front, reste à spécifier.
  
 **Critères d'acceptation** : aucune chaîne en dur ; bascule français/anglais sans rechargement ; capacité de page affichée ; codes d'erreur correctement traduits ; les candidats désalignés sont visuellement distingués des candidats sains ; la structure du chapitre 15 est respectée, y compris la liste du §15.5.
  
@@ -1270,8 +1307,7 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 
 | Réf. | Sujet | À trancher avant |
 |---|---|---|
-| **C** | **Export avec un candidat élu mais désaligné — bloquer, avertir, ou passer outre ?** *Seule sous-question restante.* Les cinq autres sont fermées par DEC-069, DEC-070 et DEC-071, ou sans objet (la pagination de T1 règle déjà la quantité). Celle-ci est un comportement d'export, renvoyée à T6 par le §C.5.6. | T6 |
-| **E** | **Contrat d'API.** Points de terminaison, verbes, charges utiles, liste complète des codes d'erreur. Les §C.11 et §D.10 en fixent déjà dix-sept : ils ne sont pas à réinventer, seulement à exposer. | T6 |
+| **E** | **Contrat d'API.** *Fermée pour sa partie serveur* par le cahier T6 (§G.3 à §G.10) : points de terminaison, verbes, charges utiles, codes et statuts. Reste ce que le front en fera — la forme exacte des écrans qui les consomment. | T6 (front) |
 | **G** | **Valeurs non fonctionnelles.** *Scindée par DEC-080* : la moitié génération — délai d'attente, plafond de candidats par lot, taille et dimensions d'une image reçue — est arbitrée au §E.9 du cahier T4. Reste la moitié détourage : dimensions maximales en entrée du modèle de segmentation, durée acceptable d'un détourage sur processeur. DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas. | T5 |
 | **H** | **Dépôt public ou privé.** *Visibilité toujours non confirmée.* Elle est citée par DEC-058, qui exclut la révision de source de la version pour ne pas publier d'identifiant de commit dans une archive — précaution qui vaut dans les deux cas, donc la question ne bloque rien. | Libre |
 | **I** | **Loi de progression des hauteurs.** DEC-032 pose la contrainte — plafond d'environ 112 mm sur US Letter — mais pas les valeurs. Se tranche en T0b, tapis sous les yeux, les cinq tailles montées côte à côte. | T0b |
@@ -1299,6 +1335,7 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 | **D** — Entité Catalogue | DEC-063 — global, en fichier de données, un par univers |
 | **B** — Machine à états du `Job` | DEC-074 — cinq états, trois terminaux, un échec arrête le lot, le `Job` vit en mémoire |
 | **F** — Template de workflow ComfyUI | DEC-076 — trois jetons en liste close, valeur entière, substitution sur le graphe ; schéma au §E.5 du cahier T4 |
+| **C** — Export d'un élu désaligné | DEC-082 — l'export passe outre et le signale, clause par clause |
 
 > **Un point mineur laissé de côté, qui n'a pas de fiche.** La demande initiale « on fait attention aux règles de l'OWASP » a été traitée par un modèle de menace déduit de l'architecture (chapitre 9) plutôt que par une checklist générique. C'est un arbitrage assumé. DEC-054 en montre la contrepartie : une menace ne se déduit que d'un code qui existe, donc le chapitre 9 se revoit **à chaque tranche** qui ouvre une surface, et non une seule fois en T7.
 

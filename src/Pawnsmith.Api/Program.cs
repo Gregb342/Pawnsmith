@@ -1,22 +1,11 @@
-// A.6 — The API serves the compiled front from wwwroot. Same origin, so there is
-// deliberately no CORS configuration here.
+// A.6 and T6 - the API, and the compiled front it serves from wwwroot. Same
+// origin, so there is deliberately no CORS configuration.
 //
-// Nothing else belongs in this file yet: no endpoint, no dependency injection,
-// no business logic. Those arrive with T6.
-//
-// Types are spelled out rather than inferred: the .editorconfig var policy of A.4
-// only allows `var` where the type is apparent on the right-hand side, which is
-// not the case for a factory call.
+// Everything is built in ApiHost, so that the tests start the very same host
+// (section G.13). This file only runs it.
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+using Pawnsmith.Api.Hosting;
 
-WebApplication app = builder.Build();
+WebApplication app = await ApiHost.BuildAsync(args);
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-// Single-page application: any unknown path is handed back to index.html so the
-// client-side router, when there is one, can resolve it.
-app.MapFallbackToFile("index.html");
-
-app.Run();
+await app.RunAsync();

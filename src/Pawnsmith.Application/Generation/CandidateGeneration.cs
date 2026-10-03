@@ -1,5 +1,6 @@
 using Pawnsmith.Application.Blueprints;
 using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Projects;
 using Pawnsmith.Domain.Jobs;
 using Pawnsmith.Domain.PhysicalValues;
 using Pawnsmith.Domain.Projects;
@@ -67,13 +68,20 @@ public sealed class CandidateGeneration
     private readonly IProjectRepository repository;
     private readonly GenerationOptions options;
     private readonly TimeProvider clock;
+    private readonly ProjectWriteGate gate;
 
     /// <param name="clock">Where <c>generatedAt</c> comes from. Injected so a test can pin it.</param>
+    /// <param name="gate">
+    /// The per-project write gate shared with every other writer (DEC-086).
+    /// Without one — the command line, which is the only writer — the batch
+    /// uses a gate of its own, which never waits.
+    /// </param>
     public CandidateGeneration(
         IImageGenerator generator,
         IProjectRepository repository,
         GenerationOptions options,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        ProjectWriteGate? gate = null)
     {
         ArgumentNullException.ThrowIfNull(generator);
         ArgumentNullException.ThrowIfNull(repository);
@@ -83,9 +91,14 @@ public sealed class CandidateGeneration
         this.repository = repository;
         this.options = options;
         this.clock = clock ?? TimeProvider.System;
+        this.gate = gate ?? new ProjectWriteGate();
     }
 
-    /// <summary>Runs the batch to a terminal state.</summary>
+    /// <summary>Validates a batch and runs it to a terminal state, in one call.</summary>
+    /// <remarks>
+    /// <see cref="QueueAsync"/> then <see cref="RunAsync(GenerationBatch, Job, Action{Job}?, CancellationToken)"/>,
+    /// for a caller that has no queue of its own — the command line.
+    /// </remarks>
     /// <param name="batch">What to produce.</param>
     /// <param name="onChange">
     /// Told every new state of the job, in order, synchronously — queued,
@@ -103,26 +116,69 @@ public sealed class CandidateGeneration
         Action<Job>? onChange,
         CancellationToken cancellationToken)
     {
+        Job queued = await QueueAsync(batch, cancellationToken).ConfigureAwait(false);
+        onChange?.Invoke(queued);
+
+        return await RunAsync(batch, queued, onChange, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Validates a batch and returns its job, <c>Queued</c>. Generates nothing.</summary>
+    /// <remarks>
+    /// The refusals come here, before any job exists: a malformed request is
+    /// not a job that fails, it is a job that never existed (§E.4.4). Split
+    /// from the run so that a queue can refuse a request at once and run it
+    /// later (DEC-085).
+    /// </remarks>
+    /// <exception cref="GenerationRuleException"><c>BATCH_SIZE_INVALID</c>.</exception>
+    /// <exception cref="BlueprintRuleException"><c>BLUEPRINT_NOT_FOUND</c>.</exception>
+    public async Task<Job> QueueAsync(GenerationBatch batch, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(batch);
         RequireBatchSize(batch.Seeds.Count);
 
-        // Refusals before the job: a malformed request is not a job that
-        // fails, it is a job that never existed (§E.4.4).
         LoadedProjectResult loaded = await repository
             .LoadAsync(batch.ProjectDirectory, batch.Calibration, cancellationToken)
             .ConfigureAwait(false);
 
-        Blueprint blueprint = BlueprintEditor.Find(loaded.Project, batch.BlueprintId);
-        FrozenClauses clauses = Freeze(batch.FramingClause, blueprint, loaded.Project.Style);
+        BlueprintEditor.Find(loaded.Project, batch.BlueprintId);
 
-        var job = Job.Queue(batch.BlueprintId, batch.Seeds.Count);
-        onChange?.Invoke(job);
+        return Job.Queue(batch.BlueprintId, batch.Seeds.Count);
+    }
 
-        job = job.Start();
+    /// <summary>Runs a queued job to a terminal state.</summary>
+    /// <remarks>
+    /// The clauses are frozen <b>here, when the batch starts</b>, not when it
+    /// was queued: a user who corrects the clause while the batch waits wants
+    /// the correction to count. Which is also why the blueprint is looked for
+    /// again — it may have been deleted while the job waited, and the job then
+    /// ends <c>Failed</c> with <c>BLUEPRINT_NOT_FOUND</c>.
+    /// </remarks>
+    /// <param name="batch">The batch the job was queued for.</param>
+    /// <param name="queued">The job <see cref="QueueAsync"/> returned, still <c>Queued</c>.</param>
+    /// <param name="onChange">Told every state from <c>Running</c> on. See the other overload.</param>
+    /// <param name="cancellationToken">Cancels the batch. What was produced stays.</param>
+    /// <returns>The job, in a terminal state.</returns>
+    public async Task<Job> RunAsync(
+        GenerationBatch batch,
+        Job queued,
+        Action<Job>? onChange,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        ArgumentNullException.ThrowIfNull(queued);
+
+        Job job = queued.Start();
         onChange?.Invoke(job);
 
         try
         {
+            LoadedProjectResult loaded = await repository
+                .LoadAsync(batch.ProjectDirectory, batch.Calibration, cancellationToken)
+                .ConfigureAwait(false);
+
+            Blueprint blueprint = BlueprintEditor.Find(loaded.Project, batch.BlueprintId);
+            FrozenClauses clauses = Freeze(batch.FramingClause, blueprint, loaded.Project.Style);
+
             foreach (ulong seed in batch.Seeds)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -131,7 +187,9 @@ public sealed class CandidateGeneration
                     .GenerateAsync(new GenerationRequest(clauses.Prompt, clauses.Negative, seed), cancellationToken)
                     .ConfigureAwait(false);
 
-                Guid candidateId = await PersistAsync(batch, clauses, seed, image).ConfigureAwait(false);
+                Guid candidateId = await gate
+                    .RunAsync(batch.ProjectDirectory, () => PersistAsync(batch, clauses, seed, image), CancellationToken.None)
+                    .ConfigureAwait(false);
 
                 job = job.RecordProduced(candidateId);
                 onChange?.Invoke(job);
@@ -174,12 +232,13 @@ public sealed class CandidateGeneration
 
     /// <summary>
     /// Reloads the project, writes the image, adds the candidate, saves —
-    /// none of it cancellable.
+    /// none of it cancellable, all of it behind the project's write gate.
     /// </summary>
     /// <remarks>
     /// The cancellation is of the <i>batch</i>, not of the image that has just
     /// cost forty seconds of graphics card. These steps get no token; the next
-    /// round of the loop observes the cancellation.
+    /// round of the loop observes the cancellation. The gate is what makes the
+    /// reload worth something once another writer exists (DEC-086).
     /// </remarks>
     private async Task<Guid> PersistAsync(GenerationBatch batch, FrozenClauses clauses, ulong seed, GeneratedImage image)
     {

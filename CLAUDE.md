@@ -294,17 +294,22 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.15**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.16**, cahier des charges T1
 **v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
-**cahier des charges T4 v1.1**, protocole T0 **v1.4**.
+**cahier des charges T4 v1.1**, **cahier des charges T6 v1.1** (l'API seule),
+protocole T0 **v1.4**.
 
 ### Décisions prises sans toi, à relire en premier
 
-**T4 a été spécifiée et écrite sans ton arbitrage**, dans le régime que tu as
-ouvert pour cette session : une branche par tranche, un commit par tâche, et
-« quand un choix est ouvert, tranche et consigne ». Chaque décision est une
-fiche DEC (DEC-074 à DEC-081) et revient dans le message du commit où elle est
-née. Voici la liste, la plus engageante d'abord.
+**T4 et l'API de T6 ont été spécifiées et écrites sans ton arbitrage**, dans le
+régime que tu as ouvert pour cette session : une branche par tranche, un
+commit par tâche, et « quand un choix est ouvert, tranche et consigne ».
+Chaque décision est une fiche DEC (DEC-074 à DEC-081 pour T4, DEC-082 à
+DEC-089 pour T6) et revient dans le message du commit où elle est née.
+
+#### Pour T4 — branche `claude/charming-babbage-uuft5v`
+
+La plus engageante d'abord.
 
 1. **Le `Job` vit en mémoire et n'est jamais persisté** (DEC-074). Cinq états,
    trois terminaux, un échec arrête le lot. Rien n'est perdu par un
@@ -345,6 +350,44 @@ née. Voici la liste, la plus engageante d'abord.
     `PROJECT_INVALID` levé pendant un lot finirait en `JOB_UNEXPECTED_ERROR`.
 12. **Les graines sont tirées par `Random.Shared`**, pas par une source
     cryptographique : une graine est écrite en clair dans `project.json`.
+
+#### Pour l'API de T6 — branche `claude/t6-api`, partie de T4
+
+1. **Question C fermée : l'export d'un élu désaligné passe outre, et le
+   dit** (DEC-082). Le PDF sort ; le rapport de planche liste l'élu et les
+   clauses qui ont bougé, et dit quand le désalignement est **inconnu** (pas
+   de workflow configuré). Ni blocage, ni confirmation.
+2. **Une erreur d'API rend `{ "code" }` et rien d'autre** (DEC-084). Le
+   message n'est jamais renvoyé : les messages du code contiennent des chemins
+   absolus. Contrepartie : `PROJECT_INVALID` ne dit plus quel champ ; si le
+   front en a besoin, ce sera un champ structuré.
+3. **Un projet s'adresse par son nom de dossier canonique** (DEC-083), jamais
+   par son `projectId`, qui n'est pas unique par décision (DEC-047).
+4. **Un seul lot tourne à la fois**, validé avant la file, registre en
+   mémoire borné à cent jobs terminés (DEC-085). `CandidateGeneration` est
+   scindé en `QueueAsync` / `RunAsync` ; les clauses se figent au démarrage
+   du lot, pas à sa mise en file.
+5. **Une porte d'écriture par projet** (DEC-086), dans l'Application, que
+   franchissent toutes les routes qui écrivent et chaque candidat d'un lot.
+6. **La configuration passe par `appsettings.json` et l'environnement**
+   (DEC-087) ; un générateur mal configuré n'empêche pas de démarrer, une
+   calibration illisible si.
+7. **MEN-010 entre au chapitre 9** (DEC-089) : contrôle d'`Origin` sur toute
+   requête qui écrit, `AllowedHosts` restreint aux noms locaux — **posé par
+   le code** quand le réglage manque, pas seulement par `appsettings.json`.
+8. **Une image n'est servie que si un candidat la référence** (DEC-088).
+9. **Deux réponses n'ont pas la forme `{ code }`** : le `400` d'un `Host`
+   refusé et le `413` d'un corps trop gros, tous deux produits par le serveur
+   lui-même. Assumé et écrit au §G.3.
+10. **Tout corps de requête est borné à 1 Mio**, l'import seul montant à
+    1 Gio — sans quoi une liste de cent millions de graines tenait en mémoire
+    avant d'être refusée (MEN-007).
+11. **Version `0.7.0`, pas `0.6.0`** : DEC-058 attache un mineur à une
+    tranche, et `0.6.0` reste celui de T5, qui n'est pas écrite.
+12. **Les tests de l'API démarrent l'hôte réel** sur `127.0.0.1` et un port
+    libre, sans `Microsoft.AspNetCore.Mvc.Testing` : un paquet de moins.
+13. **Une route `/api` inconnue répond `ROUTE_NOT_FOUND`**, jamais la page
+    du front avec un `200`.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -788,6 +831,60 @@ ci-dessus (« `docker build` n'a jamais tourné ») est donc levée.
   chaque image. L'image jumelée les garde, sans conséquence puisque `Share` la
   retire. **T5 devra réencoder** les moitiés détourées (DEC-079).
 
+### T6, première partie : l'API — code terminé, 10 tâches sur 10
+
+**L'API de T6 est spécifiée** par
+[`docs/pawnsmith-cahier-des-charges-t6.md`](docs/pawnsmith-cahier-des-charges-t6.md)
+v1.1 **et écrite**, sur la branche `claude/t6-api`, partie de la branche de
+T4. **Le front n'est pas commencé** : c'est la seconde partie de T6, hors de
+ce que tu as demandé.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | `CandidateJudgement`, `ProjectWriteGate`, `CandidateGeneration` scindé, `0.7.0` | ✅ |
+| 2 | Dépôt : liste, suppression d'images, ouverture d'une image | ✅ |
+| 3 | `ProjectSheet` : rapport, PDF, question C | ✅ |
+| 4 | Hôte, erreurs, garde d'origine et d'hôte, harnais de tests | ✅ |
+| 5 | Projets | ✅ |
+| 6 | Gabarits, candidats, images | ✅ |
+| 7 | File des lots | ✅ |
+| 8 | Planche | ✅ |
+| 9 | Archives | ✅ |
+| 10 | Documentation | ✅ |
+
+**Les 29 tests de G.13 sont couverts**, et une centaine de plus. Le dépôt
+porte **860 tests verts**. Aucune dépendance ajoutée. `docker build` passe,
+et l'image démarrée répond : projet créé, listé, front servi, `Host` étranger
+refusé.
+
+Le code vit dans `src/Pawnsmith.Api/` (`Hosting/`, `Errors/`, `Contracts/`,
+`Endpoints/`, `Jobs/`), plus `src/Pawnsmith.Application/Projects/`,
+`Sheets/ProjectSheet.cs` et `Blueprints/CandidateJudgement.cs`. Les tests
+sont dans `tests/Pawnsmith.Api.Tests/`, nouveau projet.
+
+#### Ce que ma relecture de T6 a trouvé, et corrigé
+
+- **Le travailleur des lots pouvait mourir.** Un job annulé en file, puis
+  oublié par le registre (borné à cent jobs terminés) avant que le
+  travailleur n'atteigne son identifiant, faisait lever `JOB_NOT_FOUND` dans
+  la boucle : plus aucun lot n'aurait tourné jusqu'au redémarrage. Corrigé,
+  et testé au niveau du registre.
+- **Le filtrage d'hôtes ne tenait qu'à `appsettings.json`.** Trouvé par un
+  test : avec une racine de contenu ailleurs, le fichier n'était pas lu et
+  n'importe quel `Host` passait. La valeur restrictive est désormais posée
+  par le code.
+
+#### Ce qui n'est pas couvert, à connaître
+
+- **Aucun point de terminaison ne supprime un projet** : aucun cas d'usage
+  ne le fait. À écrire avec le front, s'il le demande.
+- **Le doublon de `projectId` à l'import n'est pas arbitré** : l'API
+  l'expose dans la liste, le front posera la question (T2 l'avait renvoyé à
+  T6, et c'est sa partie front).
+- **Le template de T3 écrit « a orc »** : sa tête est `a {race}
+  {characterClass}`. Contenu de `config/`, à reprendre avec le catalogue au
+  premier lot réel.
+
 ### Comment faire tourner les choses
 
 **Produire une planche** — c'est le livrable réel de T1 :
@@ -837,8 +934,8 @@ $CLI candidate generate --path ./data/projects/donjon --id <guid> --count 4 $GEN
 $CLI candidate generate --path ./data/projects/donjon --id <guid> --seed 42 --seed 43 $GEN --calibration ./config/calibration.json
 ```
 
-**Lancer l'application** — elle ne sert encore que la coquille du front, sans
-aucune fonctionnalité : l'interface est T6.
+**Lancer l'application** — l'API de T6 est complète ; le front n'est encore
+qu'une coquille. L'API s'essaie en `curl` (voir le README).
 
 ```bash
 docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 pawnsmith

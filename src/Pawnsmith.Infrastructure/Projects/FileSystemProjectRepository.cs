@@ -40,6 +40,7 @@ public sealed class FileSystemProjectRepository : IProjectRepository
     private readonly ProjectSaver saver;
     private readonly ProjectExporter exporter;
     private readonly ProjectImporter importer;
+    private readonly ProjectRepositoryOptions options;
 
     /// <param name="options">Where projects live, and the resource bounds (DEC-057).</param>
     /// <param name="clock">
@@ -51,6 +52,7 @@ public sealed class FileSystemProjectRepository : IProjectRepository
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        this.options = options;
         creator = new ProjectCreator(options, clock);
         reader = new ProjectReader(options);
         saver = new ProjectSaver(clock);
@@ -96,6 +98,59 @@ public sealed class FileSystemProjectRepository : IProjectRepository
         byte[] png,
         CancellationToken cancellationToken) =>
         ProjectImageFiles.WritePairedAsync(projectDirectory, candidateId, png, cancellationToken);
+
+    public Task<int> DeleteImagesAsync(
+        string projectDirectory,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(ProjectImageFiles.Delete(projectDirectory, relativePaths));
+
+    public Task<Stream?> OpenImageAsync(
+        string projectDirectory,
+        string relativePath,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(ProjectImageFiles.OpenForReading(projectDirectory, relativePath));
+
+    public async Task<IReadOnlyList<ProjectListing>> ListAsync(
+        Calibration calibration,
+        CancellationToken cancellationToken)
+    {
+        string root = Path.GetFullPath(options.ProjectsRoot);
+
+        if (!Directory.Exists(root))
+        {
+            return [];
+        }
+
+        List<ProjectListing> listings = [];
+
+        // Ordinal, for the same reason as everywhere: the order must not depend
+        // on the culture of the process.
+        IEnumerable<DirectoryInfo> folders = new DirectoryInfo(root)
+            .EnumerateDirectories()
+            .Where(folder => folder.LinkTarget is null)
+            .Where(folder => File.Exists(Path.Combine(folder.FullName, ProjectFileWriter.FileName)))
+            .OrderBy(folder => folder.Name, StringComparer.Ordinal);
+
+        foreach (DirectoryInfo folder in folders)
+        {
+            try
+            {
+                LoadedProject loaded = await reader
+                    .LoadAsync(folder.FullName, calibration, cancellationToken)
+                    .ConfigureAwait(false);
+
+                listings.Add(new ProjectListing(folder.Name, folder.FullName, loaded.Project, ErrorCode: null));
+            }
+            catch (ProjectException error)
+            {
+                // Listed, not dropped: a broken project opens to be corrected (DEC-056).
+                listings.Add(new ProjectListing(folder.Name, folder.FullName, Project: null, error.WireCode));
+            }
+        }
+
+        return listings;
+    }
 
     public Task<string> ExportArchiveAsync(
         string projectDirectory,

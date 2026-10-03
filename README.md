@@ -19,11 +19,12 @@ plutôt que d'être interdites de changement (DEC-030).
 > — moteur de mise en page et rendu PDF —, la tranche **T2** — modèle de
 > projet, persistance, archives —, la tranche **T3** — composition de la
 > clause sujet, catalogue, règles de gestion — et la tranche **T4** — client
-> du générateur ComfyUI, lots de candidats — sont écrites. **690 tests verts.**
+> du générateur ComfyUI, lots de candidats — sont écrites, ainsi que l'**API
+> de T6** (sans son front). **860 tests verts.**
 >
-> Il n'y a **pas encore d'interface** : elle est livrée en T6. Ce qui tourne
-> aujourd'hui se pilote **entièrement** par le harnais en ligne de commande de
-> `tools/` : produire une planche PDF, créer un projet, y ajouter des gabarits
+> Il n'y a **pas encore d'interface** : son front est la seconde partie de
+> T6. Ce qui tourne aujourd'hui se pilote par l'**API HTTP** du conteneur, ou
+> par le harnais en ligne de commande de `tools/` : produire une planche PDF, créer un projet, y ajouter des gabarits
 > dont la clause sujet est composée depuis un catalogue, générer des candidats
 > auprès d'un ComfyUI, élire un candidat,
 > tirer la planche du projet, l'exporter en archive, la réimporter. Le
@@ -68,8 +69,10 @@ cd src/Pawnsmith.Web && npm install && npm run dev
 dotnet run --project src/Pawnsmith.Api
 ```
 
-Hors conteneur, l'API sert son propre `wwwroot`, qui est vide : c'est le serveur
-Vite qui affiche le front. Pour vérifier l'assemblage réel — l'API servant le
+En développement, `appsettings.Development.json` fait lire à l'API les dossiers
+du dépôt : `config/` pour la calibration, `data/projects/` pour les projets
+(ignoré par git). Hors conteneur, l'API sert son propre `wwwroot`, qui est
+vide : c'est le serveur Vite qui affiche le front. Pour vérifier l'assemblage réel — l'API servant le
 front compilé, comme en production — passer par le conteneur.
 
 ---
@@ -193,6 +196,47 @@ Les deux volumes sont distincts et le restent : les journaux contiennent des
 prompts, des chemins absolus et l'URL du générateur, et ne doivent jamais
 repartir dans l'archive d'un projet partagé (DEC-022).
 
+### Brancher le générateur
+
+Par variables d'environnement, au mécanisme standard d'ASP.NET (DEC-087) :
+
+```bash
+docker run --rm -p 127.0.0.1:8080:8080 \
+  -e Pawnsmith__Generator__Url=http://192.168.1.20:8188 \
+  -v "$PWD/config/workflow.comfyui.json:/app/config/workflow.comfyui.json:ro" \
+  -v pawnsmith-projects:/app/data/projects -v pawnsmith-logs:/app/data/logs pawnsmith
+```
+
+Sans adresse, la génération n'est pas configurée et tout le reste fonctionne ;
+une adresse ou un workflow refusés laissent l'application démarrer, et
+`GET /api/generator` dit pourquoi. **L'API ne modifie jamais l'adresse du
+générateur** (DEC-081).
+
+### L'API
+
+Le front n'existe pas encore ; l'API, si (T6, première partie). Toutes les
+routes sont sous `/api` et décrites au §G.6 du cahier T6. Une erreur rend
+`{ "code": "…" }` et rien d'autre (DEC-084).
+
+```bash
+API=http://127.0.0.1:8080/api
+
+curl -s $API/configuration
+curl -s -X POST $API/projects -H 'Content-Type: application/json' \
+     -d '{"name":"Donjon","universe":"Fantasy","geometry":"TabAndSocket","paperFormat":"A4"}'
+curl -s -X POST $API/projects/donjon/blueprints -H 'Content-Type: application/json' \
+     -d '{"race":"goblin","characterClass":"skirmisher","size":"Medium","optionalParameters":[{"key":"weapon","value":"spear"}],"details":"","quantity":6}'
+curl -s -X POST $API/projects/donjon/blueprints/<id>/jobs -H 'Content-Type: application/json' -d '{"count":4}'
+curl -s $API/jobs
+curl -s $API/projects/donjon/sheet/report
+curl -s -o planche.pdf "$API/projects/donjon/sheet.pdf?culture=fr"
+```
+
+Une requête qui écrit, envoyée par une page d'une autre origine, est refusée,
+et seuls les noms d'hôte locaux sont acceptés (MEN-010). Pour publier
+l'application sur son réseau, il faut ajouter son nom d'hôte à
+`AllowedHosts` — en connaissance de cause.
+
 ---
 
 ## Structure du dépôt
@@ -207,7 +251,7 @@ pawnsmith/
 │   ├── Pawnsmith.Infrastructure/   # PDFsharp, disque, Serilog    → Application, Domain
 │   ├── Pawnsmith.Api/              # ASP.NET Core, sert le front  → tout
 │   └── Pawnsmith.Web/              # front React + TypeScript (voir son README)
-├── tests/                          # un projet de test par couche testée
+├── tests/                          # un projet de test par couche testée, plus l'API
 ├── tools/Pawnsmith.Cli/            # harnais jetable, non livré
 └── Dockerfile
 ```
