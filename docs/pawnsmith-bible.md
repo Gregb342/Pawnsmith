@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.16 |
+| **Version du document** | 0.17 |
 | **Date** | 3 octobre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
@@ -11,6 +11,8 @@
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
  
+> **Changements depuis la v0.16** — Spécification de la tranche T7 (`pawnsmith-cahier-des-charges-t7.md` v1.0), écrite sans arbitrage du porteur. **DEC-090 à DEC-097** : seuls les bords journalisent, Serilog derrière `ILogger<T>`, l'identifiant de job poussé au point d'appel du cas d'usage ; une ligne JSON par événement, rotation par jour et par taille, rétention par nombre de fichiers ; ni prompt ni corps de requête au journal (**précise le chapitre 8**) ; l'avertissement de MEN-004 et ce qu'un conteneur ne peut pas savoir ; le visualiseur par liste blanche d'énumération ; **MEN-005 étendu à la planche**, trou trouvé par la revue ; **MEN-011** — falsification de journal — entre au chapitre 9 ; et la revue elle-même, dont chaque ligne nomme son test ou son risque accepté.
+
 > **Changements depuis la v0.15** — Spécification de la première partie de T6, l'API (`pawnsmith-cahier-des-charges-t6.md` v1.0), écrite sans arbitrage du porteur. **DEC-082 à DEC-089** : l'export d'un élu désaligné passe outre et le signale (**ferme la question C**) ; un projet s'adresse par son nom de dossier canonique ; une erreur d'API rend un code et rien d'autre, les messages portant des chemins absolus ; les lots sont validés avant la file et un seul tourne à la fois ; les écritures d'un projet passent par une porte par dossier ; la configuration passe par `appsettings.json` et l'environnement ; une image n'est servie que si un candidat la référence ; **MEN-010** — requêtes intersites et rebinding DNS — entre au chapitre 9. La question E est fermée pour sa partie serveur.
  
 > **Changements depuis la v0.14** — Spécification de la tranche T4 (`pawnsmith-cahier-des-charges-t4.md` v1.0), écrite sans arbitrage du porteur, dans le régime « tranche et consigne » ouvert pour cette session. **DEC-074 à DEC-081** : machine à états du `Job` en cinq états, en mémoire seulement (**ferme la question B**) ; un lot fige un prompt pour N graines et sauvegarde chaque candidat dès qu'il existe ; schéma du template de workflow, trois jetons en liste close dont aucun de dimension (**ferme la question F**, corrige le §6.4) ; ce qui part au générateur est exactement le prompt résolu, la clause négative n'est pas figée ; `IPawnPairProducer` n'est pas écrit (**supersède le chapitre 7 et le §4.2** sur ce point) ; la découpe est décidée en T4 et exécutée en T5 ; bornes de la génération en records d'options (**scinde la question G**) ; l'adresse du générateur est un réglage de déploiement, ce qui remplace la liste blanche de ports de MEN-003.
@@ -458,10 +460,11 @@ public interface ISheetRenderer
  
 - **Serilog**, sortie **JSON structurée** (pas du texte : la destination Graylog doit être branchable sans travail de parsing).
 - **Rotation quotidienne** et rétention configurable par nombre de fichiers. Sans rétention, le volume croît indéfiniment.
-- Destination par défaut : le volume `/app/data/logs`, **jamais le dossier du projet**. Les journaux contiennent des prompts, des chemins absolus et l'URL du générateur ; ils ne doivent pas partir avec une archive de projet.
-- Chaque **Job** porte un identifiant, poussé une seule fois en entrée du cas d'usage via `LogContext.PushProperty`. Il n'est jamais passé en paramètre de méthode en méthode.
+- Destination par défaut : le volume `/app/data/logs`, **jamais le dossier du projet**. Les journaux contiennent des chemins absolus, l'URL du générateur et des messages d'erreur qui nomment des projets ; ils ne doivent pas partir avec une archive de projet. Ils ne contiennent **pas de prompt** : DEC-092 l'écarte, le candidat figeant déjà ses clauses.
+- Chaque **Job** porte un identifiant, poussé une seule fois en entrée du cas d'usage via `LogContext.PushProperty`. Il n'est jamais passé en paramètre de méthode en méthode. L'Application ne voyant pas Serilog, l'entrée du cas d'usage est **son point d'appel**, dans l'API (DEC-090).
 - L'interface expose un visualiseur de journaux dans la section configuration. Il lit **uniquement** dans le répertoire de journaux, par liste blanche de noms de fichiers (voir MEN-002).
 - La journalisation est désactivable par configuration.
+- Seuls les **bords** journalisent — démarrage, intergiciel d'erreurs, travailleur des lots ; le domaine et l'Application n'écrivent aucun journal (DEC-090). Format, fichiers et rétention : DEC-091. Le visualiseur : DEC-094.
 ---
  
 ## 9. Sécurité — modèle de menace
@@ -471,15 +474,16 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 | Réf. | Menace | Vecteur | Contre-mesure |
 |---|---|---|---|
 | MEN-001 | **Zip Slip** | Archive importée contenant une entrée `../../` (conséquence directe de DEC-011) | Résoudre le chemin absolu de chaque entrée et vérifier qu'il est bien préfixé par le dossier de destination **avant** écriture. Rejet global de l'archive sinon. |
-| MEN-002 | **Traversée de chemin** | Visualiseur de journaux avec nom de fichier en paramètre | Liste blanche de noms. Jamais de concaténation de chemin depuis une entrée utilisateur. |
+| MEN-002 | **Traversée de chemin** | Visualiseur de journaux avec nom de fichier en paramètre | Liste blanche de noms. Jamais de concaténation de chemin depuis une entrée utilisateur. **Depuis DEC-094** : le dossier est énuméré, seuls les fichiers ordinaires au nom du motif sont retenus, et c'est le chemin de l'énumération qui est ouvert. |
 | MEN-003 | **SSRF** | L'URL du générateur est fournie par l'utilisateur et appelée par le serveur | **Depuis DEC-081** : l'adresse est un réglage de déploiement, jamais modifiable par l'API. Schémas `http` et `https` seulement, ni identifiants, ni requête, ni fragment ; redirections jamais suivies ; proxy jamais utilisé. Pas de liste blanche de ports, qui ne protégerait de rien. Hypothèse de déploiement en réseau de confiance documentée. |
-| MEN-004 | **Exposition réseau** | Application sans authentification publiée sur toutes les interfaces par Docker | Documenter `-p 127.0.0.1:8080:8080` comme forme canonique. Avertissement au démarrage si l'écoute n'est pas locale. |
-| MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. |
+| MEN-004 | **Exposition réseau** | Application sans authentification publiée sur toutes les interfaces par Docker | Documenter `-p 127.0.0.1:8080:8080` comme forme canonique. Avertissement au démarrage si l'écoute n'est pas locale. **Risque accepté** (DEC-093) : un conteneur ne voit pas comment son port est publié ; l'avertissement y est toujours émis, et c'est à l'opérateur de vérifier. |
+| MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage — **et par le rendu de la planche**, qui décode chaque élu (DEC-095) | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. Sur la planche : 8 192 pixels de côté, lus sur l'en-tête. |
 | MEN-006 | **Fuite de secret** | Clé d'API ou identifiants sérialisés dans `project.json` puis partagés | Secrets exclusivement en variables d'environnement. Aucun champ de secret dans le modèle de projet. Test automatisé vérifiant l'absence de secret dans l'export. |
 | MEN-007 | **Consommation de ressources** | Lot de génération de taille non bornée | Plafond configurable du nombre de candidats par lot. Annulation coopérative des jobs. |
 | MEN-008 | **Exfiltration par lien symbolique à l'export** | Un lien symbolique déposé dans le dossier d'un projet et pointant hors de celui-ci — volume des journaux, dossier personnel, `/etc`. L'export le suit et le place dans une archive que l'utilisateur envoie lui-même | Ne jamais suivre un lien : résoudre le chemin absolu et vérifier le préfixe, comme MEN-001 à l'import. L'export **échoue** en nommant le lien plutôt que de l'ignorer. Doublé par la liste blanche de DEC-050, qui n'autorise que des `.png` et des `.pdf` référencés |
 | MEN-009 | **Traversée de chemin par le nom de projet** | `name` est une chaîne libre, issue de l'utilisateur ou d'une archive tierce, et sert à fabriquer le nom du dossier de projet | Translittération vers une liste blanche de caractères, longueur bornée, noms réservés Windows exclus, points et espaces finaux interdits. Vérification que le chemin résolu est sous la racine des projets **avant** toute création. Jamais de concaténation directe, comme l'exige déjà MEN-002 |
 | MEN-010 | **Requête intersite et rebinding DNS** | L'API n'a pas d'authentification (§1.5) et le navigateur de l'utilisateur est sur la boucle locale : une page tierce peut lui faire envoyer un formulaire `POST` vers l'API, ou faire résoudre son propre domaine vers `127.0.0.1` pour devenir de même origine | Une requête autre que `GET`/`HEAD` portant un `Origin` différent de l'hôte est refusée (`CROSS_ORIGIN_REFUSED`). `AllowedHosts` restreint par défaut aux noms locaux, ce qui refuse le `Host` d'un domaine rebindé. Aucun en-tête CORS émis. Voir DEC-089 |
+| MEN-011 | **Falsification de journal** | Un message d'erreur nomme un dossier de projet, dont le nom est un texte libre, venu au besoin d'une archive tierce ; un saut de ligne dans un journal texte fabrique un faux événement | Tenue par le format : une ligne JSON par événement, toute valeur échappée. Le visualiseur rend chaque ligne comme une chaîne, sans l'interpréter. Voir DEC-096 |
  
 ---
  
@@ -1057,6 +1061,38 @@ Conséquence : ce n'est pas un serveur de fichiers statiques sur `images/`, c'es
 Choix : ajouter MEN-010 au chapitre 9. Une requête autre que `GET` ou `HEAD` qui porte un en-tête `Origin` différent de l'hôte de la requête est refusée par `CROSS_ORIGIN_REFUSED`. `AllowedHosts` est restreint par défaut à `localhost`, `127.0.0.1` et `[::1]`. L'API n'émet aucun en-tête CORS ; ses corps sont `application/json` ou `application/zip`.
 Conséquence : MEN-004 publie l'application sur la boucle locale, ce qui la protège du réseau mais pas du navigateur de l'utilisateur, qui est sur la boucle locale et exécute le code de n'importe quel onglet. Un formulaire HTML forgé envoie un `POST` sans vérification préalable — annuler un lot, par exemple ; le contrôle d'origine le refuse. Un domaine tiers résolu vers `127.0.0.1` rend la page et l'API de même origine aux yeux du navigateur, et le contrôle d'origine passe ; c'est l'en-tête `Host`, alors étranger, que le filtrage d'hôtes refuse. Un utilisateur qui publie volontairement l'application sur son réseau ajoute son nom d'hôte, en connaissance de cause. La menace manquait au chapitre 9 pour la raison que DEC-054 a donnée : elle se déduit d'un code qui n'existait pas encore.
 
+**DEC-090 — Seuls les bords journalisent ; Serilog derrière `ILogger<T>`.**
+Choix : le domaine et l'Application n'écrivent aucun journal. Trois bords le font : le démarrage, l'intergiciel d'erreurs, le travailleur des lots. L'API écrit par `ILogger<T>`, l'interface d'ASP.NET ; Serilog en est le seul puits, configuré dans `Infrastructure/Logging` et relié par `Serilog.Extensions.Logging`. L'identifiant de job est poussé par `LogContext.PushProperty` **au point d'appel** du cas d'usage, dans le travailleur. Trois paquets Apache-2.0 : `Serilog`, `Serilog.Sinks.File`, `Serilog.Extensions.Logging`. `Serilog.Formatting.Compact` et `Serilog.AspNetCore` sont écartés.
+Conséquence : un cas d'usage qui échoue le dit déjà par un code et un message ; le journaliser au bord ne perd rien et n'ajoute aucune dépendance aux couches intérieures. Le chapitre 8 demandait que l'identifiant soit poussé « en entrée du cas d'usage » ; l'Application ne voyant pas Serilog, c'est son appelant qui le pousse, une fois, et tout ce qui s'exécute au-dessous le porte par le contexte asynchrone. Les événements du cadre arrivent dans le même fichier que ceux de l'application, au même format.
+
+**DEC-091 — Une ligne JSON par événement ; un fichier par jour et par taille ; rétention par nombre.**
+Choix : le formateur JSON du cœur de Serilog, message rendu, un objet par ligne. Fichiers `pawnsmith-AAAAMMJJ.ndjson`, puis `_001`, `_002`… quand la taille d'un fichier est atteinte. Réglages `Pawnsmith:Logs:Enabled` (vrai), `Directory` (`data/logs`), `RetainedFileCount` (31), `FileSizeLimitBytes` (50 Mio). Désactiver n'écrit aucun fichier ; la console reste réglée par la clé standard d'ASP.NET, et le niveau par `Logging:LogLevel`.
+Conséquence : le volume est borné par construction, environ 1,5 Gio par défaut. Sans passage de taille, le puits cesse d'écrire à la limite — un journal qui se tait le jour où il se passe quelque chose. `.ndjson` plutôt que `.json` : un fichier entier n'est pas un document JSON. Ces valeurs s'arbitrent, elles ne se mesurent pas.
+
+**DEC-092 — Ce qui est journalisé : identifiants, codes, messages ; jamais de prompt ni de corps de requête.**
+Choix : démarrage (version, dossiers, état du générateur et message d'un refus) ; erreurs de requête (méthode, chemin sans requête, code, statut, message ; l'exception entière pour une erreur sans code) ; lots (début, fin, code et message d'un échec), chaque événement portant `JobId`. Un démarrage impossible écrit une ligne `Fatal` avant de s'arrêter. Ni prompt, ni clause, ni paramètre, ni corps de requête.
+Conséquence : précise le chapitre 8, qui citait les prompts parmi ce qu'un journal contient. Le candidat fige ses trois clauses dans `project.json` (DEC-049) ; une copie au journal serait du texte d'utilisateur de plus, dans un endroit plus difficile à effacer, sans rien apprendre de plus. Le message que DEC-084 refuse à la réponse trouve ici sa destination.
+
+**DEC-093 — MEN-004 : l'avertissement au démarrage, et ce qu'un conteneur ne peut pas savoir.**
+Choix : une fois le serveur démarré, chaque adresse d'écoute hors boucle locale (`localhost`, `127.0.0.0/8`, `::1`) produit un `Warning` qui la nomme. En conteneur — reconnu à `DOTNET_RUNNING_IN_CONTAINER` —, le texte rappelle `-p 127.0.0.1:8080:8080` et demande de vérifier la publication.
+Conséquence : un conteneur écoute forcément sur toutes ses interfaces, et ne voit pas comment son port est publié sur l'hôte. L'avertissement y est donc toujours émis. C'est écrit comme risque accepté de MEN-004 : l'application ne peut pas vérifier ce que seul l'opérateur décide, elle peut seulement le lui rappeler à chaque démarrage, en disant vrai.
+
+**DEC-094 — Le visualiseur : liste blanche par énumération, lecture bornée par la fin.**
+Choix : `GET /api/logs` liste les journaux ; `GET /api/logs/{name}?lines=N` rend les `N` dernières lignes (500 par défaut, 5 000 au plus), chacune comme une chaîne, en lisant au plus 4 Mio depuis la fin. Le dossier est énuméré ; seuls les fichiers ordinaires au nom du motif sont retenus ; le nom demandé doit égaler l'un d'eux en ordinal, et c'est le chemin de l'énumération qui est ouvert. Tout autre nom rend `404 LOG_NOT_FOUND`. Une dernière ligne inachevée n'est pas rendue. L'API appelle l'infrastructure directement, sans port.
+Conséquence : MEN-002 est tenu sans aucune concaténation, et un lien symbolique au nom valide est écarté comme MEN-008 l'exige à l'export. Un journal de plusieurs dizaines de mégaoctets ne se charge jamais en entier. Un port dans l'Application serait une abstraction sans règle à porter.
+
+**DEC-095 — MEN-005 s'applique à la planche : 8 192 pixels de côté, lus sur l'en-tête.**
+Choix : `FileImageSizeReader`, qui lit déjà l'en-tête de chaque élu avant le rendu, refuse une image dont un côté dépasse 8 192 pixels, par `SHEET_INPUT_INVALID`. La valeur est `MaxImageDimensionPx` de T4.
+Conséquence : le rendu de la planche décode chaque élu, et depuis T6 ce décodage est à une requête HTTP d'un PNG importé de quelques kilo-octets annonçant des dizaines de milliers de pixels. Le chapitre 9 ne citait que le détourage comme décodeur ; le lecteur renvoyait les plafonds à T5, qui n'est pas écrite. Une image légitime ne dépasse jamais la borne du générateur. Reste un risque accepté : une planche de nombreuses images à la borne tient autant d'images décodées en mémoire ; le borner demanderait un plafond de planche que rien ne fonde aujourd'hui.
+
+**DEC-096 — MEN-011 : la falsification de journal, tenue par le format.**
+Choix : ajouter MEN-011 au chapitre 9. La contre-mesure est le format de DEC-091 — toute valeur est une chaîne JSON échappée, un événement occupe exactement une ligne — et le visualiseur, qui rend chaque ligne comme une chaîne sans l'interpréter.
+Conséquence : un nom de projet est un texte libre, venu au besoin d'une archive tierce, et les messages d'erreur le citent. Dans un journal texte, un saut de ligne y fabriquerait un événement que l'application n'a jamais écrit. La menace est née de T7 — elle n'existait pas tant que rien n'était journalisé — et c'est la règle de DEC-054 : une menace se déduit d'un code qui existe.
+
+**DEC-097 — La revue du chapitre 9 : chaque ligne nomme son test ou son risque accepté.**
+Choix : le §H.7.1 du cahier T7 dresse, pour MEN-001 à MEN-011, le test qui tient chaque menace et le risque accepté qui reste. Le critère du chapitre 12, écrit pour MEN-001 à MEN-007, est étendu à toutes les lignes. Le tableau se rouvre à chaque tranche qui ouvre une surface : T5 pour MEN-005, le front de T6 pour MEN-010 côté navigateur.
+Conséquence : une menace sans test nommé n'est pas couverte, elle est espérée. La revue a trouvé un trou réel (DEC-095) et une menace nouvelle (DEC-096) ; c'est ce qu'elle doit faire, et pourquoi elle ne peut pas être faite une seule fois à la fin.
+
 ---
  
 ## 12. Découpage en tranches
@@ -1134,6 +1170,8 @@ Scindée en deux. La **première partie, l'API**, est spécifiée par le cahier 
 ### T7 — Observabilité et durcissement
  
 Serilog, visualiseur de journaux, rotation et rétention, revue complète du chapitre 9.
+
+Spécifiée par le cahier des charges T7 (`pawnsmith-cahier-des-charges-t7.md`), dont le §H.9 fait foi. Le visualiseur y est écrit **côté API** ; son écran appartient au front de T6.
  
 **Critères d'acceptation** : chaque menace MEN-001 à MEN-007 est soit couverte par un test, soit explicitement documentée comme risque accepté.
  
