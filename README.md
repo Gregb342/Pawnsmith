@@ -20,7 +20,8 @@ plutôt que d'être interdites de changement (DEC-030).
 > projet, persistance, archives —, la tranche **T3** — composition de la
 > clause sujet, catalogue, règles de gestion — et la tranche **T4** — client
 > du générateur ComfyUI, lots de candidats — sont écrites, ainsi que l'**API
-> de T6** (sans son front). **860 tests verts.**
+> de T6** (sans son front) et la tranche **T7** — journaux, visualiseur côté
+> API, revue du modèle de menace. **928 tests verts.**
 >
 > Il n'y a **pas encore d'interface** : son front est la seconde partie de
 > T6. Ce qui tourne aujourd'hui se pilote par l'**API HTTP** du conteneur, ou
@@ -35,8 +36,10 @@ Voir [`docs/pawnsmith-bible.md`](docs/pawnsmith-bible.md) pour la vision, le
 modèle de données et le **journal des décisions**, qui fait foi ; les cahiers
 des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md),
 [T2](docs/pawnsmith-cahier-des-charges-t2.md),
-[T3](docs/pawnsmith-cahier-des-charges-t3.md) et
-[T4](docs/pawnsmith-cahier-des-charges-t4.md) pour les spécifications
+[T3](docs/pawnsmith-cahier-des-charges-t3.md),
+[T4](docs/pawnsmith-cahier-des-charges-t4.md),
+[T6](docs/pawnsmith-cahier-des-charges-t6.md) et
+[T7](docs/pawnsmith-cahier-des-charges-t7.md) pour les spécifications
 détaillées.
 
 ---
@@ -193,8 +196,35 @@ L'application est alors sur <http://127.0.0.1:8080>.
 > reverse proxy assurant lui-même l'authentification. (MEN-004)
 
 Les deux volumes sont distincts et le restent : les journaux contiennent des
-prompts, des chemins absolus et l'URL du générateur, et ne doivent jamais
-repartir dans l'archive d'un projet partagé (DEC-022).
+chemins absolus, l'URL du générateur et des messages d'erreur qui nomment vos
+projets, et ne doivent jamais repartir dans l'archive d'un projet partagé
+(DEC-022).
+
+En conteneur, Pawnsmith écrit à chaque démarrage un **avertissement** sur
+son adresse d'écoute : un conteneur écoute forcément sur toutes ses
+interfaces, et ne peut pas voir comment son port est publié. L'avertissement
+vous demande de vérifier la publication ; avec la commande ci-dessus, elle est
+bonne (DEC-093).
+
+### Les journaux
+
+Une ligne JSON par événement, dans `/app/data/logs` : un fichier par jour,
+`pawnsmith-AAAAMMJJ.ndjson`, un de plus tous les 50 Mio, les 31 plus récents
+gardés (DEC-091). Aucun prompt n'y est écrit exprès (DEC-092).
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `Pawnsmith__Logs__Enabled` | `true` | `false` : aucun fichier écrit. La console d'ASP.NET reste réglée par `Logging__Console__LogLevel__Default` |
+| `Pawnsmith__Logs__RetainedFileCount` | `31` | Nombre de fichiers gardés |
+| `Pawnsmith__Logs__FileSizeLimitBytes` | `52428800` | Taille d'un fichier avant le suivant |
+| `Logging__LogLevel__Default` | `Information` | Niveau, pour la console comme pour les fichiers |
+
+Le visualiseur de l'interface viendra avec le front ; l'API le sert déjà :
+
+```bash
+curl -s http://127.0.0.1:8080/api/logs
+curl -s "http://127.0.0.1:8080/api/logs/pawnsmith-20261003.ndjson?lines=50"
+```
 
 ### Brancher le générateur
 

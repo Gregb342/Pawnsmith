@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 3 octobre 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.17 — chapitres 8, 9, 11 et 12 en particulier |
 | **Documents frères** | les cahiers T1 à T4 et T6 (parties B à E, et G), dont ce document reprend la forme |
 | **Portée** | La journalisation, le visualiseur de journaux **côté API**, et la revue complète du chapitre 9. Pas le front |
+
+> **Changements depuis la v1.0** — Écriture de la tranche et sa relecture. Le pont de Serilog ajoutait un filtre qui laissait passer tous les niveaux vers les fichiers, au mépris de `Logging:LogLevel` ; le fournisseur est enregistré à la main (H.3.2). Deux défauts de T4 et T6 corrigés, que la journalisation rendait réels : l'adresse d'un générateur dont le workflow est refusé était gardée sans vérification, identifiants compris ; et les refus d'adresse répétaient le texte brut, secrets compris (H.4.1). Trois risques acceptés de plus, écrits en H.4.4 et H.7.1 : un refus de ComfyUI peut citer un fragment de prompt ; un lien dur ou un échange de fichier dans le dossier des journaux ; les droits des fichiers de journal. Un `%00` dans un nom de journal est refusé par Kestrel lui-même, avant toute route.
 
 > **Régime d'écriture.** Comme T4 et T6, ce document a été écrit et tranché **sans arbitrage du porteur**. Chaque décision est une fiche du chapitre 11 (DEC-090 à DEC-097), reprise au §8 de `CLAUDE.md` sous « Décisions prises sans toi ».
 
@@ -103,7 +105,7 @@ Les fichiers portent l'extension **`.ndjson`** (*newline-delimited JSON*) et non
 - **Un fichier par jour** : `pawnsmith-20261003.ndjson`. Un jour qui dépasse la taille d'un fichier continue dans `pawnsmith-20261003_001.ndjson`, puis `_002`… Sans ce passage, le comportement par défaut du puits est de **cesser d'écrire** une fois la taille atteinte — un journal qui se tait le jour où il se passe quelque chose.
 - **La rétention compte les fichiers**, comme le chapitre 8 le demande. Le volume est donc borné par construction : au plus 31 × 50 Mio, soit environ 1,5 Gio. Un jour bavard peut évincer des jours plus anciens ; c'est le prix d'une borne qui tient.
 - **Désactiver coupe les fichiers, pas la console.** La sortie console d'ASP.NET reste réglée par la clé standard `Logging:Console:LogLevel:Default`, que tout opérateur .NET connaît ; `None` la coupe. Une console n'est pas un journal sur disque de l'application, et le conteneur en gère la rétention lui-même.
-- Le **niveau** est celui d'ASP.NET, `Logging:LogLevel` : un seul réglage pour la console et les fichiers. Par défaut `Information`, `Microsoft.AspNetCore` à `Warning`.
+- Le **niveau** est celui d'ASP.NET, `Logging:LogLevel` : un seul réglage pour la console et les fichiers. Par défaut `Information`, `Microsoft.AspNetCore` à `Warning`. Le fournisseur Serilog est donc enregistré **à la main** : l'extension `AddSerilog` du paquet y ajoute un filtre propre à son fournisseur, qui l'emporte sur `Logging:LogLevel` et laissait passer tous les niveaux.
 
 Ces valeurs **s'arbitrent**, elles ne se mesurent pas (comme celles de DEC-051) : la règle des valeurs physiques ne s'y applique pas.
 
@@ -116,6 +118,8 @@ Ces valeurs **s'arbitrent**, elles ne se mesurent pas (comme celles de DEC-051) 
 ### H.4.1 Le démarrage
 
 Une ligne `Information` qui dit ce que le processus a lu : version, racine des projets, dossier de configuration, dossier des journaux, état du générateur et son adresse. Un générateur **mal configuré** y ajoute une ligne `Warning` portant le code **et le message** du refus — le message que `GET /api/generator` ne rend pas.
+
+**Ce message ne répète jamais un secret.** Un refus d'adresse ne cite au plus que `schéma://hôte:port/chemin`, sans identifiants, requête ni fragment, et rien du tout quand le texte n'a pas pu être lu comme une adresse. Une adresse n'est montrée — par `GET /api/generator` comme au journal — que si elle passe elle-même les règles de DEC-081, y compris quand c'est le workflow qui a été refusé et que l'adresse n'a jamais été examinée.
 
 Une calibration, un catalogue ou un template illisible empêche de démarrer (§G.2.2). Ce refus est écrit au journal, niveau `Fatal`, **avant** que le processus ne s'arrête : c'est la ligne qu'on vient chercher quand le conteneur redémarre en boucle.
 
@@ -140,6 +144,8 @@ Le **chemin** de la requête est journalisé, pas sa **requête** (`?…`) ni so
 ### H.4.4 Ce qui n'est jamais journalisé exprès
 
 **Ni prompt, ni clause, ni paramètre, ni corps de requête.** Le chapitre 8 cite les prompts parmi ce qu'un journal contient ; c'était une prudence — un journal *peut* en contenir —, pas un programme. Le candidat fige déjà ses trois clauses dans `project.json` (DEC-049) : un prompt au journal serait une seconde copie de texte d'utilisateur, dans un endroit plus difficile à effacer, sans rien apprendre de plus. Les journaux portent des **identifiants**, des **codes** et des **messages d'erreur** — qui, eux, peuvent nommer un dossier de projet, donc le nom que l'utilisateur lui a donné.
+
+**Une exception connue, acceptée.** Un refus de ComfyUI cite le début de sa réponse d'erreur (§E.7), et ComfyUI peut y reprendre une valeur du workflow soumis : un fragment de prompt peut donc atteindre le journal par un lot en échec. Ce n'est pas exprès, c'est la seule voie connue, et filtrer le texte d'un tiers serait plus fragile que l'admettre.
 
 À consigner en **DEC-092**.
 
@@ -206,8 +212,8 @@ Le critère d'acceptation de T7 au chapitre 12 : « chaque menace MEN-001 à MEN
 | Menace | Tenue par | Risque accepté |
 |---|---|---|
 | **MEN-001** Zip slip | `ArchiveInspectorTests` (entrées `../`, absolues, doublons de casse), `ProjectImageFilesTests` | Les deux contrôles doublés de DEC-051 à l'extraction sont inatteignables tant que l'inspection refuse les doublons ; gardés parce que la fiche les demande |
-| **MEN-002** Traversée, visualiseur | `LogRoutesTests` (H.8, n° 11 à 14) ; et la même règle pour les images (`BlueprintRoutesTests`, DEC-088) | — |
-| **MEN-003** SSRF | `GeneratorCheckTests` (adresse refusée : schéma, identifiants, requête, fragment ; redirection non suivie) | Hypothèse de déploiement en réseau de confiance, documentée (DEC-081) : l'opérateur choisit l'adresse |
+| **MEN-002** Traversée, visualiseur | `LogRoutesTests` (H.8, n° 11 à 14) ; et la même règle pour les images (`BlueprintRoutesTests`, DEC-088) | Qui peut écrire dans le dossier des journaux peut y déposer un **lien dur**, ou échanger un fichier entre l'énumération et l'ouverture : seuls les liens symboliques sont écartés. Écrire dans ce dossier, c'est déjà tenir la machine. Les fichiers prennent les droits du processus, comme les projets |
+| **MEN-003** SSRF | `GeneratorCheckTests` (adresse refusée : schéma, identifiants, requête, fragment ; redirection non suivie ; un refus ne répète aucun secret) ; `StartupLogTests` (adresse à identifiants ni montrée ni journalisée) | Hypothèse de déploiement en réseau de confiance, documentée (DEC-081) : l'opérateur choisit l'adresse |
 | **MEN-004** Exposition réseau | `StartupLogTests` (H.8, n° 8 et 9) ; forme canonique dans le `Dockerfile` et le README | **En conteneur, l'application ne peut pas vérifier la publication de son port** (H.5) : l'avertissement est toujours émis, et c'est à l'opérateur de vérifier |
 | **MEN-005** Image non fiable | Génération : `GeneratorGenerationTests` (taille et dimensions bornées avant écriture). Planche : `FileImageSizeReaderTests` (H.8, n° 18) — **trou bouché par T7**, H.7.2. Archive : bornes de C.9.3 | Le décodage du détourage est **T5**, et son critère reste le sien. Une planche de nombreuses images, chacune à la borne, tient en mémoire autant d'images décodées (H.7.2) |
 | **MEN-006** Fuite de secret | `ProjectExporterTests` (liste blanche **exhaustive**, DEC-050) ; aucun champ de secret dans le modèle | — |
@@ -273,6 +279,8 @@ Les tests d'API démarrent l'hôte réel, comme en T6, et **lisent les fichiers 
 | 18 | MEN-005 : une image de plus de 8 192 pixels de côté est refusée sur son en-tête ; 8 192 passe |
 | 19 | La planche d'un projet dont l'élu dépasse la borne rend `422 SHEET_INPUT_INVALID` |
 | 20 | Un démarrage impossible (calibration illisible) écrit une ligne `Fatal` |
+
+S'y ajoutent, nés de l'écriture : les niveaux `Debug` et `Verbose` absents des fichiers au réglage par défaut ; le refus d'une rétention ou d'une taille nulles par le nom du réglage ; la liste quand la journalisation est coupée ; un `%00` refusé par le serveur ; un fichier plus grand que la fenêtre de lecture, qui ne rend que des lignes entières ; une adresse à identifiants ni montrée ni journalisée ; et six adresses refusées dont aucun refus ne répète le secret.
 
 ---
 
