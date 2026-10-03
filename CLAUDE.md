@@ -730,7 +730,7 @@ puis un commit par tâche. Elle se relit d'une traite avec
 | 10 | CLI `generator check` et `candidate generate`, documentation | ✅ |
 
 **Les 42 tests de E.12 sont couverts**, et une trentaine de plus. Le dépôt
-porte **681 tests verts**. Aucune dépendance ajoutée : le faux serveur
+porte **690 tests verts**. Aucune dépendance ajoutée : le faux serveur
 ComfyUI est un serveur HTTP écrit à la main sur une socket, les images de test
 sont des PNG fabriqués en code (zlib du framework, CRC écrit à la main), et
 les faux d'Application sont deux classes lisibles. Aucun binaire commité.

@@ -19,7 +19,7 @@ plutôt que d'être interdites de changement (DEC-030).
 > — moteur de mise en page et rendu PDF —, la tranche **T2** — modèle de
 > projet, persistance, archives —, la tranche **T3** — composition de la
 > clause sujet, catalogue, règles de gestion — et la tranche **T4** — client
-> du générateur ComfyUI, lots de candidats — sont écrites. **681 tests verts.**
+> du générateur ComfyUI, lots de candidats — sont écrites. **690 tests verts.**
 >
 > Il n'y a **pas encore d'interface** : elle est livrée en T6. Ce qui tourne
 > aujourd'hui se pilote **entièrement** par le harnais en ligne de commande de
