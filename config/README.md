@@ -1,6 +1,6 @@
 # `config/`
 
-Trois fichiers de données, tous lus par l'application et jamais écrits par
+Quatre fichiers de données, tous lus par l'application et jamais écrits par
 elle. Ils se modifient à la main. Le lecteur tolère les commentaires `//` et
 les virgules finales, et **ignore les champs qu'il ne connaît pas** — on peut
 les annoter sans les casser (§C.6.3). Les fichiers livrés restent en JSON
@@ -66,3 +66,48 @@ qui permet de partager un projet avec quelqu'un dont le catalogue diffère.
 
 Le contenu livré est un **point de départ**, à enrichir à l'usage. C'est du
 contenu, pas du code : l'améliorer ne demande aucune recompilation (DEC-010).
+
+## `workflow.comfyui.json` — et son exemple
+
+Le **graphe de workflow ComfyUI** que l'application soumet pour chaque candidat,
+et la **clause de cadrage** qui part avec (§E.5 du cahier T4, DEC-076). C'est le
+seul endroit où la clause de cadrage se modifie (DEC-029).
+
+> ⚠️ **Le dépôt ne livre qu'un exemple, `workflow.comfyui.example.json`, à
+> remplacer par le workflow exporté de ta machine.** Il est construit d'après
+> les paramètres de DEC-043 et **n'a jamais été soumis à un ComfyUI réel** : les
+> types de nœuds y sont plausibles, pas vérifiés. L'application ne retombe jamais
+> dessus ; sans `workflow.comfyui.json`, la génération n'est pas configurée.
+
+Pour fabriquer le vrai fichier :
+
+1. dans ComfyUI, ouvrir le workflow validé en T0a, et l'exporter avec
+   **Export (API)** — pas l'export ordinaire, dont le format (`nodes`, `links`)
+   est refusé ;
+2. remplacer trois valeurs par trois jetons : le texte du prompt positif par
+   `"{{POSITIVE}}"`, la graine de l'échantillonneur par `"{{SEED}}"`, et, s'il y
+   en a un, le texte du prompt négatif par `"{{NEGATIVE}}"` ;
+3. envelopper le graphe dans le schéma ci-dessous, et enregistrer sous
+   `config/workflow.comfyui.json`.
+
+| Clé | Rôle |
+|---|---|
+| `versionSchema` | Vaut `1`. |
+| `framingClause` | La clause de cadrage, **en tableau de lignes**, jointes par un saut de ligne. Elle part en tête de chaque prompt, avant le sujet et le style. |
+| `outputNodeId` | L'identifiant du nœud dont l'image est rapatriée — en général le `SaveImage`. Il doit rendre **une seule** image. |
+| `workflow` | Le graphe exporté, avec ses jetons. |
+
+Règles des jetons, toutes vérifiées au démarrage :
+
+- **trois jetons seulement**. `{{POSITIVE}}` et `{{SEED}}` exactement une fois,
+  `{{NEGATIVE}}` au plus une fois. Tout autre `{{…}}` fait refuser le fichier en
+  le nommant ;
+- **un jeton est une valeur entière** : `"text": "{{POSITIVE}}"` et non
+  `"text": "{{POSITIVE}}, masterpiece"`. Ce qui part au modèle doit être
+  exactement le prompt que le candidat retient (DEC-049) ;
+- **les dimensions ne sont pas des jetons** : on les écrit dans le graphe,
+  directement. La découpe lit celles de l'image reçue.
+
+**Modifier `framingClause` désaligne tous les candidats de tous les projets** :
+c'est le comportement correct, le cadrage a changé (DEC-049). Changer le nombre
+d'étapes ou le modèle dans le graphe, en revanche, ne désaligne rien (DEC-077).

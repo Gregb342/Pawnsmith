@@ -263,7 +263,7 @@ Le workflow réel du porteur n'est pas dans le dépôt, et ne doit pas y être :
 
 Le prompt de référence de DEC-043 plaçait la ligne `Subject: {SUJET}` **au milieu** du texte de cadrage. L'assemblage de T2, lui, est fixé — cadrage, sujet, style, dans cet ordre (§C.5.3) — et c'est une surface de compatibilité sous fiche. Le cadrage de l'exemple porte donc tout le texte de référence d'un seul tenant, et le sujet vient **après**.
 
-Ce n'est pas le prompt que T0a a validé. L'effet de l'ordre sur un encodeur Qwen3-VL est probablement faible, mais il n'est pas mesuré. **À vérifier au premier lot réel**, sur un des trois sujets de T0a, avant de juger quoi que ce soit d'autre. Si l'ordre dégrade le résultat, la réponse n'est pas de changer l'assemblage — ce qui désalignerait tout — mais de réécrire le texte de cadrage pour qu'il se lise bien suivi du sujet.
+L'exemple termine sa clause de cadrage par la ligne `Subject:`, si bien que le sujet arrive sur la ligne suivante, étiqueté comme dans T0a. Ce n'est pas pour autant le prompt que T0a a validé : tout le texte qui suivait le sujet le précède désormais. L'effet de l'ordre sur un encodeur Qwen3-VL est probablement faible, mais il n'est pas mesuré. **À vérifier au premier lot réel**, sur un des trois sujets de T0a, avant de juger quoi que ce soit d'autre. Si l'ordre dégrade le résultat, la réponse n'est pas de changer l'assemblage — ce qui désalignerait tout — mais de réécrire le texte de cadrage pour qu'il se lise bien suivi du sujet.
 
 À consigner en **DEC-076**, qui ferme la question F du chapitre 16.
 

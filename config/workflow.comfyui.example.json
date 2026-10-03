@@ -1,0 +1,100 @@
+{
+  "_readme": "EXAMPLE ONLY - A REMPLACER PAR LE WORKFLOW EXPORTE DE TA MACHINE. Built from the parameters recorded in DEC-043, never submitted to a real ComfyUI: node types and file names are plausible, not verified. Export your own workflow with 'Export (API)', put the three tokens in place, wrap it in this schema and save it as config/workflow.comfyui.json. See config/README.md and section E.5 of the T4 specification.",
+  "versionSchema": 1,
+  "framingClause": [
+    "Character rotation sheet for a miniature reference: the exact same character",
+    "drawn twice in one single image, front view on the left and back view on the",
+    "right, side by side in one horizontal row, both figures resting on the same",
+    "horizontal ground line, exactly the same height and exactly the same scale,",
+    "each view occupying a tall narrow portrait panel.",
+    "Both views are the identical character: identical armour, identical clothing,",
+    "identical colour palette, identical weapon, identical proportions. The right",
+    "figure is that same character seen strictly from behind.",
+    "Full body from head to feet, the feet touching the bottom edge of the image,",
+    "nothing cropped.",
+    "Compact narrow silhouette: strict straight standing pose, arms hanging straight",
+    "down and held close against the sides, any weapon held vertically flat against",
+    "the body, any cape or cloak hanging straight down against the back. Nothing",
+    "extends sideways beyond the shoulders: no outstretched arms, no horizontal",
+    "weapon, no spread or flowing cape.",
+    "Flat uniform pale grey background, completely plain and even, no scenery, no",
+    "ground plane, no cast shadow, no drop shadow, soft even diffuse lighting, crisp",
+    "clean outlines suitable for automatic cutout. Clean digital illustration, clear",
+    "readable shapes.",
+    "Subject:"
+  ],
+  "outputNodeId": "9",
+  "workflow": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "krea2_turbo_fp8_scaled.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+        "type": "qwen_image"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "qwen_image_vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "{{POSITIVE}}",
+        "clip": ["2", 0]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "{{NEGATIVE}}",
+        "clip": ["2", 0]
+      }
+    },
+    "6": {
+      "class_type": "EmptySD3LatentImage",
+      "inputs": {
+        "width": 1216,
+        "height": 832,
+        "batch_size": 1
+      }
+    },
+    "7": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": "{{SEED}}",
+        "steps": 8,
+        "cfg": 1.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0,
+        "model": ["1", 0],
+        "positive": ["4", 0],
+        "negative": ["5", 0],
+        "latent_image": ["6", 0]
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": ["7", 0],
+        "vae": ["3", 0]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "pawnsmith",
+        "images": ["8", 0]
+      }
+    }
+  }
+}
