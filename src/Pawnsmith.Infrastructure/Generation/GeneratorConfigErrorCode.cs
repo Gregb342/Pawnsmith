@@ -1,3 +1,5 @@
+using Pawnsmith.Application;
+
 namespace Pawnsmith.Infrastructure.Generation;
 
 /// <summary>
@@ -49,7 +51,7 @@ public static class GeneratorConfigErrorCodeExtensions
 }
 
 /// <summary>A generator configuration that cannot be used, with its code and message.</summary>
-public sealed class GeneratorConfigException : Exception
+public sealed class GeneratorConfigException : Exception, ICodedException
 {
     public GeneratorConfigException(GeneratorConfigErrorCode code, string message)
         : base(message)

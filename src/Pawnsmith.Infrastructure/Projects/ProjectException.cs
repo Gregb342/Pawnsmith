@@ -1,3 +1,5 @@
+using Pawnsmith.Application;
+
 namespace Pawnsmith.Infrastructure.Projects;
 
 /// <summary>
@@ -17,7 +19,7 @@ namespace Pawnsmith.Infrastructure.Projects;
 /// T1 readers that nothing asks for.
 /// </para>
 /// </remarks>
-public sealed class ProjectException : Exception
+public sealed class ProjectException : Exception, ICodedException
 {
     public ProjectException(ProjectErrorCode code, string message)
         : base(message)

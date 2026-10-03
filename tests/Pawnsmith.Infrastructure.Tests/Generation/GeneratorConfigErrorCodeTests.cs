@@ -1,4 +1,7 @@
+using Pawnsmith.Application;
 using Pawnsmith.Infrastructure.Generation;
+using Pawnsmith.Infrastructure.Projects;
+using Pawnsmith.Infrastructure.Prompts;
 
 namespace Pawnsmith.Infrastructure.Tests.Generation;
 
@@ -24,5 +27,21 @@ public class GeneratorConfigErrorCodeTests
     public void TheWireStringsAreThoseOfE11(GeneratorConfigErrorCode code, string wire)
     {
         code.ToWireCode().ShouldBe(wire);
+    }
+
+    [Fact]
+    public void EveryCodedExceptionOfInfrastructureExposesItsCodeToApplication()
+    {
+        // The batch reads the code of what stopped it through ICodedException
+        // (E.11). An Infrastructure exception that forgot the interface would
+        // end a job with JOB_UNEXPECTED_ERROR instead of its own code.
+        ICodedException[] errors =
+        [
+            new ProjectException(ProjectErrorCode.Invalid, "broken"),
+            new PromptFileException(PromptFileErrorCode.CatalogInvalid, "broken"),
+            new GeneratorConfigException(GeneratorConfigErrorCode.WorkflowInvalid, "broken"),
+        ];
+
+        errors.Select(error => error.WireCode).ShouldBe(["PROJECT_INVALID", "CATALOG_INVALID", "WORKFLOW_INVALID"]);
     }
 }

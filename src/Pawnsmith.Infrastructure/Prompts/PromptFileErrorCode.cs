@@ -1,3 +1,5 @@
+using Pawnsmith.Application;
+
 namespace Pawnsmith.Infrastructure.Prompts;
 
 /// <summary>
@@ -52,7 +54,7 @@ public static class PromptFileErrorCodeExtensions
 }
 
 /// <summary>A catalogue or template file that cannot be used, with its code and message.</summary>
-public sealed class PromptFileException : Exception
+public sealed class PromptFileException : Exception, ICodedException
 {
     public PromptFileException(PromptFileErrorCode code, string message)
         : base(message)
