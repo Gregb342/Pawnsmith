@@ -122,6 +122,8 @@ public static class ApiHost
             provider.GetRequiredService<IImageSizeReader>(),
             directory => new PdfSharpSheetRenderer(directory)));
 
+        services.AddSingleton<BlueprintEndpoints.Edit>();
+
         services.ConfigureHttpJsonOptions(options =>
         {
             // Enumerations by name, never by rank (§G.4): a rank changes when a
@@ -154,6 +156,7 @@ public static class ApiHost
 
         ReferenceEndpoints.Map(app);
         ProjectEndpoints.Map(app);
+        BlueprintEndpoints.Map(app);
 
         // An /api route that does not exist answers with a code, not with the
         // page of the front: a client calling a wrong route must not receive
