@@ -1,0 +1,160 @@
+using Pawnsmith.Application.Ports;
+using Pawnsmith.Domain.Primitives;
+using Pawnsmith.Domain.Projects;
+using Pawnsmith.Domain.Prompts;
+
+namespace Pawnsmith.Api.Contracts;
+
+/// <summary>A project as the API shows it, with what it says about itself and its derived values.</summary>
+/// <param name="Folder">How the API addresses it (DEC-083).</param>
+/// <param name="Diagnostics">What does not match this machine — kind and field, never a message (DEC-084).</param>
+/// <param name="MisalignmentKnown">False when no workflow is configured: misalignment is then unknown, not absent (§G.4).</param>
+public sealed record ProjectDto(
+    string Folder,
+    Guid ProjectId,
+    string Name,
+    Universe Universe,
+    Geometry Geometry,
+    string PaperFormat,
+    StyleDto Style,
+    OverridesDto CalibrationOverrides,
+    IReadOnlyList<BlueprintDto> Blueprints,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset ModifiedAt,
+    IReadOnlyList<DiagnosticDto> Diagnostics,
+    bool MisalignmentKnown);
+
+public sealed record StyleDto(string Name, string StyleClause, string NegativeClause, string Palette);
+
+/// <summary>The closed list of DEC-053: two members, null meaning "the calibration's value".</summary>
+public sealed record OverridesDto(double? TabWidthMm, double? TabHeightMm);
+
+/// <param name="OptionalParameters">Sorted by key, ordinal: a dictionary has no order of its own (§G.4).</param>
+/// <param name="ResolvedPrompt">Derived, read-only (DEC-028); null when the framing clause is unknown.</param>
+public sealed record BlueprintDto(
+    Guid Id,
+    string Race,
+    string CharacterClass,
+    Size Size,
+    IReadOnlyList<ParameterDto> OptionalParameters,
+    string Details,
+    string SubjectClause,
+    string? ResolvedPrompt,
+    int Quantity,
+    Guid? ElectedCandidateId,
+    IReadOnlyList<CandidateDto> Candidates);
+
+public sealed record ParameterDto(string Key, string Value);
+
+/// <param name="Seed">A decimal string, never a JSON number: past 2^53 <c>JSON.parse</c> rounds it (§C.3.4).</param>
+/// <param name="MisalignedClauses">The clauses that moved; empty when aligned; null when unknown (§G.4).</param>
+/// <param name="PairedImage">The stored path, relative to the project; served under <c>/api/projects/{folder}/</c>.</param>
+public sealed record CandidateDto(
+    Guid Id,
+    string Seed,
+    CandidateStatus Status,
+    IReadOnlyList<ClauseKind>? MisalignedClauses,
+    string? PairedImage,
+    string? FrontImage,
+    string? BackImage,
+    DateTimeOffset GeneratedAt);
+
+public sealed record DiagnosticDto(string Kind, string Field);
+
+/// <summary>One line of the project list: the project, or the code that stops it loading.</summary>
+public sealed record ProjectListingDto(
+    string Folder,
+    Guid? ProjectId,
+    string? Name,
+    DateTimeOffset? ModifiedAt,
+    string? ErrorCode);
+
+public sealed record CreateProjectRequest(string Name, Universe Universe, Geometry Geometry, string PaperFormat);
+
+/// <summary>Everything of a project that is not its blueprints. Nothing is locked (DEC-055).</summary>
+public sealed record ProjectSettingsRequest(
+    string Name,
+    Universe Universe,
+    Geometry Geometry,
+    string PaperFormat,
+    StyleDto Style,
+    OverridesDto CalibrationOverrides);
+
+/// <summary>The manual mappings of the project DTOs (DEC-021).</summary>
+public static class ProjectMapping
+{
+    /// <param name="folder">The folder the project was read from.</param>
+    /// <param name="loaded">The project and its diagnostics.</param>
+    /// <param name="framingClause">The framing clause in force, or null when unknown.</param>
+    public static ProjectDto ToDto(this LoadedProjectResult loaded, string folder, string? framingClause)
+    {
+        Project project = loaded.Project;
+
+        return new ProjectDto(
+            Folder: folder,
+            ProjectId: project.ProjectId,
+            Name: project.Name,
+            Universe: project.Universe,
+            Geometry: project.Geometry,
+            PaperFormat: project.PaperFormatName,
+            Style: project.Style.ToDto(),
+            CalibrationOverrides: new OverridesDto(project.CalibrationOverrides.TabWidthMm, project.CalibrationOverrides.TabHeightMm),
+            Blueprints: [.. project.Blueprints.Select(blueprint => blueprint.ToDto(project.Style, framingClause))],
+            CreatedAt: project.CreatedAt,
+            ModifiedAt: project.ModifiedAt,
+            Diagnostics: [.. loaded.Diagnostics.Select(diagnostic => new DiagnosticDto(diagnostic.Kind, diagnostic.Field))],
+            MisalignmentKnown: framingClause is not null);
+    }
+
+    public static StyleDto ToDto(this Style style) => new(style.Name, style.StyleClause, style.NegativeClause, style.Palette);
+
+    public static Style ToDomain(this StyleDto style) => new(style.Name, style.StyleClause, style.NegativeClause, style.Palette);
+
+    public static BlueprintDto ToDto(this Blueprint blueprint, Style style, string? framingClause) => new(
+        Id: blueprint.Id,
+        Race: blueprint.Race,
+        CharacterClass: blueprint.CharacterClass,
+        Size: blueprint.Size,
+        OptionalParameters: [.. blueprint.OptionalParameters
+            .OrderBy(parameter => parameter.Key, StringComparer.Ordinal)
+            .Select(parameter => new ParameterDto(parameter.Key, parameter.Value))],
+        Details: blueprint.Details,
+        SubjectClause: blueprint.SubjectClause,
+        ResolvedPrompt: framingClause is null ? null : ResolvedPrompt.From(framingClause, blueprint.SubjectClause, style.StyleClause),
+        Quantity: blueprint.Quantity,
+        ElectedCandidateId: blueprint.ElectedCandidateId,
+        Candidates: [.. blueprint.Candidates.Select(candidate => candidate.ToDto(blueprint, style, framingClause))]);
+
+    public static CandidateDto ToDto(this Candidate candidate, Blueprint blueprint, Style style, string? framingClause) => new(
+        Id: candidate.Id,
+        Seed: candidate.Seed.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        Status: candidate.Status,
+
+        // In the enumeration's order, so that two answers list the clauses
+        // the same way; null when the framing clause is unknown.
+        MisalignedClauses: framingClause is null
+            ? null
+            : [.. Enum.GetValues<ClauseKind>().Where(Misalignment.Of(candidate, blueprint, style, framingClause).Contains)],
+        PairedImage: candidate.PairedImageFile,
+        FrontImage: candidate.FrontImageFile,
+        BackImage: candidate.BackImageFile,
+        GeneratedAt: candidate.GeneratedAt);
+
+    public static ProjectListingDto ToDto(this ProjectListing listing) => new(
+        listing.Folder,
+        listing.Project?.ProjectId,
+        listing.Project?.Name,
+        listing.Project?.ModifiedAt,
+        listing.ErrorCode);
+
+    /// <summary>The project with its settings replaced. No rule: nothing is locked after creation (DEC-055).</summary>
+    public static Project Apply(this Project project, ProjectSettingsRequest settings) => project with
+    {
+        Name = settings.Name,
+        Universe = settings.Universe,
+        Geometry = settings.Geometry,
+        PaperFormatName = settings.PaperFormat,
+        Style = settings.Style.ToDomain(),
+        CalibrationOverrides = new CalibrationOverrides(settings.CalibrationOverrides.TabWidthMm, settings.CalibrationOverrides.TabHeightMm),
+    };
+}

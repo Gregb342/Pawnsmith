@@ -128,6 +128,12 @@ public static class ApiHost
             // member is inserted, a name only by decision. Unknown names are
             // refused, and so are numbers.
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
+
+            // A request that omits a field, or sends null where the record
+            // says it cannot be null, is refused as REQUEST_INVALID rather
+            // than reaching a use case as a null it never expected.
+            options.SerializerOptions.RespectNullableAnnotations = true;
+            options.SerializerOptions.RespectRequiredConstructorParameters = true;
         });
 
         // A body that does not bind throws, so that the error middleware gives
@@ -147,6 +153,7 @@ public static class ApiHost
         app.UseStaticFiles();
 
         ReferenceEndpoints.Map(app);
+        ProjectEndpoints.Map(app);
 
         // An /api route that does not exist answers with a code, not with the
         // page of the front: a client calling a wrong route must not receive
