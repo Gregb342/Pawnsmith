@@ -3,13 +3,15 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.14 |
-| **Date** | 20 septembre 2026 |
+| **Version du document** | 0.15 |
+| **Date** | 3 octobre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
+ 
+> **Changements depuis la v0.14** — Spécification de la tranche T4 (`pawnsmith-cahier-des-charges-t4.md` v1.0), écrite sans arbitrage du porteur, dans le régime « tranche et consigne » ouvert pour cette session. **DEC-074 à DEC-081** : machine à états du `Job` en cinq états, en mémoire seulement (**ferme la question B**) ; un lot fige un prompt pour N graines et sauvegarde chaque candidat dès qu'il existe ; schéma du template de workflow, trois jetons en liste close dont aucun de dimension (**ferme la question F**, corrige le §6.4) ; ce qui part au générateur est exactement le prompt résolu, la clause négative n'est pas figée ; `IPawnPairProducer` n'est pas écrit (**supersède le chapitre 7 et le §4.2** sur ce point) ; la découpe est décidée en T4 et exécutée en T5 ; bornes de la génération en records d'options (**scinde la question G**) ; l'adresse du générateur est un réglage de déploiement, ce qui remplace la liste blanche de ports de MEN-003.
  
 > **Changements depuis la v0.13** — Spécification de la tranche T3 (`pawnsmith-cahier-des-charges-t3.md` v1.0). **DEC-063 à DEC-073** : catalogue global en fichier de données, un par univers (**ferme la question D**) ; une entrée de catalogue est un fragment de phrase et non un mot, en réponse à l'adhérence imparfaite mesurée par DEC-043 ; catalogue et template en deux fichiers ; `IPromptComposer` réduit à `ComposeSubject` (**supersède la signature du chapitre 7**) ; la clause sujet se recompose tant qu'elle n'a pas été éditée, l'édition étant déduite et non stockée ; élection et statut en deux axes (**ferme la première moitié de la question B**) ; gabarit sans élu ignoré et signalé ; suppression d'un gabarit emportant ses fichiers ; élection exigeant les deux détourages ; machine à états du `Job` reportée à T4 (**scinde la question B**) ; schéma des fichiers de templates descendu en T3 (**scinde la question F**). La question A est fermée par le parcours utilisateur du §D.3. Corrections : le chapitre 7 écrivait encore `IPromptComposer` en franglais ; le §3.1 laissait ouvert le cas du gabarit jamais édité ; le §15.3 supposait un catalogue sans dire d'où il venait ; la question C du chapitre 16 demandait de trancher une sous-question que T1 avait déjà réglée.
  
@@ -261,6 +263,8 @@ Deux générations indépendantes du même personnage ne produisent pas le même
 Contrepartie assumée : chaque vue n'occupe que la moitié de la résolution générée.
  
 Cette étape est isolée derrière un port unique (`IPawnPairProducer`). Si la calibration T0a montre que le modèle local ne produit pas de planche de rotation exploitable, on substitue une implémentation dégradée — deux générations indépendantes à graine partagée — **sans toucher au reste du système**.
+
+*Depuis DEC-078 :* T0a a montré que le modèle produit une planche de rotation exploitable (DEC-043), et l'implémentation dégradée n'est pas écrite. La génération jumelée est un **cas d'usage** de l'Application appuyé sur le port `IImageGenerator`, qui reste le point de substitution du fournisseur ; `IPawnPairProducer` n'existe pas.
  
 ---
  
@@ -378,6 +382,8 @@ Le choix de l'hexagonal est ici justifié par les faits, pas par principe : le d
 L'API de ComfyUI est **HTTP, y compris en local**. Le port `IImageGenerator` est donc un client HTTP dès le premier jour — il n'existe jamais de cas « processus embarqué » qui polluerait l'abstraction.
  
 ComfyUI n'accepte pas un prompt mais un **graphe de workflow JSON**. L'application stocke donc un *template de workflow* comportant des jetons nommés (`{{POSITIVE}}`, `{{NEGATIVE}}`, `{{SEED}}`, `{{WIDTH}}`, `{{HEIGHT}}`) qu'elle substitue avant envoi. Ce template est un **fichier de configuration**, pas du code : un utilisateur dont le workflow diffère peut l'adapter sans recompiler. C'est aussi le seul point d'accès à la clause de cadrage (DEC-029).
+
+*Depuis DEC-076 :* les jetons sont **trois**, en liste close — `{{POSITIVE}}` et `{{SEED}}` exactement une fois, `{{NEGATIVE}}` au plus une fois. `{{WIDTH}}` et `{{HEIGHT}}` ne sont pas des jetons : les dimensions sont un réglage du workflow, et la découpe lit celles de l'image reçue. Un jeton occupe une valeur de chaîne entière, et la substitution se fait sur le graphe, jamais sur le texte. Le schéma du fichier est au §E.5 du cahier T4.
  
 ---
  
@@ -386,18 +392,18 @@ ComfyUI n'accepte pas un prompt mais un **graphe de workflow JSON**. L'applicati
 Signatures indicatives, à affiner à l'implémentation.
  
 ```csharp
-// Disponibilité + génération. L'indisponibilité est un état normal, pas une exception.
+// Disponibilité + génération. L'indisponibilité est un état normal, pas une exception :
+// CheckAsync rend une valeur, et un lot sur un générateur éteint finit Failed (DEC-074).
+// Le prompt reçu part tel quel : c'est ResolvedPrompt.From des trois clauses que le
+// candidat fige (DEC-049, DEC-077). Les dimensions rendues sont lues sur l'en-tête PNG.
 public interface IImageGenerator
 {
-    Task<GeneratorHealth> CheckAsync(CancellationToken ct);
-    Task<RawImage> GenerateAsync(GenerationRequest request, CancellationToken ct);
+    Task<GeneratorAvailability> CheckAsync(CancellationToken ct);
+    Task<GeneratedImage> GenerateAsync(GenerationRequest request, CancellationToken ct);
 }
  
-// Produit le couple recto/verso. Point de substitution du choix DEC-003.
-public interface IPawnPairProducer
-{
-    Task<PawnPair> ProduceAsync(string prompt, int seed, CancellationToken ct);
-}
+// IPawnPairProducer n'existe pas (DEC-078) : T0a a retiré le risque qu'il couvrait, et
+// la production du couple est un cas d'usage appuyé sur IImageGenerator.
  
 // Détourage. Fournisseur d'exécution ONNX configurable (cpu | cuda).
 public interface IBackgroundRemover
@@ -464,7 +470,7 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 |---|---|---|---|
 | MEN-001 | **Zip Slip** | Archive importée contenant une entrée `../../` (conséquence directe de DEC-011) | Résoudre le chemin absolu de chaque entrée et vérifier qu'il est bien préfixé par le dossier de destination **avant** écriture. Rejet global de l'archive sinon. |
 | MEN-002 | **Traversée de chemin** | Visualiseur de journaux avec nom de fichier en paramètre | Liste blanche de noms. Jamais de concaténation de chemin depuis une entrée utilisateur. |
-| MEN-003 | **SSRF** | L'URL du générateur est fournie par l'utilisateur et appelée par le serveur | Liste blanche de schémas et de ports. Documenter l'hypothèse de déploiement en réseau de confiance. |
+| MEN-003 | **SSRF** | L'URL du générateur est fournie par l'utilisateur et appelée par le serveur | **Depuis DEC-081** : l'adresse est un réglage de déploiement, jamais modifiable par l'API. Schémas `http` et `https` seulement, ni identifiants, ni requête, ni fragment ; redirections jamais suivies ; proxy jamais utilisé. Pas de liste blanche de ports, qui ne protégerait de rien. Hypothèse de déploiement en réseau de confiance documentée. |
 | MEN-004 | **Exposition réseau** | Application sans authentification publiée sur toutes les interfaces par Docker | Documenter `-p 127.0.0.1:8080:8080` comme forme canonique. Avertissement au démarrage si l'écoute n'est pas locale. |
 | MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. |
 | MEN-006 | **Fuite de secret** | Clé d'API ou identifiants sérialisés dans `project.json` puis partagés | Secrets exclusivement en variables d'environnement. Aucun champ de secret dans le modèle de projet. Test automatisé vérifiant l'absence de secret dans l'export. |
@@ -975,6 +981,47 @@ Conséquence : le `Job` est l'objet de la génération, et T3 ne génère rien. 
 Choix : le fichier de templates de prompts par univers — `prompt-template.{univers}.json`, son schéma et ses jetons — est spécifié et lu en **T3**. Le template de workflow ComfyUI et ses jetons restent en T4. La ligne F du chapitre 16 est corrigée en conséquence.
 Conséquence : le chapitre 16 groupait les deux sous une même échéance, T4. Ils ne l'ont pas : le template de workflow porte la clause de cadrage que seul T4 sait lire (DEC-029, §C.5.2), tandis que le fichier de templates de prompts est **ce que le composeur de T3 lit pour exister** — sans lui, `ComposeSubject` n'a pas de patron de phrase. Les jetons de ce fichier forment une liste close, énumérée dans le code, et un jeton inconnu fait rejeter le fichier en le nommant : écrire `{taille}` ne doit pas produire une clause contenant littéralement « {taille} », qui partirait au modèle sans que rien ne le signale.
 
+**DEC-074 — Machine à états du `Job` : cinq états, un échec arrête le lot, et rien ne le persiste.**
+Choix : un `Job` passe de `Queued` à `Running`, puis à l'un des trois états terminaux `Completed`, `Failed` ou `Cancelled` ; il peut aussi passer directement de `Queued` à `Cancelled`. Aucune autre transition n'existe, et aucune ne sort d'un état terminal. `Failed` porte un code d'erreur et un message ; pendant `Running`, le `Job` compte les candidats qu'il a produits. Le premier échec arrête le lot. Le `Job` vit en mémoire et n'est jamais écrit sur disque. **Ferme la question B du chapitre 16.**
+Conséquence : DEC-072 avait renvoyé la question à T4 parce que les états dépendaient de ce que le générateur sait rendre ; ComfyUI rend un identifiant de tâche, une file interrogeable et une annulation qui aboutit, ce qui suffit à cinq états. Aucun état « partiellement réussi » : le couple (état, nombre produit) dit déjà tout, et un sixième état doublerait chaque `switch` d'interface sans rien apprendre de neuf.
+L'arrêt au premier échec vient de la nature des échecs d'un générateur local — ComfyUI arrêté, modèle absent, mémoire graphique épuisée, workflow refusé. Ils sont systémiques : continuer reproduirait la même erreur à chaque graine, et une erreur par délai d'attente coûte dix minutes par graine.
+Ne rien persister n'est pas une économie, c'est l'absence de besoin : chaque candidat est sauvegardé dès qu'il existe (DEC-075), donc après un redémarrage le projet contient exactement ce qui a été produit, et le `Job` ne disait rien de plus. Le persister coûterait un `versionSchema` (DEC-048) pour une donnée qui n'a de sens que pendant que le processus tourne, et il n'y aurait rien à reprendre : un `prompt_id` relu après redémarrage désigne une tâche dont l'état est inconnu. Reprendre un lot, c'est le relancer.
+
+**DEC-075 — Un lot fige un prompt pour N graines, et chaque candidat est sauvegardé dès qu'il existe.**
+Choix : un lot fige ses trois clauses une fois, au démarrage, et toutes ses graines partent avec le même prompt. Les graines sont choisies par l'appelant. Pour chaque graine, dans cet ordre : générer, **relire** le projet, écrire l'image jumelée, ajouter le candidat en `Draft`, sauvegarder. Une fois l'image reçue, son écriture et la sauvegarde ne sont plus annulables ; l'annulation est observée avant la graine suivante. Si le gabarit a disparu à la relecture, le lot finit `Failed` avec `BLUEPRINT_NOT_FOUND` et l'image n'est pas écrite.
+Conséquence : c'est ce qui tient le critère « un lot interrompu conserve les candidats déjà produits », par échec comme par annulation. Trois choix l'accompagnent. **Relire à chaque graine** : un lot dure jusqu'à une heure, et un projet gardé en mémoire tout ce temps écraserait à chaque sauvegarde ce que l'utilisateur a modifié entre-temps ; relire ramène la fenêtre de concurrence à quelques millisecondes. Ce n'est pas un verrou — DEC-062 le rappelle —, et l'API de T6 sérialisera les écritures d'un même projet. **L'image avant le candidat** : l'ordre inverse laisserait, au moins un instant, un `project.json` pointant vers un fichier absent ; l'ordre retenu laisse au pire un orphelin, que DEC-070 a jugé inoffensif. **Un seul prompt par lot** : un candidat produit après une édition de la clause sujet fige l'ancienne et naît désaligné, ce qui est exactement vrai ; relire la clause à chaque graine donnerait un lot dont les candidats ne répondent pas à la même question.
+Un lot vide, plus grand que la borne de MEN-007, ou visant un gabarit inconnu est refusé **avant** qu'aucun `Job` n'existe : une requête mal formée n'est pas un travail qui échoue, c'est un travail qui n'a jamais existé.
+
+**DEC-076 — Le template de workflow : trois jetons en liste close, un jeton est une valeur entière, et la substitution se fait sur le graphe.**
+Choix : `config/workflow.comfyui.json` porte `versionSchema`, la clause de cadrage en **tableau de lignes** jointes par `\n`, l'identifiant du nœud de sortie, et le graphe au **format API** de ComfyUI. Trois jetons seulement : `{{POSITIVE}}` et `{{SEED}}` exactement une fois, `{{NEGATIVE}}` au plus une fois. Un jeton occupe une valeur de chaîne **entière** ; un jeton noyé dans un texte, ou tout autre `{{…}}`, fait rejeter le fichier en le nommant. Les positions des jetons sont relevées au chargement, et la substitution remplace ces nœuds dans une copie du graphe, sans jamais parcourir ce qu'elle insère. **Ferme la question F du chapitre 16** et corrige la liste de jetons du §6.4.
+Conséquence : `{{WIDTH}}` et `{{HEIGHT}}` disparaissent. Les dimensions sont un réglage du workflow que l'utilisateur écrit dans son graphe, et Pawnsmith n'a aucune raison de les imposer : la découpe et le détourage lisent les dimensions de l'image **reçue**. Un jeton de dimension obligerait à porter la valeur à deux endroits, soit la divergence qu'un fichier unique évite.
+La règle « valeur entière » est ce qui rend DEC-049 tenable. `"{{POSITIVE}}, masterpiece"` ferait envoyer autre chose que le prompt résolu ; l'interdire à la lecture rend la transformation impossible plutôt que déconseillée. La substitution sur le graphe, elle, est la leçon du correctif de T3 sur `TemplateToken.Substitute` appliquée d'emblée : un `string.Replace` sur le texte JSON casserait le document au premier guillemet d'un prompt, et re-balaierait une valeur insérée — un prompt contenant littéralement `{{SEED}}` recevrait la graine.
+Le dépôt livre un **exemple**, `config/workflow.comfyui.example.json`, construit d'après DEC-043 et jamais soumis à un ComfyUI réel ; l'application ne retombe jamais dessus. Point à vérifier au premier lot réel : l'assemblage fixé par le §C.5.3 met le sujet **après** tout le cadrage, alors que le prompt de référence de T0a le plaçait au milieu.
+
+**DEC-077 — Ce qui part au générateur est exactement le prompt résolu ; la clause négative et le graphe ne sont pas figés.**
+Choix : `{{POSITIVE}}` reçoit `ResolvedPrompt.From` des trois clauses que le candidat fige, sans substitution, troncature ni réécriture. `{{NEGATIVE}}` reçoit la clause négative du style, normalisée, et elle n'est **pas** figée sur le candidat. Le reste du graphe ne l'est pas non plus.
+Conséquence : la contrainte que DEC-049 imposait à T4 est tenue à la lettre, et vérifiée sur ce que le faux serveur a reçu. L'échappement JSON du transport n'est pas une transformation au sens de cette fiche : c'est l'encodage, et ComfyUI décode octet pour octet le texte que le candidat fige.
+La clause négative n'est pas une des trois clauses de DEC-028 et n'entre pas dans le désalignement. La figer ajouterait un quatrième champ au candidat, donc un `versionSchema` (DEC-048), pour une valeur que le modèle en usage ignore : à CFG 1,0, le guidage négatif est neutralisé (DEC-043). La décision se rouvrira si un modèle la rend signifiante, avec une mesure sous les yeux. Changer le nombre d'étapes ou le modèle dans le graphe ne désaligne rien non plus : DEC-049 fige des clauses de prompt, pas un environnement d'exécution. Seule la clause de cadrage, parce qu'elle vit dans ce fichier **et** entre dans le prompt, désaligne quand on la touche.
+
+**DEC-078 — `IImageGenerator` est le seul port de la génération ; `IPawnPairProducer` n'est pas écrit.**
+Choix : la production du couple est un cas d'usage de l'Application appuyé sur `IImageGenerator`. Le port rend l'image et ses dimensions lues sur l'en-tête ; `CheckAsync` rend une disponibilité — `Available`, `Unreachable`, `Unhealthy` — et ne lève jamais pour un générateur absent. Supersède `IPawnPairProducer` au chapitre 7, et la phrase du §4.2 qui y isolait la génération jumelée ; supersède sur ce seul point la conséquence de DEC-003, dont le choix demeure.
+Conséquence : `IPawnPairProducer` couvrait un risque précis — que le modèle ne sache pas produire une planche de rotation, ce qui aurait demandé une implémentation dégradée à deux générations. DEC-043 a montré le contraire. L'écrire aujourd'hui donnerait une interface à implémentation unique, pour toujours ou jusqu'à EVO-009 ; et EVO-009, en passant par la 3D, ne produirait pas d'image jumelée, si bien que la signature dessinée aujourd'hui serait fausse ce jour-là, et le schéma du candidat avec elle. Le point de substitution qui a un usage prévu est le fournisseur (EVO-002), et c'est `IImageGenerator`.
+
+**DEC-079 — La découpe est décidée en T4 et exécutée en T5.**
+Choix : la règle est une fonction pure de domaine. La vue de face est la moitié **gauche**, la vue de dos la moitié **droite** ; le partage est vertical, au milieu exact ; une largeur impaire perd sa colonne du milieu, et les deux moitiés ont toujours la même largeur ; une image de moins de deux pixels de large n'est pas découpable. T4 applique la règle à la réception pour refuser une image non découpable ; T5 l'appelle pour découper les pixels, juste avant le détourage.
+Conséquence : le chapitre 12 range « découpe » dans T4, et c'est la règle qui y est. Les pixels ne sont pas découpés ici, pour quatre raisons. Le schéma n'a pas de place pour des moitiés non détourées : les écrire dans `frontImageFile` et `backImageFile` les rendrait élisibles (DEC-071) et une planche imprimerait deux rectangles de fond ; leur donner deux champs coûterait un `versionSchema` pour des fichiers sans lecteur. Le seul consommateur des moitiés est le détourage, qui décode les pixels de toute façon. Découper suppose de décoder un PNG, donc une bibliothèque d'image — un choix de licence que le porteur s'est réservé avec T5 — ou un décodeur écrit à la main et probablement remplacé. Et la règle, elle, n'attend rien.
+La face à gauche n'est pas détectée, elle est **supposée**, parce que c'est la clause de cadrage qui la garantit ; une détection qui se tromperait inverserait recto et verso sans rien signaler. La colonne perdue plutôt que donnée à l'une des moitiés suit DEC-041 : le couple partage une échelle unique, et deux sources de largeurs différentes y entreraient avec un biais qu'aucune image ne justifie.
+À transmettre à T5 : ComfyUI inscrit le graphe et le prompt dans les métadonnées de chaque PNG. L'image jumelée les porte, sans conséquence puisque le profil `Share` la retire ; les moitiés détourées partent dans une archive `Share` et doivent donc être **réencodées**, jamais produites par copie des blocs de l'image source.
+
+**DEC-080 — Les bornes de la génération sont arbitrées, en records d'options ; la question G est scindée.**
+Choix : huit bornes, déclarées une fois chacune et jamais en littéral dans le code qui les applique. Dans `GenerationOptions` (Application) : au plus **20** candidats par lot. Dans `ComfyUiOptions` (Infrastructure) : **10 min** par génération, **30 s** par appel HTTP, **5 s** pour l'état de santé, une interrogation par **seconde**, **64 Mio** par image, **8192** pixels de côté, **16 Mio** par réponse JSON. La moitié génération de la question G du chapitre 16 est fermée ; la moitié détourage reste à T5.
+Conséquence : ce sont des bornes de sécurité et de confort, qui **s'arbitrent** (DEC-057) — la règle des valeurs physiques ne s'y applique pas. Les deux qui demandent un motif : dix minutes par génération alors qu'une génération en prend quarante secondes, parce que le premier lot après le démarrage de ComfyUI charge un modèle de 12 milliards de paramètres ; vingt candidats par lot, parce que c'est un quart d'heure de carte graphique, ce qu'on lance en connaissance de cause, alors qu'un clic malheureux sur cent occuperait la soirée. Les deux records sont distincts parce que le plafond du lot est une règle de l'application, et les délais une propriété de l'adaptateur ComfyUI : un fournisseur distant (EVO-002) aurait d'autres délais et le même plafond.
+
+**DEC-081 — L'adresse du générateur est un réglage de déploiement ; MEN-003 se traite à la racine.**
+Choix : l'adresse se règle par configuration ou variable d'environnement, **jamais par l'API**. Elle doit être une URI absolue en `http` ou `https`, sans identifiants, sans requête ni fragment, sinon `GENERATOR_URL_INVALID` au démarrage. Le client HTTP ne suit **aucune redirection** et n'utilise **aucun proxy**. La liste blanche de ports que prescrivait MEN-003 est écartée. La contre-mesure de MEN-003 au chapitre 9 est corrigée.
+Conséquence : une SSRF suppose qu'un attaquant choisisse l'adresse que le serveur appelle. Une adresse que seul l'opérateur écrit, dans un fichier de son poste, n'est choisie par personne d'autre ; c'est retirer le vecteur plutôt que le filtrer. Filtrer les ports que l'opérateur a lui-même écrits ne protège de rien, et casserait le jour où ComfyUI tourne ailleurs que sur 8188. Les deux règles du client sont ce qui rend la validation de l'adresse effective : une redirection suivie laisserait le serveur validé désigner lui-même la cible suivante, et un proxy enverrait les prompts à un tiers alors que DEC-007 a choisi un générateur local. L'interdiction des identifiants dans l'URI suit MEN-006 : un secret dans une adresse finit dans un journal.
+Ce que la fiche engage pour T6 : l'interface pourra **afficher** l'adresse et l'état du générateur, jamais la modifier.
+
 ---
  
 ## 12. Découpage en tranches
@@ -1031,7 +1078,7 @@ Templates en fichiers, gabarits, catalogue éditable, clause sujet stockée et m
  
 Client HTTP ComfyUI, substitution du template de workflow, génération jumelée, découpe.
  
-**Critères d'acceptation** : générateur injoignable géré comme un état normal ; un lot interrompu conserve les candidats déjà produits ; l'image jumelée brute est conservée pour diagnostic.
+**Critères d'acceptation** : voir le **§E.13 du cahier des charges T4**, qui fait foi. Il reprend et précise ceux-ci — générateur injoignable géré comme un état normal ; un lot interrompu conserve les candidats déjà produits ; l'image jumelée brute est conservée pour diagnostic ; ce qui part au générateur est exactement le prompt résolu (DEC-049).
  
 ### T5 — Détourage
  
@@ -1223,11 +1270,9 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 
 | Réf. | Sujet | À trancher avant |
 |---|---|---|
-| **B** | **Machine à états du `Job`** — en file, en cours, échoué, annulé. *Scindée par DEC-072* : la moitié « sort de l'ancien élu » est fermée par DEC-068 ; celle-ci dépend de ce que le générateur sait réellement rendre, et ne se tranche pas avant que le client existe. | T4 |
 | **C** | **Export avec un candidat élu mais désaligné — bloquer, avertir, ou passer outre ?** *Seule sous-question restante.* Les cinq autres sont fermées par DEC-069, DEC-070 et DEC-071, ou sans objet (la pagination de T1 règle déjà la quantité). Celle-ci est un comportement d'export, renvoyée à T6 par le §C.5.6. | T6 |
 | **E** | **Contrat d'API.** Points de terminaison, verbes, charges utiles, liste complète des codes d'erreur. Les §C.11 et §D.10 en fixent déjà dix-sept : ils ne sont pas à réinventer, seulement à exposer. | T6 |
-| **F** | **Template de workflow ComfyUI et ses jetons.** *Scindée par DEC-073* : le fichier de templates de prompts par univers est spécifié au §D.5 du cahier T3. Reste le workflow, contrat public dont DEC-029 fait le seul point d'accès à la clause de cadrage. | T4 |
-| **G** | **Valeurs non fonctionnelles.** Délai d'attente d'une génération, plafond de candidats par lot, dimensions maximales en entrée, durée acceptable d'un détourage sur processeur. Sans chiffres, MEN-005 et MEN-007 ne sont pas implémentables. Précédent utile : DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas, et qu'elles vivent en paramètres tant qu'aucun hôte ne lit de fichier. | T5 |
+| **G** | **Valeurs non fonctionnelles.** *Scindée par DEC-080* : la moitié génération — délai d'attente, plafond de candidats par lot, taille et dimensions d'une image reçue — est arbitrée au §E.9 du cahier T4. Reste la moitié détourage : dimensions maximales en entrée du modèle de segmentation, durée acceptable d'un détourage sur processeur. DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas. | T5 |
 | **H** | **Dépôt public ou privé.** *Visibilité toujours non confirmée.* Elle est citée par DEC-058, qui exclut la révision de source de la version pour ne pas publier d'identifiant de commit dans une archive — précaution qui vaut dans les deux cas, donc la question ne bloque rien. | Libre |
 | **I** | **Loi de progression des hauteurs.** DEC-032 pose la contrainte — plafond d'environ 112 mm sur US Letter — mais pas les valeurs. Se tranche en T0b, tapis sous les yeux, les cinq tailles montées côte à côte. | T0b |
 
@@ -1252,6 +1297,8 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 | **C** — Couplage statut / fichiers | DEC-071 — le statut n'exige rien, l'élection exige les deux détourages |
 | **C** — Quantité dépassant la capacité | Sans objet — `Pagination.Plan` de T1 pagine, seule une capacité nulle est une erreur |
 | **D** — Entité Catalogue | DEC-063 — global, en fichier de données, un par univers |
+| **B** — Machine à états du `Job` | DEC-074 — cinq états, trois terminaux, un échec arrête le lot, le `Job` vit en mémoire |
+| **F** — Template de workflow ComfyUI | DEC-076 — trois jetons en liste close, valeur entière, substitution sur le graphe ; schéma au §E.5 du cahier T4 |
 
 > **Un point mineur laissé de côté, qui n'a pas de fiche.** La demande initiale « on fait attention aux règles de l'OWASP » a été traitée par un modèle de menace déduit de l'architecture (chapitre 9) plutôt que par une checklist générique. C'est un arbitrage assumé. DEC-054 en montre la contrepartie : une menace ne se déduit que d'un code qui existe, donc le chapitre 9 se revoit **à chaque tranche** qui ouvre une surface, et non une seule fois en T7.
 
