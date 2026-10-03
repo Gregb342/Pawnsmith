@@ -43,9 +43,8 @@ public sealed class GenerationWorker(
 
         await foreach (Guid id in registry.Queue.ReadAllAsync(stoppingToken))
         {
-            JobEntry entry = registry.Get(id);
-
-            if (entry.Current.State != JobState.Queued)
+            // Forgotten already, or cancelled while it waited: nothing to run.
+            if (registry.Find(id) is not JobEntry entry || entry.Current.State != JobState.Queued)
             {
                 continue;
             }

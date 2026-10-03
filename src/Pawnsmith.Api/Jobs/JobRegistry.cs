@@ -79,6 +79,21 @@ public sealed class JobRegistry
         }
     }
 
+    /// <summary>A job by its identifier, or null when it was never known or has been forgotten.</summary>
+    /// <remarks>
+    /// For the worker. A job cancelled while it waited is finished, and a
+    /// finished job can be forgotten before the worker reaches its identifier
+    /// in the queue; throwing there would end the worker's loop, and every
+    /// later job would wait forever.
+    /// </remarks>
+    public JobEntry? Find(Guid id)
+    {
+        lock (gate)
+        {
+            return entries.GetValueOrDefault(id);
+        }
+    }
+
     /// <summary>Every known job, the most recent first.</summary>
     public IReadOnlyList<JobEntry> List()
     {
