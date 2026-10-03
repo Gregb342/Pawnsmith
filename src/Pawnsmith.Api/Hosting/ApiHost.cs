@@ -163,6 +163,7 @@ public static class ApiHost
         ProjectEndpoints.Map(app);
         BlueprintEndpoints.Map(app);
         JobEndpoints.Map(app);
+        SheetEndpoints.Map(app);
 
         // An /api route that does not exist answers with a code, not with the
         // page of the front: a client calling a wrong route must not receive
