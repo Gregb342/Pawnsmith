@@ -309,4 +309,97 @@ public class GeneratorGenerationTests
         error.Message.ShouldContain("redirect");
         comfy.Requests.ShouldBeEmpty();
     }
+
+    // --- E.12 n° 29 : l'annulation va jusqu'au générateur -----------------------------
+
+    [Fact]
+    public async Task ACancellationDropsTheTaskFromTheQueueAndInterruptsItByItsIdentifier()
+    {
+        await using var comfy = new FakeComfyUi { Outcome = _ => FakeOutcome.NeverFinishes };
+        using ComfyUiImageGenerator client = Client(comfy.BaseAddress);
+        using var cancellation = new CancellationTokenSource();
+
+        Task<GeneratedImage> generation = client.GenerateAsync(Request, cancellation.Token);
+
+        // Cancel once the task is known to be waiting at the generator.
+        await WaitUntil(() => comfy.Requests.Any(request => request.Path == "/history/task-0"));
+        await cancellation.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => generation);
+
+        FakeRequest drop = comfy.Requests.Single(request => request.Path == "/queue");
+        drop.Method.ShouldBe("POST");
+        JsonNode.Parse(drop.Body)!["delete"]!.AsArray().Select(id => id!.GetValue<string>()).ShouldBe(["task-0"]);
+
+        FakeRequest interrupt = comfy.Requests.Single(request => request.Path == "/interrupt");
+        JsonNode.Parse(interrupt.Body)!["prompt_id"]!.GetValue<string>().ShouldBe("task-0");
+    }
+
+    [Fact]
+    public async Task AGenerationThatTimesOutIsDroppedAtTheGeneratorToo()
+    {
+        await using var comfy = new FakeComfyUi { Outcome = _ => FakeOutcome.NeverFinishes };
+        using ComfyUiImageGenerator client = Client(
+            comfy.BaseAddress,
+            options => options with { GenerationTimeout = TimeSpan.FromMilliseconds(300) });
+
+        await Should.ThrowAsync<GeneratorException>(() => client.GenerateAsync(Request, CancellationToken.None));
+
+        comfy.Requests.ShouldContain(request => request.Path == "/queue");
+        comfy.Requests.ShouldContain(request => request.Path == "/interrupt");
+    }
+
+    [Fact]
+    public async Task ACancellationIsStillACancellationWhenTheCleanupFails()
+    {
+        // A server that accepts the task and then answers nothing else in time:
+        // the cleanup calls time out, and the caller still hears a cancellation.
+        int submitted = 0;
+        await using var server = new FakeHttpServer(async request =>
+        {
+            if (request.Path == "/prompt" && Interlocked.Exchange(ref submitted, 1) == 0)
+            {
+                return FakeResponse.Json("""{ "prompt_id": "x" }""");
+            }
+
+            if (request.Path.StartsWith("/history", StringComparison.Ordinal))
+            {
+                return FakeResponse.Json("{}");
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            return FakeResponse.Json("{}");
+        });
+
+        using ComfyUiImageGenerator client = Client(server.BaseAddress, options => options with { CheckTimeout = TimeSpan.FromMilliseconds(100) });
+        using var cancellation = new CancellationTokenSource();
+
+        Task<GeneratedImage> generation = client.GenerateAsync(Request, cancellation.Token);
+        await WaitUntil(() => server.Requests.Any(request => request.Path == "/history/x"));
+        await cancellation.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => generation);
+    }
+
+    [Fact]
+    public async Task ACancellationBeforeAnythingWasSubmittedCallsNothing()
+    {
+        await using var comfy = new FakeComfyUi();
+        using ComfyUiImageGenerator client = Client(comfy.BaseAddress);
+
+        await Should.ThrowAsync<OperationCanceledException>(() =>
+            client.GenerateAsync(Request, new CancellationToken(canceled: true)));
+
+        comfy.Requests.ShouldBeEmpty();
+    }
+
+    private static async Task WaitUntil(Func<bool> condition)
+    {
+        for (int attempt = 0; attempt < 500 && !condition(); attempt++)
+        {
+            await Task.Delay(10);
+        }
+
+        condition().ShouldBeTrue("the fake server never saw the expected request");
+    }
 }

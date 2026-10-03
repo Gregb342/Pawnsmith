@@ -335,7 +335,9 @@ Une annulation pendant `GenerateAsync` fait deux appels **au mieux**, avant de r
 1. `POST /queue` avec `{ "delete": [prompt_id] }` — retire la tâche si elle attend encore son tour ;
 2. `POST /interrupt` avec `{ "prompt_id": prompt_id }` — interrompt l'exécution si c'est elle qui tourne.
 
-**Au mieux** veut dire : avec un délai propre et court, indépendant du jeton annulé — sinon les deux appels seraient annulés avant de partir —, et sans que leur échec masque l'annulation. Sans eux, un lot annulé côté Pawnsmith continuerait d'occuper la carte graphique pendant toute sa génération en cours, et l'utilisateur relançant aussitôt un lot attendrait sans comprendre.
+Les mêmes deux appels partent quand c'est le **délai de génération** qui expire : une tâche que Pawnsmith a abandonnée n'a pas plus de raison d'occuper la carte graphique qu'une tâche annulée.
+
+**Au mieux** veut dire : avec un délai propre et court — celui de l'état de santé, `CheckTimeout`, ces appels étant aussi petits —, indépendant du jeton annulé — sinon les deux appels seraient annulés avant de partir —, et sans que leur échec masque l'annulation. Sans eux, un lot annulé côté Pawnsmith continuerait d'occuper la carte graphique pendant toute sa génération en cours, et l'utilisateur relançant aussitôt un lot attendrait sans comprendre.
 
 > **Une limite de version, à connaître.** Les versions anciennes de ComfyUI ignorent le corps de `/interrupt` et interrompent **l'exécution en cours, quelle qu'elle soit**. Sur un poste mono-utilisateur, c'est presque toujours la tâche de Pawnsmith ; si l'utilisateur génère en même temps depuis l'interface de ComfyUI, il peut perdre la sienne. Le risque est accepté et documenté, pas contourné.
 

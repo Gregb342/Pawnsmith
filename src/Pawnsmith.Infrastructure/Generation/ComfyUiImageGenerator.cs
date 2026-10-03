@@ -126,9 +126,11 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         using var generation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         generation.CancelAfter(options.GenerationTimeout);
 
+        string? promptId = null;
+
         try
         {
-            string promptId = await SubmitAsync(request, generation.Token).ConfigureAwait(false);
+            promptId = await SubmitAsync(request, generation.Token).ConfigureAwait(false);
             ImageReference image = await WaitForImageAsync(promptId, generation.Token).ConfigureAwait(false);
 
             return await FetchAsync(image, generation.Token).ConfigureAwait(false);
@@ -136,10 +138,21 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested)
         {
             // The generation's own bound fired, not the caller's cancellation.
+            // The task is dropped all the same: a task Pawnsmith has given up
+            // on would otherwise keep the graphics card busy until it ends.
+            await DropAsync(promptId).ConfigureAwait(false);
+
             throw new GeneratorException(
                 GeneratorErrorCode.Timeout,
                 $"The generator produced nothing within {options.GenerationTimeout.TotalMinutes:0.#} min (§E.9).",
                 error);
+        }
+        catch (OperationCanceledException)
+        {
+            // The caller cancelled. The cancellation goes all the way to the
+            // generator (§E.7.3), then propagates as itself: it is not an error.
+            await DropAsync(promptId).ConfigureAwait(false);
+            throw;
         }
     }
 
@@ -312,6 +325,61 @@ public sealed class ComfyUiImageGenerator : IImageGenerator, IDisposable
         }
 
         return new GeneratedImage(png, widthPx, heightPx);
+    }
+
+    /// <summary>
+    /// Asks ComfyUI to forget a task: out of the queue if it is still waiting,
+    /// interrupted if it is running (§E.7.3).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Best effort, and never in the way.</b> Both calls run under their own
+    /// short bound — the health-check bound, since they are just as small — and
+    /// on <see cref="CancellationToken.None"/>: under the caller's token they
+    /// would be cancelled before leaving. Their failure is swallowed, because
+    /// the cancellation or the timeout that led here is what the caller must
+    /// hear about; a cleanup that failed changes nothing they can act on.
+    /// </para>
+    /// <para>
+    /// Without them, a batch cancelled in Pawnsmith would keep the graphics card
+    /// busy for the whole of the generation in progress, and a user relaunching
+    /// at once would wait without understanding why.
+    /// </para>
+    /// <para>
+    /// A known limit of old ComfyUI versions: they ignore the body of
+    /// <c>/interrupt</c> and interrupt whatever is running. On a single-user
+    /// machine that is nearly always Pawnsmith's task; the risk is accepted and
+    /// written down, not worked around.
+    /// </para>
+    /// </remarks>
+    /// <param name="promptId">The task to drop, or null when it was never submitted — then there is nothing to do.</param>
+    private async Task DropAsync(string? promptId)
+    {
+        if (promptId is null)
+        {
+            return;
+        }
+
+        await PostQuietlyAsync("queue", new JsonObject { ["delete"] = new JsonArray(promptId) }).ConfigureAwait(false);
+        await PostQuietlyAsync("interrupt", new JsonObject { ["prompt_id"] = promptId }).ConfigureAwait(false);
+    }
+
+    private async Task PostQuietlyAsync(string path, JsonObject body)
+    {
+        try
+        {
+            using HttpResponseMessage response = await SendAsync(
+                () => new HttpRequestMessage(HttpMethod.Post, path)
+                {
+                    Content = new StringContent(body.ToJsonString(), new MediaTypeHeaderValue("application/json")),
+                },
+                options.CheckTimeout,
+                CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (GeneratorException)
+        {
+            // Unreachable or slow: the task will end on its own. See DropAsync.
+        }
     }
 
     /// <summary>Anything but 200 is a failure of the generator; a redirect is never followed (DEC-081).</summary>
