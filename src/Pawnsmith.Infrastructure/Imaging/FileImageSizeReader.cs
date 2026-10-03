@@ -17,10 +17,14 @@ namespace Pawnsmith.Infrastructure.Imaging;
 /// memory to learn two numbers.
 /// </para>
 /// <para>
-/// It also points the right way for MEN-005: reading dimensions before decoding
-/// is what lets a decompression bomb be rejected on its header rather than on
-/// its contents. The caps themselves belong to T5, with the background remover;
-/// this reader only refuses what is not a PNG at all.
+/// It is also where MEN-005 is held for the sheet (DEC-095). Rendering the sheet
+/// makes PDFsharp <i>decode</i> every elected image, and the memory that takes is
+/// written in the header: width × height × 4 bytes. A PNG of a few kilobytes,
+/// imported from someone else's archive, can announce 60 000 × 60 000 pixels —
+/// fourteen gigabytes, one HTTP request away since T6. A side longer than
+/// <see cref="MaxImageDimensionPx"/> is therefore refused here, on the header,
+/// before anything is decoded. The background remover of T5 will need its own
+/// bound; this one is the sheet's.
 /// </para>
 /// <para>
 /// Written by hand rather than taken from a library, per A.2: twenty lines beat
@@ -34,6 +38,14 @@ public sealed class FileImageSizeReader : IImageSizeReader
 
     /// <summary>Signature, then the IHDR chunk header, then width and height.</summary>
     private const int HeaderLength = 24;
+
+    /// <summary>
+    /// The longest side accepted, in pixels. The value is T4's own
+    /// <c>MaxImageDimensionPx</c>, the bound on what the generator may write: a
+    /// legitimate image — a generated pair cut in two, then cut out at the same
+    /// size — never exceeds it. At the bound, one image decodes to 256 MiB.
+    /// </summary>
+    public int MaxImageDimensionPx { get; init; } = 8192;
 
     public async Task<IReadOnlyDictionary<string, SourceImageSize>> MeasureAsync(
         string imagesDirectory,
@@ -64,7 +76,7 @@ public sealed class FileImageSizeReader : IImageSizeReader
         return sizes;
     }
 
-    private static async Task<SourceImageSize> MeasureOneAsync(
+    private async Task<SourceImageSize> MeasureOneAsync(
         string path,
         string fileName,
         CancellationToken cancellationToken)
@@ -107,6 +119,13 @@ public sealed class FileImageSizeReader : IImageSizeReader
         {
             throw new ManifestException(
                 $"Image '{fileName}' declares impossible dimensions: {widthPx} × {heightPx}.");
+        }
+
+        if (widthPx > MaxImageDimensionPx || heightPx > MaxImageDimensionPx)
+        {
+            throw new ManifestException(
+                $"Image '{fileName}' declares {widthPx} × {heightPx} pixels, more than the {MaxImageDimensionPx} " +
+                "allowed on a side; it is refused before being decoded (MEN-005, DEC-095).");
         }
 
         return new SourceImageSize(widthPx, heightPx);

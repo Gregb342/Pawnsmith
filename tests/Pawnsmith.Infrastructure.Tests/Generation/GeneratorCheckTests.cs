@@ -101,13 +101,28 @@ public class GeneratorCheckTests
         error.WireCode.ShouldBe("GENERATOR_URL_INVALID");
     }
 
-    [Fact]
-    public void ARefusedAddressDoesNotRepeatItsCredentials()
+    [Theory]
+    [InlineData("http://user:secret@127.0.0.1:8188/")]
+    [InlineData("http://user:secret@127.0.0.1:8188/?token=secret")]
+    [InlineData("http://127.0.0.1:8188/?token=secret")]
+    [InlineData("http://127.0.0.1:8188/#secret")]
+    [InlineData("user:secret@127.0.0.1:8188")]
+    [InlineData("secret")]
+    public void ARefusedAddressRepeatsNoneOfItsSecrets(string address)
     {
-        GeneratorConfigException error = Should.Throw<GeneratorConfigException>(() =>
-            GeneratorAddress.Parse("http://user:secret@127.0.0.1:8188/"));
+        // The message reaches the log at start-up (T7, H.4.1).
+        GeneratorConfigException error = Should.Throw<GeneratorConfigException>(() => GeneratorAddress.Parse(address));
 
         error.Message.ShouldNotContain("secret");
+    }
+
+    [Fact]
+    public void ARefusedAddressStillNamesWhatCanBeNamed()
+    {
+        GeneratorConfigException error = Should.Throw<GeneratorConfigException>(() =>
+            GeneratorAddress.Parse("http://user:secret@127.0.0.1:8188/comfy/?token=secret"));
+
+        error.Message.ShouldContain("'http://127.0.0.1:8188/comfy/'");
     }
 
     [Fact]

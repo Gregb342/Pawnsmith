@@ -16,6 +16,14 @@ namespace Pawnsmith.Infrastructure.Generation;
 /// What is checked is what keeps the address an address. Each rule has its own
 /// reason, written beside it.
 /// </para>
+/// <para>
+/// <b>A refusal never repeats more than <c>scheme://host:port/path</c>.</b>
+/// Its message reaches the log (§H.4.1), and the parts it leaves out are where
+/// a secret hides: credentials, a token in a query string or a fragment. Text
+/// that did not even parse is not repeated at all — <c>user:secret@host</c>
+/// without a scheme reads as the scheme <c>user</c>, with the secret in what
+/// follows.
+/// </para>
 /// </remarks>
 public static class GeneratorAddress
 {
@@ -25,36 +33,36 @@ public static class GeneratorAddress
     {
         if (string.IsNullOrWhiteSpace(text) || !Uri.TryCreate(text.Trim(), UriKind.Absolute, out Uri? uri))
         {
-            throw Refuse(text, "it is not an absolute address");
+            throw Refuse(shown: null, "it is not an absolute address");
         }
 
         // file:, ftp: and whatever else the HTTP stack might know how to open
         // are closed off. The generator speaks HTTP (section 6.4).
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
         {
-            throw Refuse(text, $"its scheme is '{uri.Scheme}'; only http and https are accepted");
+            throw Refuse(shown: null, $"its scheme is '{uri.Scheme}'; only http and https are accepted");
         }
 
         if (uri.Host.Length == 0)
         {
-            throw Refuse(text, "it names no host");
+            throw Refuse(shown: null, "it names no host");
         }
+
+        // What a refusal may repeat from here on: the address without its
+        // credentials, query or fragment.
+        string shown = new UriBuilder(uri) { UserName = string.Empty, Password = string.Empty }.Uri.GetLeftPart(UriPartial.Path);
 
         // A secret in an address ends up in a log (MEN-006, chapter 8).
         if (uri.UserInfo.Length > 0)
         {
-            // The refusal itself must not become the leak: the message names
-            // the address without its credentials.
-            string redacted = new UriBuilder(uri) { UserName = string.Empty, Password = string.Empty }.Uri.ToString();
-
-            throw Refuse(redacted, "it carries credentials; the generator is reached without any");
+            throw Refuse(shown, "it carries credentials; the generator is reached without any");
         }
 
         // The calls add their own path and query; an address that already
         // carries some would be concatenated the wrong way.
         if (uri.Query.Length > 0 || uri.Fragment.Length > 0)
         {
-            throw Refuse(text, "it carries a query or a fragment");
+            throw Refuse(shown, "it carries a query or a fragment");
         }
 
         // A path is allowed — ComfyUI behind a reverse proxy at /comfy/ — and
@@ -65,7 +73,9 @@ public static class GeneratorAddress
             : new Uri(uri.GetLeftPart(UriPartial.Path) + "/");
     }
 
-    private static GeneratorConfigException Refuse(string? text, string why) =>
+    private static GeneratorConfigException Refuse(string? shown, string why) =>
         new(GeneratorConfigErrorCode.GeneratorUrlInvalid,
-            $"The generator address '{text}' is refused because {why} (DEC-081).");
+            shown is null
+                ? $"The generator address is refused because {why} (DEC-081)."
+                : $"The generator address '{shown}' is refused because {why} (DEC-081).");
 }

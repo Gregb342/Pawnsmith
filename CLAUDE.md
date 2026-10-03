@@ -294,18 +294,19 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.16**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.17**, cahier des charges T1
 **v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
 **cahier des charges T4 v1.1**, **cahier des charges T6 v1.1** (l'API seule),
-protocole T0 **v1.4**.
+**cahier des charges T7 v1.1**, protocole T0 **v1.4**.
 
 ### Décisions prises sans toi, à relire en premier
 
-**T4 et l'API de T6 ont été spécifiées et écrites sans ton arbitrage**, dans le
-régime que tu as ouvert pour cette session : une branche par tranche, un
-commit par tâche, et « quand un choix est ouvert, tranche et consigne ».
+**T4, l'API de T6 et T7 ont été spécifiées et écrites sans ton arbitrage**,
+dans le régime que tu as ouvert pour cette session : une branche par tranche,
+un commit par tâche, et « quand un choix est ouvert, tranche et consigne ».
 Chaque décision est une fiche DEC (DEC-074 à DEC-081 pour T4, DEC-082 à
-DEC-089 pour T6) et revient dans le message du commit où elle est née.
+DEC-089 pour T6, DEC-090 à DEC-097 pour T7) et revient dans le message du
+commit où elle est née.
 
 #### Pour T4 — branche `claude/charming-babbage-uuft5v`
 
@@ -388,6 +389,58 @@ La plus engageante d'abord.
     libre, sans `Microsoft.AspNetCore.Mvc.Testing` : un paquet de moins.
 13. **Une route `/api` inconnue répond `ROUTE_NOT_FOUND`**, jamais la page
     du front avec un `200`.
+
+#### Pour T7 — branche `claude/t7-observability`, partie de l'API de T6
+
+1. **La revue du chapitre 9 a trouvé un trou réel, et je l'ai bouché dans du
+   code de T1** (DEC-095). Le rendu de la planche fait **décoder** chaque
+   élu par PDFsharp ; un PNG importé de quelques octets peut annoncer
+   60 000 × 60 000 pixels, soit quatorze gigaoctets, à une requête HTTP de
+   distance depuis T6. `FileImageSizeReader` refuse désormais un côté de plus
+   de **8 192 pixels**, sur l'en-tête, avant tout décodage — la borne même du
+   générateur de T4. Son commentaire renvoyait les plafonds à T5 ; la planche
+   décode aujourd'hui.
+2. **Seuls les bords journalisent** (DEC-090) : démarrage, intergiciel
+   d'erreurs, travailleur des lots. Le domaine et l'Application n'ont reçu
+   aucune dépendance. L'identifiant de job est poussé par
+   `LogContext.PushProperty` **au point d'appel** du cas d'usage, dans le
+   travailleur : l'Application ne voit pas Serilog.
+3. **Trois paquets, tous Apache-2.0**, licences lues dans le `LICENSE` de
+   chaque dépôt et dans le `.nuspec` publié : `Serilog`,
+   `Serilog.Sinks.File`, `Serilog.Extensions.Logging`. Écartés :
+   `Serilog.Formatting.Compact` (le cœur a un formateur JSON) et
+   `Serilog.AspNetCore` (console, configuration par réflexion, débogage).
+4. **Une ligne JSON par événement, fichiers `.ndjson`**, un par jour et un de
+   plus à chaque 50 Mio, **31 fichiers gardés** — environ 1,5 Gio au plus
+   (DEC-091). Sans passage de taille, le puits **cesse d'écrire** à la limite.
+5. **Désactiver la journalisation coupe les fichiers, pas la console**
+   d'ASP.NET, qui garde son réglage standard (DEC-091).
+6. **Aucun prompt au journal** (DEC-092), ce qui **précise le chapitre 8**,
+   qui les citait. Le candidat fige déjà ses clauses ; une copie au journal
+   serait du texte d'utilisateur de plus, plus dur à effacer. Exception
+   connue, voir plus bas.
+7. **En conteneur, l'avertissement de MEN-004 sort à chaque démarrage**
+   (DEC-093), et le dit : un conteneur écoute forcément partout et ne voit
+   pas comment son port est publié. C'est écrit comme risque accepté.
+8. **Le visualiseur rend des lignes brutes**, en chaînes, au plus 4 Mio lus
+   depuis la fin, 500 lignes par défaut et 5 000 au plus ; tout nom hors liste
+   blanche rend `LOG_NOT_FOUND`, sans dire s'il existe (DEC-094). **L'API lit
+   l'infrastructure directement**, sans port : il n'y a aucune règle à porter.
+9. **MEN-011, falsification de journal, entre au chapitre 9** (DEC-096) —
+   tenue par le format JSON, éprouvée par un test.
+10. **La revue couvre MEN-001 à MEN-011**, pas seulement les sept que le
+    chapitre 12 demandait ; chaque ligne nomme son test ou son risque
+    accepté (§H.7.1, DEC-097).
+11. **Deux défauts de T4 et T6 corrigés en T7**, parce que la journalisation
+    les rendait réels : un générateur dont le workflow était refusé gardait
+    son adresse **sans l'avoir vérifiée**, donc avec ses identifiants, et
+    l'API la montrait déjà ; et `GeneratorAddress` répétait le texte brut
+    dans la plupart de ses refus — `user:secret@hôte` sans schéma, ou un
+    jeton en requête, finissaient dans le message, que le démarrage écrit
+    désormais au journal.
+12. **Un démarrage impossible écrit une ligne `Fatal`** : le journal est
+    construit avant toute lecture de fichier.
+13. **Version `0.8.0`**, comme DEC-058 l'annonçait pour T7.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -885,6 +938,70 @@ sont dans `tests/Pawnsmith.Api.Tests/`, nouveau projet.
   {characterClass}`. Contenu de `config/`, à reprendre avec le catalogue au
   premier lot réel.
 
+### T7 — code terminé, 5 tâches sur 5
+
+**T7 est spécifiée** par
+[`docs/pawnsmith-cahier-des-charges-t7.md`](docs/pawnsmith-cahier-des-charges-t7.md)
+v1.1 **et écrite**, sur la branche `claude/t7-observability`, partie de
+`claude/t6-api`. Le visualiseur est écrit **côté API** ; son écran appartient
+au front de T6.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | Journalisation Serilog, trois paquets, `0.8.0` | ✅ |
+| 2 | Démarrage, erreurs de requête, lots et `JobId`, MEN-004 | ✅ |
+| 3 | Visualiseur : `LogDirectory`, deux routes, `LOG_NOT_FOUND` | ✅ |
+| 4 | MEN-005 sur la planche | ✅ |
+| 5 | Documentation, chapitre 9 tenu | ✅ |
+
+**Les 20 tests de H.8 sont couverts**, et une vingtaine de plus. Le dépôt
+porte **928 tests verts**, en Debug comme en Release. Chaque test de
+sécurité neuf a été éprouvé par mutation : retirer la rétention, la poussée
+du `JobId`, l'exclusion des liens, `[0-9]` au profit de `\d`, la borne
+d'image, la vérification de l'adresse ou le filtrage des niveaux fait tomber
+au moins un test. `docker build` passe, et le conteneur démarré écrit ses
+journaux dans `/app/data/logs`, avertit selon MEN-004 et les sert par l'API.
+
+Le code vit dans `src/Pawnsmith.Infrastructure/Logging/`,
+`src/Pawnsmith.Api/Hosting/` (`StartupReport`, `ListeningAddresses`),
+`Endpoints/LogEndpoints.cs`, et `Imaging/FileImageSizeReader.cs` pour la
+borne.
+
+#### Ce que ma relecture de T7 a trouvé, et corrigé
+
+- **Les fichiers recevaient tous les niveaux, `Debug` et `Verbose`
+  compris** — trouvé en faisant tourner le conteneur, pas par les tests :
+  26 Ko pour une seule requête. L'extension `AddSerilog` du paquet ajoute un
+  filtre propre à son fournisseur, et ce filtre l'emporte sur
+  `Logging:LogLevel`. Le fournisseur est désormais enregistré à la main, et
+  un test vérifie ce qui **n'est pas** écrit.
+- **Les refus d'adresse du générateur répétaient leurs secrets** — le
+  point 11 ci-dessus. Cinq des six cas du nouveau test fuyaient sur l'ancien
+  code.
+- **La longueur du fichier lu par le visualiseur était lue deux fois** ; un
+  fichier allongé entre les deux lectures aurait pu dépasser la fenêtre de
+  4 Mio.
+
+#### Ce qui n'est pas couvert, à connaître
+
+- **Un refus de ComfyUI cite le début de sa réponse**, et ComfyUI peut y
+  reprendre une valeur du workflow : un **fragment de prompt peut atteindre
+  le journal** par un lot en échec. Ce n'est pas exprès, et c'est la seule
+  voie connue ; filtrer le texte d'un tiers serait fragile.
+- **Quelqu'un qui peut écrire dans le dossier des journaux** peut y déposer
+  un lien dur, ou échanger un fichier entre l'énumération et l'ouverture.
+  Les liens symboliques sont écartés, pas ceux-là. Écrire dans ce dossier,
+  c'est déjà tenir la machine.
+- **Les fichiers de journal prennent les droits du processus** : lisibles par
+  qui lit le volume, comme les projets.
+- **La rotation quotidienne n'est pas éprouvée** — un test ne peut pas
+  attendre minuit. La rétention l'est, par passage de taille, et c'est le
+  même mécanisme du puits.
+- **Une planche de nombreuses images à la borne** tient autant d'images
+  décodées, 256 Mio chacune. Risque accepté (§H.7.2).
+- **En conteneur, l'avertissement de MEN-004 ne peut pas savoir** comment le
+  port est publié ; il le rappelle à chaque démarrage.
+
 ### Comment faire tourner les choses
 
 **Produire une planche** — c'est le livrable réel de T1 :
@@ -938,7 +1055,15 @@ $CLI candidate generate --path ./data/projects/donjon --id <guid> --seed 42 --se
 qu'une coquille. L'API s'essaie en `curl` (voir le README).
 
 ```bash
-docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 pawnsmith
+docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 -v pawnsmith-logs:/app/data/logs pawnsmith
+```
+
+**Lire les journaux** (T7) — une ligne JSON par événement, dans
+`/app/data/logs` en conteneur, `data/logs/` sous `dotnet run`.
+
+```bash
+curl -s http://127.0.0.1:8080/api/logs
+curl -s "http://127.0.0.1:8080/api/logs/pawnsmith-20261003.ndjson?lines=50"
 ```
 
 ### Ce qui reste avant de clore T1

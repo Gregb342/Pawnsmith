@@ -41,13 +41,15 @@ public sealed class GeneratorSetup : IDisposable
         IImageGenerator? generator,
         string? framingClause,
         string? address,
-        string? errorCode)
+        string? errorCode,
+        string? errorMessage = null)
     {
         Configuration = configuration;
         Generator = generator;
         FramingClause = framingClause;
         Address = address;
         ErrorCode = errorCode;
+        ErrorMessage = errorMessage;
     }
 
     public GeneratorConfiguration Configuration { get; }
@@ -64,6 +66,12 @@ public sealed class GeneratorSetup : IDisposable
 
     /// <summary>Why it was refused, when misconfigured.</summary>
     public string? ErrorCode { get; }
+
+    /// <summary>
+    /// The message of the refusal, for the log only (§H.4.1): it names a file
+    /// path or the refused address, which no response carries (DEC-084).
+    /// </summary>
+    public string? ErrorMessage { get; }
 
     /// <summary>A generator that is set up, for the host and for the tests.</summary>
     public static GeneratorSetup Configured(IImageGenerator generator, string framingClause, string address) =>
@@ -91,7 +99,10 @@ public sealed class GeneratorSetup : IDisposable
         }
         catch (GeneratorConfigException error)
         {
-            return new GeneratorSetup(GeneratorConfiguration.Misconfigured, null, null, settings.GeneratorUrl, error.WireCode);
+            // The address was never checked on this path: it is shown, and
+            // logged, only if it would itself be accepted. One refused for
+            // carrying credentials must not be repeated (DEC-081).
+            return new GeneratorSetup(GeneratorConfiguration.Misconfigured, null, null, ShownAddress(settings.GeneratorUrl), error.WireCode, error.Message);
         }
 
         try
@@ -103,7 +114,21 @@ public sealed class GeneratorSetup : IDisposable
         {
             // The workflow was read, so its framing clause is known even though
             // the address is refused: misalignment stays computable.
-            return new GeneratorSetup(GeneratorConfiguration.Misconfigured, null, workflow.FramingClause, address: null, error.WireCode);
+            return new GeneratorSetup(GeneratorConfiguration.Misconfigured, null, workflow.FramingClause, address: null, error.WireCode, error.Message);
+        }
+    }
+
+    /// <summary>The address if it passes the rules of DEC-081, null otherwise.</summary>
+    private static string? ShownAddress(string url)
+    {
+        try
+        {
+            GeneratorAddress.Parse(url);
+            return url;
+        }
+        catch (GeneratorConfigException)
+        {
+            return null;
         }
     }
 

@@ -4,6 +4,8 @@ using Pawnsmith.Application.Ports;
 using Pawnsmith.Application.Projects;
 using Pawnsmith.Domain.Jobs;
 
+using Serilog.Context;
+
 namespace Pawnsmith.Api.Jobs;
 
 /// <summary>
@@ -22,13 +24,22 @@ namespace Pawnsmith.Api.Jobs;
 /// a job exists (§E.4) — and if something did escape, the worker marks the job
 /// failed rather than letting the loop die and every later job wait forever.
 /// </para>
+/// <para>
+/// <b>The job identifier is pushed once, here</b> (§H.2.3, DEC-090). Chapter 8
+/// wants it pushed at the entry of the use case; the Application cannot see
+/// Serilog, so the entry is its call site. <c>LogContext</c> rides the
+/// asynchronous flow: every event written while the batch runs — by this
+/// worker, or by an adapter called beneath the use case — carries
+/// <c>JobId</c>, and no method ever takes it as a parameter.
+/// </para>
 /// </remarks>
 public sealed class GenerationWorker(
     JobRegistry registry,
     GeneratorSetup setup,
     IProjectRepository repository,
     GenerationOptions options,
-    ProjectWriteGate gate) : BackgroundService
+    ProjectWriteGate gate,
+    ILogger<GenerationWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -50,14 +61,24 @@ public sealed class GenerationWorker(
             }
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(entry.Cancellation.Token, stoppingToken);
+            using IDisposable jobScope = LogContext.PushProperty("JobId", id);
+
+            logger.LogInformation(
+                "Batch started: {Requested} candidate(s) for blueprint {BlueprintId} of project {Folder}",
+                entry.Current.Requested,
+                entry.Batch.BlueprintId,
+                entry.Folder);
 
             try
             {
                 Job finished = await generation.RunAsync(entry.Batch, entry.Current, job => registry.Update(id, job), linked.Token);
                 registry.Update(id, finished);
+                LogEnd(finished);
             }
             catch (Exception error) when (!stoppingToken.IsCancellationRequested)
             {
+                logger.LogError(error, "Batch ended by an exception the use case did not handle");
+
                 // Should not happen - the use case ends every job itself - but a
                 // loop that died here would leave every later job queued forever.
                 if (entry.Current.State == JobState.Running)
@@ -65,6 +86,27 @@ public sealed class GenerationWorker(
                     registry.Update(id, entry.Current.Fail(CandidateGeneration.UnexpectedErrorCode, error.Message));
                 }
             }
+        }
+    }
+
+    private void LogEnd(Job finished)
+    {
+        if (finished.Failure is JobFailure failure)
+        {
+            logger.LogWarning(
+                "Batch failed after {Produced} of {Requested} candidate(s): {Code}. {Reason}",
+                finished.Produced.Count,
+                finished.Requested,
+                failure.Code,
+                failure.Message);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Batch ended {State}: {Produced} of {Requested} candidate(s)",
+                finished.State,
+                finished.Produced.Count,
+                finished.Requested);
         }
     }
 }

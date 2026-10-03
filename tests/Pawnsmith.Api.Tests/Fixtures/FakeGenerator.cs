@@ -25,13 +25,17 @@ internal sealed class FakeGenerator : IImageGenerator
     /// <summary>The most generations ever seen running at once.</summary>
     public int MostAtOnce { get; private set; }
 
+    /// <summary>When set, thrown by every call — the health check and the generations.</summary>
+    public Exception? Failure { get; set; }
+
     /// <summary>How many generations started.</summary>
     public int Started { get; private set; }
 
     /// <summary>The setup that composes this generator into the host.</summary>
     public GeneratorSetup Setup() => GeneratorSetup.Configured(this, Framing, "http://comfy.test:8188/");
 
-    public Task<GeneratorAvailability> CheckAsync(CancellationToken cancellationToken) => Task.FromResult(Availability);
+    public Task<GeneratorAvailability> CheckAsync(CancellationToken cancellationToken) =>
+        Failure is null ? Task.FromResult(Availability) : Task.FromException<GeneratorAvailability>(Failure);
 
     public async Task<GeneratedImage> GenerateAsync(GenerationRequest request, CancellationToken cancellationToken)
     {
@@ -41,6 +45,11 @@ internal sealed class FakeGenerator : IImageGenerator
 
         try
         {
+            if (Failure is not null)
+            {
+                throw Failure;
+            }
+
             if (Hold is { } hold && call >= HoldFromCall)
             {
                 await hold.Task.WaitAsync(cancellationToken);

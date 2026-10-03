@@ -1,5 +1,8 @@
 using System.Text.Json.Serialization;
 
+using Serilog.Core;
+using Serilog.Extensions.Logging;
+
 using Pawnsmith.Api.Endpoints;
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Api.Jobs;
@@ -13,6 +16,7 @@ using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
 using Pawnsmith.Infrastructure.Imaging;
 using Pawnsmith.Infrastructure.Json;
+using Pawnsmith.Infrastructure.Logging;
 using Pawnsmith.Infrastructure.Pdf;
 using Pawnsmith.Infrastructure.Projects;
 using Pawnsmith.Infrastructure.Prompts;
@@ -68,6 +72,49 @@ public static class ApiHost
 
         var settings = PawnsmithSettings.From(builder.Configuration, builder.Environment.ContentRootPath);
 
+        // Built before anything is read, so that a start-up that fails is
+        // written to the log before the process ends: that line is the one an
+        // operator comes looking for when a container restarts in a loop
+        // (§H.4.1). Null when logging is disabled.
+        Logger? log = LogSink.Create(settings.Logs);
+
+        try
+        {
+            WebApplication app = await BuildAsync(builder, settings, log, replaceServices);
+            return app;
+        }
+        catch (Exception error)
+        {
+            log?.Fatal(error, "Pawnsmith could not start: {Reason}", error.Message);
+            log?.Dispose();
+            throw;
+        }
+    }
+
+    private static async Task<WebApplication> BuildAsync(
+        WebApplicationBuilder builder,
+        PawnsmithSettings settings,
+        Logger? log,
+        Action<IServiceCollection>? replaceServices)
+    {
+        if (log is not null)
+        {
+            // Serilog becomes one more provider behind ILogger<T>, beside
+            // ASP.NET's console: the events of the application and those of the
+            // framework reach the same files in the same format (DEC-090).
+            //
+            // Registered by hand, not with the package's AddSerilog extension:
+            // that one also adds a filter letting every level through to
+            // Serilog, and in ASP.NET a rule aimed at one provider beats the
+            // general Logging:LogLevel - debug and trace events of the framework
+            // then filled the files. Without it, Logging:LogLevel is the one
+            // level setting, for the console and the files alike (DEC-091).
+            //
+            // A factory, so that the container disposes the provider, and with
+            // it the logger and its files, when the host stops.
+            builder.Services.AddSingleton<ILoggerProvider>(_ => new SerilogLoggerProvider(log, dispose: true));
+        }
+
         // Read before the first request, so that a broken file stops the
         // start-up with its message rather than failing the first user.
         Calibration calibration = await CalibrationReader
@@ -95,6 +142,16 @@ public static class ApiHost
 
         WebApplication app = builder.Build();
         Configure(app);
+
+        // Once the server listens, and not before: only then are its
+        // addresses known (§H.5). The generator is read back from the
+        // container, so that a test which swapped it is reported as it runs.
+        app.Lifetime.ApplicationStarted.Register(() => StartupReport.Write(
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(StartupReport).FullName!),
+            settings,
+            app.Services.GetRequiredService<GeneratorSetup>(),
+            app.Urls,
+            inContainer: string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase)));
 
         return app;
     }
@@ -124,6 +181,8 @@ public static class ApiHost
             provider.GetRequiredService<IProjectRepository>(),
             provider.GetRequiredService<IImageSizeReader>(),
             directory => new PdfSharpSheetRenderer(directory)));
+
+        services.AddSingleton(new LogDirectory(settings.Logs.Directory));
 
         services.AddSingleton<BlueprintEndpoints.Edit>();
         services.AddSingleton(new JobRegistry());
@@ -165,6 +224,7 @@ public static class ApiHost
         JobEndpoints.Map(app);
         SheetEndpoints.Map(app);
         ArchiveEndpoints.Map(app);
+        LogEndpoints.Map(app);
 
         // An /api route that does not exist answers with a code, not with the
         // page of the front: a client calling a wrong route must not receive
