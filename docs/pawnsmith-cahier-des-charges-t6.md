@@ -105,7 +105,7 @@ Toute erreur rend un statut HTTP et un corps JSON d'**une seule clé** :
 | `404` | `PROJECT_NOT_FOUND`, `BLUEPRINT_NOT_FOUND`, `CANDIDATE_NOT_FOUND`, `JOB_NOT_FOUND`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND` |
 | `409` | `IMPORT_DESTINATION_EXISTS`, `JOB_ALREADY_FINISHED` |
 | `413` | `UPLOAD_TOO_LARGE` |
-| `422` | `PROJECT_INVALID`, `PROJECT_PATH_ESCAPE`, `PROJECT_OVERRIDE_INVALID`, `PROJECT_SCHEMA_TOO_RECENT`, `PROJECT_TOO_LARGE`, `ARCHIVE_REJECTED`, `ARCHIVE_LIMIT_EXCEEDED`, `ARCHIVE_EXPORT_FAILED`, `CANDIDATE_NOT_CUT_OUT`, `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED`, `SHEET_INPUT_INVALID` |
+| `422` | `PROJECT_INVALID`, `PROJECT_PATH_ESCAPE`, `PROJECT_OVERRIDE_INVALID`, `PROJECT_SCHEMA_TOO_RECENT`, `PROJECT_TOO_LARGE`, `ARCHIVE_REJECTED`, `ARCHIVE_LIMIT_EXCEEDED`, `ARCHIVE_EXPORT_FAILED`, `CANDIDATE_NOT_CUT_OUT`, `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED`, `SHEET_EMPTY`, `SHEET_INPUT_INVALID` |
 | `503` | `GENERATOR_NOT_CONFIGURED`, et les codes de configuration du générateur (`WORKFLOW_*`, `GENERATOR_URL_INVALID`) |
 | `500` | `INTERNAL_ERROR` — tout ce qu'aucun code ne décrit |
 
@@ -113,7 +113,7 @@ La table est écrite dans le code une fois, en `switch` exhaustif sur la chaîne
 
 Les codes **`GENERATOR_UNREACHABLE`, `GENERATOR_TIMEOUT`…** n'apparaissent jamais comme réponse HTTP : un lot les porte dans son état `Failed` (DEC-074), et la requête qui l'a lancé a déjà reçu `202`.
 
-**Neuf codes sont nouveaux** et levés par l'API elle-même : `REQUEST_INVALID`, `CROSS_ORIGIN_REFUSED`, `JOB_NOT_FOUND`, `JOB_ALREADY_FINISHED`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND`, `UPLOAD_TOO_LARGE`, `GENERATOR_NOT_CONFIGURED` et `INTERNAL_ERROR` ; trois naissent dans l'Application pour la planche : `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED` (que le chapitre 10 nommait déjà) et `SHEET_INPUT_INVALID`, qui recouvre une image élue introuvable ou illisible sur le disque.
+**Neuf codes sont nouveaux** et levés par l'API elle-même : `REQUEST_INVALID`, `CROSS_ORIGIN_REFUSED`, `JOB_NOT_FOUND`, `JOB_ALREADY_FINISHED`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND`, `UPLOAD_TOO_LARGE`, `GENERATOR_NOT_CONFIGURED` et `INTERNAL_ERROR` ; trois naissent dans l'Application pour la planche : `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED` (que le chapitre 10 nommait déjà) et `SHEET_EMPTY` — aucun gabarit n'a d'élu détouré, et une page vide serait du papier perdu (DEC-069). Un dernier, `SHEET_INPUT_INVALID`, est donné par l'API à l'exception sans code que le lecteur d'images de T1 lève pour une image élue introuvable ou illisible : c'est le seul chemin par lequel cette exception arrive à une requête.
 
 À consigner en **DEC-084**.
 
