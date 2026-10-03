@@ -1,6 +1,7 @@
 using Pawnsmith.Application.Blueprints;
 using Pawnsmith.Application.Generation;
 using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Projects;
 using Pawnsmith.Application.Tests.Fixtures;
 using Pawnsmith.Domain.Jobs;
 using Pawnsmith.Domain.Projects;
@@ -393,5 +394,86 @@ public class CandidateGenerationTests
     private sealed class CodedFailure(string wireCode) : Exception("Refused by the repository."), ICodedException
     {
         public string WireCode { get; } = wireCode;
+    }
+
+    // --- T6, DEC-085 : file d'attente, puis exécution ---------------------------------------
+
+    private GenerationBatch Batch(params ulong[] seeds) =>
+        new(Directory, ProjectFixture.BlueprintId, seeds, Framing, CalibrationFixture.Calibration());
+
+    [Fact]
+    public async Task QueueingValidatesAndGeneratesNothing()
+    {
+        Job queued = await UseCase().QueueAsync(Batch(11UL, 22UL), CancellationToken.None);
+
+        queued.State.ShouldBe(JobState.Queued);
+        queued.Requested.ShouldBe(2);
+        generator.Requests.ShouldBeEmpty();
+        repository.Saves.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task ABlueprintDeletedWhileTheJobWaitedFailsItWithoutGenerating()
+    {
+        CandidateGeneration useCase = UseCase();
+        Job queued = await useCase.QueueAsync(Batch(11UL), CancellationToken.None);
+
+        repository.EditBehindTheBatch(project => BlueprintRemoval.Remove(project, ProjectFixture.BlueprintId).Project);
+
+        Job job = await useCase.RunAsync(Batch(11UL), queued, onChange: null, CancellationToken.None);
+
+        job.State.ShouldBe(JobState.Failed);
+        job.Failure!.Code.ShouldBe("BLUEPRINT_NOT_FOUND");
+        generator.Requests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task TheClausesAreFrozenWhenTheBatchStartsNotWhenItWasQueued()
+    {
+        CandidateGeneration useCase = UseCase();
+        Job queued = await useCase.QueueAsync(Batch(11UL), CancellationToken.None);
+
+        repository.EditBehindTheBatch(project => BlueprintEditor
+            .EditSubjectClause(project, ProjectFixture.BlueprintId, "an orc chieftain").Project);
+
+        await useCase.RunAsync(Batch(11UL), queued, onChange: null, CancellationToken.None);
+
+        Produced.Single().SubjectClauseUsed.ShouldBe("an orc chieftain");
+    }
+
+    [Fact]
+    public async Task OnlyAQueuedJobCanBeRun()
+    {
+        CandidateGeneration useCase = UseCase();
+        Job queued = await useCase.QueueAsync(Batch(11UL), CancellationToken.None);
+
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            useCase.RunAsync(Batch(11UL), queued.Cancel(), onChange: null, CancellationToken.None));
+    }
+
+    // --- T6, DEC-086 : la persistance passe par la porte du projet ---------------------------
+
+    [Fact]
+    public async Task TheBatchWaitsAtTheProjectsGateBeforeSaving()
+    {
+        var gate = new ProjectWriteGate();
+        var useCase = new CandidateGeneration(generator, repository, new GenerationOptions(), new FixedClock(Now), gate);
+        var release = new TaskCompletionSource<int>();
+
+        // Another writer holds the project.
+        Task<int> holder = gate.RunAsync(Directory, () => release.Task, CancellationToken.None);
+
+        Task<Job> batch = useCase.RunAsync(Batch(11UL), onChange: null, CancellationToken.None);
+
+        await Task.Delay(100);
+        generator.Requests.Count.ShouldBe(1);
+        repository.Saves.ShouldBe(0);
+        batch.IsCompleted.ShouldBeFalse();
+
+        release.SetResult(0);
+        await holder;
+
+        (await batch).State.ShouldBe(JobState.Completed);
+        repository.Saves.ShouldBe(1);
     }
 }
