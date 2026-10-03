@@ -62,7 +62,7 @@ DEC-057 l'avait annoncé : les bornes de T2, et plus tard celles de T4, vivent e
 | `Pawnsmith:Generator:Url` | *(vide)* | Adresse du ComfyUI. Vide : génération non configurée |
 | `Pawnsmith:Generator:WorkflowFile` | `config/workflow.comfyui.json` | Le workflow exporté de la machine de l'utilisateur |
 | `Pawnsmith:MaxUploadBytes` | 1 Gio | Plus grosse archive acceptée à l'import, en octets |
-| `AllowedHosts` | `localhost;127.0.0.1;[::1]` | Noms d'hôte acceptés (G.11) |
+| `AllowedHosts` | `localhost;127.0.0.1;[::1]` | Noms d'hôte acceptés (G.11). La valeur restrictive est posée **par le code** quand le réglage est absent, pas seulement par `appsettings.json` : un déploiement qui aurait perdu le fichier ne doit pas rouvrir le rebinding DNS en silence |
 
 Les bornes des records d'options de T2 et T4 **gardent leurs valeurs par défaut** et ne sont pas exposées dans le fichier. Les exposer toutes en ferait autant de réglages à documenter pour un besoin que personne n'a exprimé ; en exposer une plus tard est une ligne.
 
@@ -102,18 +102,20 @@ Toute erreur rend un statut HTTP et un corps JSON d'**une seule clé** :
 |---|---|
 | `400` | `BATCH_SIZE_INVALID`, `REQUEST_INVALID` (corps illisible, énumération inconnue, identifiant mal formé) |
 | `403` | `CROSS_ORIGIN_REFUSED` (G.11) |
-| `404` | `PROJECT_NOT_FOUND`, `BLUEPRINT_NOT_FOUND`, `CANDIDATE_NOT_FOUND`, `JOB_NOT_FOUND`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND` |
+| `404` | `ROUTE_NOT_FOUND`, `PROJECT_NOT_FOUND`, `BLUEPRINT_NOT_FOUND`, `CANDIDATE_NOT_FOUND`, `JOB_NOT_FOUND`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND` |
 | `409` | `IMPORT_DESTINATION_EXISTS`, `JOB_ALREADY_FINISHED` |
 | `413` | `UPLOAD_TOO_LARGE` |
 | `422` | `PROJECT_INVALID`, `PROJECT_PATH_ESCAPE`, `PROJECT_OVERRIDE_INVALID`, `PROJECT_SCHEMA_TOO_RECENT`, `PROJECT_TOO_LARGE`, `ARCHIVE_REJECTED`, `ARCHIVE_LIMIT_EXCEEDED`, `ARCHIVE_EXPORT_FAILED`, `CANDIDATE_NOT_CUT_OUT`, `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED`, `SHEET_EMPTY`, `SHEET_INPUT_INVALID` |
 | `503` | `GENERATOR_NOT_CONFIGURED`, et les codes de configuration du générateur (`WORKFLOW_*`, `GENERATOR_URL_INVALID`) |
 | `500` | `INTERNAL_ERROR` — tout ce qu'aucun code ne décrit |
 
+**Une seule réponse échappe à cette forme** : le refus d'un `Host` étranger (G.11). Il est rendu par le filtrage d'hôtes du framework, avant toute route et avant le gestionnaire d'erreurs, avec un `400` sans corps JSON. Aucun client légitime ne le reçoit, et réécrire ce filtrage pour lui donner un code serait remplacer du code éprouvé par du code neuf sur une barrière de sécurité.
+
 La table est écrite dans le code une fois, en `switch` exhaustif sur la chaîne du code : un code qui n'y figure pas tombe sur `500`, ce qu'un test parcourant tous les codes connus empêche d'arriver en silence.
 
 Les codes **`GENERATOR_UNREACHABLE`, `GENERATOR_TIMEOUT`…** n'apparaissent jamais comme réponse HTTP : un lot les porte dans son état `Failed` (DEC-074), et la requête qui l'a lancé a déjà reçu `202`.
 
-**Neuf codes sont nouveaux** et levés par l'API elle-même : `REQUEST_INVALID`, `CROSS_ORIGIN_REFUSED`, `JOB_NOT_FOUND`, `JOB_ALREADY_FINISHED`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND`, `UPLOAD_TOO_LARGE`, `GENERATOR_NOT_CONFIGURED` et `INTERNAL_ERROR` ; trois naissent dans l'Application pour la planche : `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED` (que le chapitre 10 nommait déjà) et `SHEET_EMPTY` — aucun gabarit n'a d'élu détouré, et une page vide serait du papier perdu (DEC-069). Un dernier, `SHEET_INPUT_INVALID`, est donné par l'API à l'exception sans code que le lecteur d'images de T1 lève pour une image élue introuvable ou illisible : c'est le seul chemin par lequel cette exception arrive à une requête.
+**Dix codes sont nouveaux** et levés par l'API elle-même : `REQUEST_INVALID`, `CROSS_ORIGIN_REFUSED`, `ROUTE_NOT_FOUND` — une route `/api` inconnue répond par un code, jamais par la page du front avec un `200` —, `JOB_NOT_FOUND`, `JOB_ALREADY_FINISHED`, `IMAGE_NOT_FOUND`, `UNIVERSE_NOT_FOUND`, `UPLOAD_TOO_LARGE`, `GENERATOR_NOT_CONFIGURED` et `INTERNAL_ERROR` ; trois naissent dans l'Application pour la planche : `PAPER_FORMAT_UNKNOWN`, `SHEET_CAPACITY_EXCEEDED` (que le chapitre 10 nommait déjà) et `SHEET_EMPTY` — aucun gabarit n'a d'élu détouré, et une page vide serait du papier perdu (DEC-069). Un dernier, `SHEET_INPUT_INVALID`, est donné par l'API à l'exception sans code que le lecteur d'images de T1 lève pour une image élue introuvable ou illisible : c'est le seul chemin par lequel cette exception arrive à une requête.
 
 À consigner en **DEC-084**.
 
