@@ -41,7 +41,19 @@
     }
   },
   "projects": {
-    "title": "Projects"
+    "title": "Projects",
+    "lead": "Each project is a folder on the server’s disk. Nothing is shared and there are no accounts.",
+    "new": "New project",
+    "create": "Create the project",
+    "none": "No project yet.",
+    "open": "Open",
+    "unreadable": "Unreadable",
+    "modified": "Modified {{date}}",
+    "copy": "Same identifier as another project of the list: it is an imported copy. Both stay independent.",
+    "import": "Import an archive (.zip)",
+    "archive": "Archive",
+    "importName": "Name of the imported project",
+    "importAction": "Import"
   },
   "catalog": {
     "title": "Catalogue"
@@ -116,5 +128,70 @@
     "SHEET_EMPTY": "Nothing to print: no blueprint has a kept proposal.",
     "SHEET_INPUT_INVALID": "A kept image is unreadable or too large.",
     "INTERNAL_ERROR": "Internal server error: see the logs."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "personal": "personal"
+  },
+  "universes": {
+    "Fantasy": "Fantasy"
+  },
+  "geometries": {
+    "TabAndSocket": {
+      "name": "Tab and socket",
+      "hint": "A tab under the feet slides into a base."
+    },
+    "FoldedTent": {
+      "name": "Folded tent",
+      "hint": "Flaps fold out under the feet."
+    },
+    "NoSupport": {
+      "name": "No support",
+      "hint": "Nothing under the feet: glue it or stand it."
+    }
+  },
+  "project": {
+    "title": "Project",
+    "lead": "These settings apply to every blueprint of the project. Each field is saved when you leave it.",
+    "name": "Name",
+    "universe": "Universe",
+    "paper": "Paper format",
+    "paperFormat": "{{name}} · {{width}} × {{height}} mm",
+    "geometry": "Geometry",
+    "tabs": "Tab dimensions for this project",
+    "tabsHint": "Empty: the calibration value applies.",
+    "tabWidth": "Tab width (mm)",
+    "tabHeight": "Tab height (mm)",
+    "fromCalibration": "calibration",
+    "style": "Style",
+    "styleFrozen": "This project already has proposals: its universe and style no longer change. For another style, duplicate it.",
+    "duplicate": "Duplicate with another style",
+    "duplicateLead": "A new project, with the same blueprints but without their proposals.",
+    "duplicateAction": "Duplicate",
+    "keepStyle": "— keep the same style —",
+    "styleName": "Style name",
+    "styleClause": "Style clause",
+    "styleClauseHint": "In English: appended as is at the end of every prompt. A palette is said here.",
+    "advanced": "Advanced",
+    "negative": "Negative clause",
+    "negativeHint": "What the generator should avoid. With Krea 2 Turbo, it has no effect.",
+    "library": "Style library",
+    "libraryHint": "Choosing a style copies it into the project: changing the library changes no project.",
+    "useStyle": "Use",
+    "saveAsStyle": "Save as a style",
+    "archives": "Archives",
+    "export": "Export",
+    "profiles": {
+      "Backup": {
+        "name": "Backup",
+        "hint": "The whole project, paired images included. For you."
+      },
+      "Share": {
+        "name": "Share",
+        "hint": "Without paired images. To send to someone."
+      }
+    }
   }
 }

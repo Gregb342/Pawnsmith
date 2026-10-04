@@ -41,7 +41,19 @@
     }
   },
   "projects": {
-    "title": "Projets"
+    "title": "Projets",
+    "lead": "Chaque projet est un dossier sur le disque du serveur. Rien n’est partagé, il n’y a pas de compte.",
+    "new": "Nouveau projet",
+    "create": "Créer le projet",
+    "none": "Aucun projet pour l’instant.",
+    "open": "Ouvrir",
+    "unreadable": "Illisible",
+    "modified": "Modifié le {{date}}",
+    "copy": "Même identifiant qu’un autre projet de la liste : c’est une copie importée. Les deux restent indépendants.",
+    "import": "Importer une archive (.zip)",
+    "archive": "Archive",
+    "importName": "Nom du projet importé",
+    "importAction": "Importer"
   },
   "catalog": {
     "title": "Catalogue"
@@ -116,5 +128,70 @@
     "SHEET_EMPTY": "Rien à imprimer : aucun gabarit n’a de proposition retenue.",
     "SHEET_INPUT_INVALID": "Une image retenue est illisible ou trop grande.",
     "INTERNAL_ERROR": "Erreur interne du serveur : voir les journaux."
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "personal": "personnel"
+  },
+  "universes": {
+    "Fantasy": "Fantasy"
+  },
+  "geometries": {
+    "TabAndSocket": {
+      "name": "Onglet et socle",
+      "hint": "Un onglet sous les pieds glisse dans un socle."
+    },
+    "FoldedTent": {
+      "name": "Tente pliée",
+      "hint": "Des volets se replient sous les pieds."
+    },
+    "NoSupport": {
+      "name": "Sans support",
+      "hint": "Rien sous les pieds : le pion se colle ou se pose."
+    }
+  },
+  "project": {
+    "title": "Projet",
+    "lead": "Ces réglages valent pour tous les gabarits du projet. Chaque champ s’enregistre quand vous le quittez.",
+    "name": "Nom",
+    "universe": "Univers",
+    "paper": "Format de papier",
+    "paperFormat": "{{name}} · {{width}} × {{height}} mm",
+    "geometry": "Géométrie",
+    "tabs": "Cotes d’onglet de ce projet",
+    "tabsHint": "Vide : la valeur de la calibration s’applique.",
+    "tabWidth": "Largeur d’onglet (mm)",
+    "tabHeight": "Hauteur d’onglet (mm)",
+    "fromCalibration": "calibration",
+    "style": "Style",
+    "styleFrozen": "Ce projet a déjà des propositions : son univers et son style ne changent plus. Pour un autre style, dupliquez-le.",
+    "duplicate": "Dupliquer avec un autre style",
+    "duplicateLead": "Un nouveau projet, avec les mêmes gabarits mais sans leurs propositions.",
+    "duplicateAction": "Dupliquer",
+    "keepStyle": "— garder le même style —",
+    "styleName": "Nom du style",
+    "styleClause": "Clause de style",
+    "styleClauseHint": "En anglais : elle est ajoutée telle quelle à la fin de chaque prompt. Une palette se dit ici.",
+    "advanced": "Avancé",
+    "negative": "Clause négative",
+    "negativeHint": "Ce que le générateur doit éviter. Avec Krea 2 Turbo, elle est sans effet.",
+    "library": "Bibliothèque de styles",
+    "libraryHint": "Choisir un style le copie dans le projet : modifier la bibliothèque ne change aucun projet.",
+    "useStyle": "Utiliser",
+    "saveAsStyle": "Enregistrer comme style",
+    "archives": "Archives",
+    "export": "Exporter",
+    "profiles": {
+      "Backup": {
+        "name": "Sauvegarde",
+        "hint": "Tout le projet, images jumelées comprises. Pour vous."
+      },
+      "Share": {
+        "name": "Partage",
+        "hint": "Sans les images jumelées. Pour envoyer à quelqu’un."
+      }
+    }
   }
 }
