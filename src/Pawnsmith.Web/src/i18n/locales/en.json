@@ -56,7 +56,12 @@
     "importAction": "Import"
   },
   "catalog": {
-    "title": "Catalogue"
+    "title": "Catalogue",
+    "lead": "The lists of the {{universe}} universe. Shipped items cannot be changed; yours can be removed.",
+    "add": "Add",
+    "label": "Label",
+    "value": "Value",
+    "fragment": "Phrase"
   },
   "logs": {
     "title": "Logs"
@@ -193,5 +198,63 @@
         "hint": "Without paired images. To send to someone."
       }
     }
+  },
+  "blueprints": {
+    "title": "Blueprints",
+    "lead": "A blueprint describes a pawn: who it is, its size, how many to print. Every field is saved when you leave it.",
+    "new": "New blueprint",
+    "none": "No blueprint yet.",
+    "kept": "Kept",
+    "noneKept": "None kept",
+    "proposals_one": "{{count}} proposal",
+    "proposals_other": "{{count}} proposals",
+    "required": "Required",
+    "size": "Size",
+    "quantity": "Quantity to print",
+    "optional": "Options",
+    "optionalHint": "“Generator’s choice”: nothing is asked, the generator decides.",
+    "generatorChoice": "— generator’s choice —",
+    "outOfList": "{{value}} (not in the list)",
+    "other": "Other…",
+    "outOfListWarning": "“{{value}}” is not in the catalogue: it goes into the prompt as is, without a pose phrase.",
+    "free": "Free text",
+    "details": "Details",
+    "detailsHint": "In English, added at the end of the description: “one ear torn”.",
+    "subject": "Subject description",
+    "subjectEdited": "Customised description",
+    "optionsInactive": "Customised text: the lists and the details no longer change it.",
+    "resetConfirm": "Your text will be replaced by the one the fields compose.",
+    "reset": "Back to the automatic text",
+    "subjectHint": "Composed from the fields above, in English.",
+    "customise": "Customise the text",
+    "prompt": "What goes to the generator",
+    "promptHint": "The framing clause, which sets the pose and the background, is added by the workflow.",
+    "noStyle": "no style",
+    "deleteConfirm_one": "Delete this blueprint and its proposal, files included?",
+    "deleteConfirm_other": "Delete this blueprint and its {{count}} proposals, files included?",
+    "delete": "Delete the blueprint"
+  },
+  "sizes": {
+    "Small": "Small",
+    "Medium": "Medium",
+    "Large": "Large",
+    "Huge": "Huge",
+    "Gargantuan": "Gargantuan"
+  },
+  "clauses": {
+    "Subject": "Subject",
+    "Style": "Style",
+    "Framing": "Framing"
+  },
+  "newEntry": {
+    "title": "New item: {{list}}",
+    "lead": "A complete item, and nothing less: it joins your personal catalogue and serves all your projects.",
+    "french": "Label in French",
+    "english": "Label in English",
+    "value": "Value",
+    "valueHint": "In English, stored in the project: “warhammer”.",
+    "fragment": "Phrase in the prompt",
+    "fragmentHint": "In English. Starts from an example of the same list: keep the pose it describes, so the item stays inside the silhouette.",
+    "add": "Add to the catalogue"
   }
 }

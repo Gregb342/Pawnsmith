@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 
 import { ErrorNotice } from '../components/ErrorNotice';
 import { StepRail, TopBar } from '../components/Shell';
+import { BlueprintsScreen } from '../screens/BlueprintsScreen';
+import { CatalogScreen } from '../screens/CatalogScreen';
 import { Placeholder } from '../screens/Placeholder';
 import { ProjectScreen } from '../screens/ProjectScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
@@ -60,9 +62,18 @@ function Screen(props: { route: Route; navigate: (route: Route) => void }) {
 
   switch (route.name) {
     case 'project':
-      return route.step === 'project' ? <ProjectScreen navigate={props.navigate} /> : <Placeholder title={`steps.${route.step}`} />;
+      switch (route.step) {
+        case 'project':
+          return <ProjectScreen navigate={props.navigate} />;
+        case 'blueprints':
+          return <BlueprintsScreen />;
+        default:
+          return <Placeholder title={`steps.${route.step}`} />;
+      }
     case 'projects':
       return <ProjectsScreen navigate={props.navigate} />;
+    case 'catalog':
+      return <CatalogScreen />;
     default:
       return <Placeholder title={`${route.name}.title`} />;
   }

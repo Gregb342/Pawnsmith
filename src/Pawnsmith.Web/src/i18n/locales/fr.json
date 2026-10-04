@@ -56,7 +56,12 @@
     "importAction": "Importer"
   },
   "catalog": {
-    "title": "Catalogue"
+    "title": "Catalogue",
+    "lead": "Les listes de l’univers {{universe}}. Les éléments livrés ne se modifient pas ; les vôtres se suppriment.",
+    "add": "Ajouter",
+    "label": "Libellé",
+    "value": "Valeur",
+    "fragment": "Formulation"
   },
   "logs": {
     "title": "Journaux"
@@ -193,5 +198,63 @@
         "hint": "Sans les images jumelées. Pour envoyer à quelqu’un."
       }
     }
+  },
+  "blueprints": {
+    "title": "Gabarits",
+    "lead": "Un gabarit décrit un pion : qui il est, sa taille, combien en imprimer. Chaque champ s’enregistre quand vous le quittez.",
+    "new": "Nouveau gabarit",
+    "none": "Aucun gabarit pour l’instant.",
+    "kept": "Retenue",
+    "noneKept": "Aucune retenue",
+    "proposals_one": "{{count}} proposition",
+    "proposals_other": "{{count}} propositions",
+    "required": "Obligatoire",
+    "size": "Taille",
+    "quantity": "Quantité à imprimer",
+    "optional": "Options",
+    "optionalHint": "« Au choix du générateur » : rien n’est demandé, le générateur décide.",
+    "generatorChoice": "— au choix du générateur —",
+    "outOfList": "{{value}} (hors liste)",
+    "other": "Autre…",
+    "outOfListWarning": "« {{value}} » n’est pas dans le catalogue : il entre dans le prompt tel quel, sans formulation de pose.",
+    "free": "Texte libre",
+    "details": "Détails",
+    "detailsHint": "En anglais, ajoutés à la fin de la description : « one ear torn ».",
+    "subject": "Description du sujet",
+    "subjectEdited": "Description personnalisée",
+    "optionsInactive": "Texte personnalisé : les listes et les détails ne le modifient plus.",
+    "resetConfirm": "Votre texte sera remplacé par celui que composent les champs.",
+    "reset": "Revenir au texte automatique",
+    "subjectHint": "Composée à partir des champs ci-dessus, en anglais.",
+    "customise": "Personnaliser le texte",
+    "prompt": "Ce qui part au générateur",
+    "promptHint": "La clause de cadrage, qui impose la pose et le fond, est ajoutée par le workflow.",
+    "noStyle": "aucun style",
+    "deleteConfirm_one": "Supprimer ce gabarit et sa proposition, fichiers compris ?",
+    "deleteConfirm_other": "Supprimer ce gabarit et ses {{count}} propositions, fichiers compris ?",
+    "delete": "Supprimer le gabarit"
+  },
+  "sizes": {
+    "Small": "Petite",
+    "Medium": "Moyenne",
+    "Large": "Grande",
+    "Huge": "Très grande",
+    "Gargantuan": "Gigantesque"
+  },
+  "clauses": {
+    "Subject": "Sujet",
+    "Style": "Style",
+    "Framing": "Cadrage"
+  },
+  "newEntry": {
+    "title": "Nouvel élément : {{list}}",
+    "lead": "Un élément complet, et rien de moins : il rejoint votre catalogue personnel et servira à tous vos projets.",
+    "french": "Libellé en français",
+    "english": "Libellé en anglais",
+    "value": "Valeur",
+    "valueHint": "En anglais, enregistrée dans le projet : « warhammer ».",
+    "fragment": "Formulation dans le prompt",
+    "fragmentHint": "En anglais. Partie d’un exemple de la même liste : gardez la pose qu’il décrit, pour que l’objet reste dans la silhouette.",
+    "add": "Ajouter au catalogue"
   }
 }
