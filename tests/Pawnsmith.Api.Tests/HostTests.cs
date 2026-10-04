@@ -64,6 +64,7 @@ public class HostTests
             .. Enum.GetValues<GeneratorConfigErrorCode>().Select(code => code.ToWireCode()),
             .. Enum.GetValues<CutoutErrorCode>().Select(code => code.ToWireCode()),
             .. Enum.GetValues<CatalogRuleCode>().Select(code => code.ToWireCode()),
+            .. Enum.GetValues<StyleRuleCode>().Select(code => code.ToWireCode()),
             .. typeof(ApiCodes).GetFields().Select(field => (string)field.GetValue(null)!),
         ];
 

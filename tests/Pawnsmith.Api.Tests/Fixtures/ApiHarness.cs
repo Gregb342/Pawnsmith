@@ -69,7 +69,7 @@ internal sealed class ApiHarness : IAsyncDisposable
 
         string repositoryConfig = Path.Combine(RepositoryRoot(), "config");
 
-        foreach (string file in new[] { "calibration.json", "catalog.fantasy.json", "prompt-template.fantasy.json" })
+        foreach (string file in new[] { "calibration.json", "catalog.fantasy.json", "prompt-template.fantasy.json", "styles.fantasy.json" })
         {
             File.Copy(Path.Combine(repositoryConfig, file), Path.Combine(config, file));
         }

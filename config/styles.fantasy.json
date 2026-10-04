@@ -1,0 +1,36 @@
+{
+  "versionSchema": 1,
+  "universe": "Fantasy",
+  "styles": [
+    {
+      "id": "dark-watercolour",
+      "names": { "en": "Dark watercolour", "fr": "Aquarelle sombre" },
+      "styleClause": "Dark watercolour illustration, muted earthy palette of moss green, rust and bone, visible paper grain, soft edges.",
+      "negativeClause": "photorealistic, 3d render, text, watermark"
+    },
+    {
+      "id": "bright-gouache",
+      "names": { "en": "Bright gouache", "fr": "Gouache lumineuse" },
+      "styleClause": "Gouache illustration, bright saturated colours, thick dark outlines, flat shading.",
+      "negativeClause": "photorealistic, 3d render, text, watermark"
+    },
+    {
+      "id": "ink-and-wash",
+      "names": { "en": "Ink and wash", "fr": "Encre et lavis" },
+      "styleClause": "Black ink drawing with a light grey wash, crisp linework, sparse hatching, old bestiary engraving look.",
+      "negativeClause": "colour, photorealistic, 3d render, text, watermark"
+    },
+    {
+      "id": "oil-painting",
+      "names": { "en": "Classic oil painting", "fr": "Peinture à l’huile classique" },
+      "styleClause": "Classic fantasy oil painting, rich warm colours, painterly brushstrokes, dramatic but even lighting.",
+      "negativeClause": "photorealistic, 3d render, text, watermark"
+    },
+    {
+      "id": "comic-book",
+      "names": { "en": "Comic book", "fr": "Bande dessinée" },
+      "styleClause": "Franco-Belgian comic book style, clean ligne claire outlines, flat bright colours, no gradients.",
+      "negativeClause": "photorealistic, 3d render, text, watermark"
+    }
+  ]
+}

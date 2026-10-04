@@ -1,6 +1,6 @@
 # `config/`
 
-Quatre fichiers de données, tous lus par l'application et jamais écrits par
+Cinq fichiers de données, tous lus par l'application et jamais écrits par
 elle. Ils se modifient à la main. Le lecteur tolère les commentaires `//` et
 les virgules finales, et **ignore les champs qu'il ne connaît pas** — on peut
 les annoter sans les casser (§C.6.3). Les fichiers livrés restent en JSON
@@ -82,6 +82,23 @@ qui permet de partager un projet avec quelqu'un dont le catalogue diffère.
 
 Le contenu livré est un **point de départ**, à enrichir à l'usage. C'est du
 contenu, pas du code : l'améliorer ne demande aucune recompilation (DEC-010).
+
+## `styles.{univers}.json`
+
+La **bibliothèque de styles** livrée (DEC-110) : des points de départ que
+l'utilisateur choisit à l'étape Projet. Choisir un style le **copie** dans le
+projet ; modifier ce fichier ne change aucun projet existant.
+
+| Clé | Rôle |
+|---|---|
+| `versionSchema` | Vaut `1`. |
+| `styles[].id` | Identifiant stable, unique. |
+| `styles[].names` | Le nom affiché, **un par langue** de l'interface (`en`, `fr`). |
+| `styles[].styleClause` | La clause de style, en anglais. Une palette se dit ici : il n'y a pas d'autre champ pour elle. |
+| `styles[].negativeClause` | La clause négative ; peut être vide. Avec Krea 2 Turbo à CFG 1,0, elle est sans effet (DEC-077). |
+
+Les styles que l'utilisateur enregistre depuis l'interface vont dans le dossier
+utilisateur, au même format, jamais ici.
 
 ## `workflow.comfyui.json` — et son exemple
 

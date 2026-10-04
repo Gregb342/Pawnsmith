@@ -32,6 +32,10 @@ public sealed record CatalogEntryDto(string Value, string Fragment, IReadOnlyDic
 /// <param name="Code">Why it is misconfigured.</param>
 /// <param name="Address">The configured address.</param>
 /// <param name="FramingClause">The framing clause of the workflow, read-only (DEC-029).</param>
+public sealed record StylePresetDto(string Id, IReadOnlyDictionary<string, string> Names, string StyleClause, string NegativeClause, StyleOrigin Origin);
+
+public sealed record StylePresetRequest(string Name, string StyleClause, string NegativeClause);
+
 public sealed record CatalogEntryRequest(string Key, string Value, IReadOnlyDictionary<string, string> Labels, string Fragment);
 
 public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause);
@@ -67,6 +71,9 @@ public static class ReferenceMapping
             parameter.Key,
             SortedLabels(parameter.Labels),
             [.. parameter.Entries.Select(entry => new CatalogEntryDto(entry.Value, entry.Fragment, SortedLabels(entry.Labels), entry.Origin))]))]);
+
+    public static List<StylePresetDto> ToDto(this IReadOnlyList<StylePreset> presets) =>
+        [.. presets.Select(preset => new StylePresetDto(preset.Id, SortedLabels(preset.Names), preset.StyleClause, preset.NegativeClause, preset.Origin))];
 
     // A dictionary has no order of its own; two identical calls must give
     // identical bodies (§G.4).

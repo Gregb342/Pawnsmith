@@ -132,12 +132,18 @@ public static class ApiHost
         // calibration: silently serving without it would hide the user's data.
         CatalogBook catalog = await CatalogBook.LoadAsync(shipped, new PersonalCatalogFile(settings.UserDirectory), CancellationToken.None);
 
+        // The style library: shipped styles, then the user's (DEC-110).
+        var styleFiles = new StyleLibraryFile(settings.UserDirectory);
+        IReadOnlyList<StylePreset> shippedStyles = await StyleLibraryFile.ReadShippedAsync(
+            Path.Combine(settings.ConfigDirectory, $"styles.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
+        StyleBook styles = await StyleBook.LoadAsync(Universe.Fantasy, shippedStyles, styleFiles, CancellationToken.None);
+
         PromptTemplate template = await PromptTemplateReader.ReadAsync(
             Path.Combine(settings.ConfigDirectory, $"prompt-template.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
 
         GeneratorSetup generator = await GeneratorSetup.LoadAsync(settings, CancellationToken.None);
 
-        Register(builder.Services, settings, calibration, catalog, template, generator);
+        Register(builder.Services, settings, calibration, catalog, styles, template, generator);
         replaceServices?.Invoke(builder.Services);
 
         // Every body is bounded by the server while it arrives, not after it
@@ -176,12 +182,14 @@ public static class ApiHost
         PawnsmithSettings settings,
         Calibration calibration,
         CatalogBook catalog,
+        StyleBook styles,
         PromptTemplate template,
         GeneratorSetup generator)
     {
         services.AddSingleton(settings);
         services.AddSingleton(calibration);
         services.AddSingleton(catalog);
+        services.AddSingleton(styles);
 
         // Reads the catalogue at each composition, so that a personal entry
         // added a second ago composes like a shipped one.

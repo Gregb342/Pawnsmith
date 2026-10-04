@@ -54,6 +54,40 @@ public static class ReferenceEndpoints
             return updated.ToDto();
         });
 
+        // §I.7.2 - the style library. Applying a style is a settings update.
+        routes.MapGet("/api/universes/{universe}/styles", (string universe, CatalogBook catalog, StyleBook styles) =>
+        {
+            RequireUniverse(universe, catalog);
+
+            return styles.Current.ToDto();
+        });
+
+        routes.MapPost("/api/universes/{universe}/styles", async (
+            string universe,
+            StylePresetRequest request,
+            CatalogBook catalog,
+            StyleBook styles,
+            CancellationToken cancellationToken) =>
+        {
+            RequireUniverse(universe, catalog);
+
+            IReadOnlyList<StylePreset> updated = await styles.AddAsync(request.Name, request.StyleClause, request.NegativeClause, cancellationToken);
+
+            return Results.Created($"/api/universes/{universe}/styles", updated.ToDto());
+        });
+
+        routes.MapDelete("/api/universes/{universe}/styles/{id}", async (
+            string universe,
+            string id,
+            CatalogBook catalog,
+            StyleBook styles,
+            CancellationToken cancellationToken) =>
+        {
+            RequireUniverse(universe, catalog);
+
+            return (await styles.RemoveAsync(id, cancellationToken)).ToDto();
+        });
+
         routes.MapGet("/api/generator", async (GeneratorSetup setup, CancellationToken cancellationToken) =>
         {
             // A live check when there is something to check: an absent

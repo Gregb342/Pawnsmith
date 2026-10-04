@@ -32,6 +32,12 @@ public enum PromptFileErrorCode
 
     /// <summary>The file's <c>universe</c> is not the one the caller asked for.</summary>
     UniverseMismatch,
+
+    /// <summary>The style library is malformed or incoherent (DEC-110).</summary>
+    StylesInvalid,
+
+    /// <summary>The style library declares a schema newer than this reader.</summary>
+    StylesSchemaTooRecent,
 }
 
 /// <summary>Turns a code into the string an API would return.</summary>
@@ -46,6 +52,8 @@ public static class PromptFileErrorCodeExtensions
         PromptFileErrorCode.TemplateUnknownToken => "TEMPLATE_UNKNOWN_TOKEN",
         PromptFileErrorCode.TemplateSchemaTooRecent => "TEMPLATE_SCHEMA_TOO_RECENT",
         PromptFileErrorCode.UniverseMismatch => "UNIVERSE_MISMATCH",
+        PromptFileErrorCode.StylesInvalid => "STYLES_INVALID",
+        PromptFileErrorCode.StylesSchemaTooRecent => "STYLES_SCHEMA_TOO_RECENT",
 
         // Same reasoning as ProjectErrorCode: the compiler insists on this arm,
         // and a test walks Enum.GetValues to keep every named member covered.
