@@ -98,6 +98,17 @@ internal sealed class InMemoryProjectRepository : IProjectRepository
         return Task.FromResult(path);
     }
 
+    public Task<CutoutFiles> WriteCutoutImagesAsync(string projectDirectory, Guid candidateId, byte[] frontPng, byte[] backPng, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var files = new CutoutFiles($"images/{candidateId}-front.png", $"images/{candidateId}-back.png");
+        Images.RemoveAll(image => image.Path == files.Front || image.Path == files.Back);
+        Images.Add((files.Front, frontPng));
+        Images.Add((files.Back, backPng));
+        return Task.FromResult(files);
+    }
+
     public Task<int> DeleteImagesAsync(string projectDirectory, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Not used by the batch.");
 

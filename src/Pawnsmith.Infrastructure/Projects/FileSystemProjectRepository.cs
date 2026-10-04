@@ -99,6 +99,20 @@ public sealed class FileSystemProjectRepository : IProjectRepository
         CancellationToken cancellationToken) =>
         ProjectImageFiles.WritePairedAsync(projectDirectory, candidateId, png, cancellationToken);
 
+    public async Task<CutoutFiles> WriteCutoutImagesAsync(
+        string projectDirectory,
+        Guid candidateId,
+        byte[] frontPng,
+        byte[] backPng,
+        CancellationToken cancellationToken)
+    {
+        (string front, string back) = await ProjectImageFiles
+            .WriteCutoutsAsync(projectDirectory, candidateId, frontPng, backPng, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new CutoutFiles(front, back);
+    }
+
     public Task<int> DeleteImagesAsync(
         string projectDirectory,
         IReadOnlyList<string> relativePaths,
