@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 4 octobre 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.19 — chapitres 2, 10, 12 et 15 en particulier |
 | **Documents frères** | le cahier T6 (l'API), dont ce document est la suite |
 | **Portée** | Les neuf décisions de la revue de maquette (D1 à D9), ce qu'elles demandent à l'API, et le front React |
+
+> **Changements depuis la v1.0** — Écriture de la tranche et sa relecture. Ajout du §I.10.5, ce que l'écriture a tranché : le code `GENERATOR_ADDRESS_INVALID`, les entrées personnelles écartées au démarrage, l'interrogation de la file, les libellés de statut, le pas de quantité de la Mise en page. Le §I.12 dit ce qui a été éprouvé dans le navigateur, et les trois défauts que la relecture du front a trouvés.
 
 > **Régime d'écriture.** Les neuf décisions ont été **prises par le porteur**, le 4 octobre 2026, en commentant un document de revue de la maquette. Elles sont consignées en DEC-105 à DEC-112. Le reste — la forme exacte des routes nouvelles, le découpage, l'aperçu de la planche, la version — est tranché sans lui (DEC-113, DEC-114) et repris au §8 de `CLAUDE.md`.
 
@@ -257,6 +259,19 @@ Chaque champ s'enregistre **quand on le quitte** (perte de focus) ou, pour une l
 
 Une erreur d'API est un code (DEC-084). Le front le traduit par la clé `errors.{CODE}` ; un code sans traduction affiche le code lui-même, jamais une chaîne vide.
 
+### I.10.5 Ce que l'écriture a tranché
+
+| Point | Choix | Motif |
+|---|---|---|
+| Adresse refusée | `GENERATOR_ADDRESS_INVALID`, `422`, distinct de `GENERATOR_URL_INVALID` (`503`) | Le second est une faute de déploiement, le premier une saisie de l'utilisateur. L'adresse refusée n'est répétée nulle part, journal compris |
+| Entrée personnelle devenue invalide | Écartée au démarrage et journalisée, le démarrage continue | Une mise à jour peut livrer une valeur qu'un utilisateur avait ajoutée, ou retirer une clé. Arrêter l'application pour ça punirait l'utilisateur d'avoir été en avance |
+| Fichier de styles illisible | `STYLES_INVALID` au démarrage, comme un catalogue illisible | Livré par le dépôt : son erreur est une erreur de déploiement |
+| Avancement des lots | Interrogation de `GET /api/jobs` toutes les 1,5 s tant que l'écran Génération est ouvert ; tout changement d'un job du projet recharge le projet | Aucun canal poussé à écrire ni dépendance à ajouter ; une requête locale de quelques centaines d'octets |
+| Statut d'une proposition | Brouillon, Validée, Rejetée | Le vocabulaire de la bible (§3.1), au féminin de « proposition ». DEC-105 ne nommait pas les statuts |
+| Quantité sur la Mise en page | Un pas `−` / `+` par gabarit imprimé | La question du §15.4 — « ce gobelin de plus tient-il sur la page ? » — se pose là, pas à l'étape Gabarits |
+| Culture de la planche | Par défaut la langue de l'interface, choisie à l'Impression | §15.1 et §G.10 : un choix fait au moment d'imprimer, jamais lu du navigateur |
+| Développement | Le serveur Vite passe `/api` à l'API **sans réécrire `Host`** | Pour que la garde d'origine de MEN-010 voie le même couple `Origin` / `Host` qu'en production |
+
 ---
 
 ## I.11 Critères d'acceptation
@@ -296,7 +311,13 @@ Une erreur d'API est un code (DEC-084). Le front le traduit par la clé `errors.
 17. La duplication copie les gabarits sans propositions, avec le style demandé, sous un nouvel identifiant.
 18. `sheet.pdf?disposition=inline` ne force pas le téléchargement.
 
-**Front** : pas de test automatisé dans cette tranche. Un banc de test du navigateur (Playwright, Vitest) serait une dépendance de développement de plus, et le §3 demande de la justifier par ce qu'elle protège. Ce qui est vérifié à chaque commit : `tsc`, ESLint (règles des hooks comprises), la parité des clés de traduction, et la construction. Le parcours complet est éprouvé une fois, dans le conteneur, par un script hors dépôt. **C'est un trou connu**, écrit comme tel.
+**Front** : pas de test automatisé dans cette tranche. Un banc de test du navigateur (Playwright, Vitest) serait une dépendance de développement de plus, et le §3 demande de la justifier par ce qu'elle protège. Ce qui est vérifié à chaque commit : `tsc`, ESLint (règles des hooks comprises), la parité des clés de traduction, et la construction. **C'est un trou connu**, écrit comme tel.
+
+Ce qui a été éprouvé à la place, écran par écran, dans Chromium, par des scripts **hors dépôt**, contre l'API réelle et un faux ComfyUI qui rend des images détourables : création de projet, géométrie qui montre et cache les cotes d'onglet, style de bibliothèque appliqué et style personnel enregistré ; gabarit ajouté, race changée, « Autre… » qui crée une arme complète, texte personnalisé puis retour au texte automatique, entrée personnelle supprimée et valeur restée « hors liste » ; lot lancé, suivi, détouré, proposition validée et retenue, « prompt modifié depuis » après un changement de race, lot annulé ; cellules de la page, exemplaire de plus, PDF en ligne et téléchargé ; adresse avec identifiants refusée sans fuite au journal ; journaux filtrés ; bascule en anglais. Aucune erreur de console hors les refus attendus.
+
+**Non éprouvé** : l'aperçu PDF **affiché** — Chromium sans affichage n'a pas de lecteur PDF ; l'en-tête `inline` et le contenu du fichier l'ont été. Et rien contre un vrai ComfyUI.
+
+La relecture du front a trouvé trois défauts, corrigés dans un commit à part : un tri des propositions par `localeCompare`, comparaison sensible à la culture ; une séquence d'échappement malformée dans l'adresse (`#/p/%E0`) qui faisait lever `decodeURIComponent` pendant le rendu, page blanche ; un nombre de propositions vidé qui partait en `null`.
 
 ---
 

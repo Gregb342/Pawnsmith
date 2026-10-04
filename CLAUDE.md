@@ -294,11 +294,11 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.18**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.19**, cahier des charges T1
 **v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
 **cahier des charges T4 v1.1**, **cahier des charges T5 v1.1**, **cahier des
-charges T6 v1.1** (l'API seule), **cahier des charges T7 v1.1**, protocole T0
-**v1.4**.
+charges T6 v1.1** (l'API), **cahier des charges T6, le front, v1.1**,
+**cahier des charges T7 v1.1**, protocole T0 **v1.4**.
 
 ### Décisions prises sans toi, à relire en premier
 
@@ -505,6 +505,68 @@ toi, DEC-100 à DEC-104.
     depuis T5, et un défaut silencieux l'aurait caché.
 12. **Deux commandes de CLI** : `candidate cutout` sur un candidat de projet,
     et `cutout --pair` sur un fichier quelconque, hors de tout projet.
+
+#### Pour le front de T6 — branche `claude/t6-front`, partie de `main`
+
+**Pas encore fusionnée.** La branche part de `main` après T5 (`e84a27b`),
+quinze commits de tâche plus un correctif de relecture ; elle se relit d'une
+traite avec `git log --oneline e84a27b..`.
+
+**Les neuf décisions de fond sont les tiennes** — D1 à D9, prises le 4
+octobre en commentant le document de revue de la maquette, consignées en
+DEC-105 à DEC-112. Ce qui suit est ce que j'ai tranché **sans toi** en les
+écrivant. La plus engageante d'abord.
+
+1. **L'aperçu de la planche est le PDF lui-même** (DEC-113), affiché dans
+   la page par `sheet.pdf?disposition=inline`. Le redessiner en TypeScript
+   aurait dupliqué la mise en page du domaine, ce que le §15.5 interdit.
+   Contrepartie : pas de cotes du format dessinées sur les bords (§15.2) ;
+   elles sont dans le panneau Mesures.
+2. **Aucune dépendance nouvelle** (DEC-114) : routage sur le fragment
+   d'adresse (`#/p/…`) écrit à la main, ni bibliothèque de routage, ni
+   bibliothèque de composants. Version **`0.10.0`**.
+3. **Le front n'a aucun test automatisé** (§I.12). Ce qui tourne à chaque
+   commit : `tsc`, ESLint, la parité des clés `fr`/`en` (un script de
+   vingt lignes branché sur `npm run lint`), la construction. Le parcours a
+   été éprouvé écran par écran dans Chromium, par des scripts hors dépôt.
+   **C'est le trou principal de la tranche.**
+4. **L'adresse du générateur enregistrée l'emporte sur l'environnement** au
+   démarrage suivant ; `null` est gardé comme un choix (« non configuré »).
+   Une adresse refusée rend `GENERATOR_ADDRESS_INVALID` (`422`), jamais
+   répétée, journal compris — un test le vérifie.
+5. **Un lot garde le générateur avec lequel il a été mis en file** : changer
+   d'adresse vaut pour le lot suivant. `GeneratorHolder` remplace le
+   singleton ; les générateurs remplacés sont libérés à l'arrêt.
+6. **Une entrée personnelle du catalogue que la mise à jour livre, ou dont
+   la clé a disparu, est écartée au démarrage** et journalisée, sans
+   empêcher de démarrer.
+7. **La comparaison du style pour le gel (DEC-112) porte sur le style
+   entier, palette comprise** : un front qui renvoie ce qu'il a reçu n'est
+   pas refusé. La palette n'est jamais montrée et repart telle quelle.
+8. **Race et classe deviennent deux clés réservées du catalogue**, `race`
+   et `characterClass`, et la tête du template prend leurs fragments :
+   `orc` donne `an orc`. Le « a orc » noté en T6 est levé.
+9. **Le catalogue livré a quinze races et quinze classes**, libellées en
+   français et en anglais. Contenu de `config/`, à revoir au premier lot
+   réel comme le reste du catalogue.
+10. **Le style livré est une bibliothèque de cinq styles**
+    (`config/styles.fantasy.json`), copiés dans le projet au choix.
+11. **La file des lots est interrogée toutes les 1,5 s** tant que l'écran
+    Génération est ouvert ; tout changement recharge le projet. Pas de canal
+    poussé.
+12. **Statuts affichés : Brouillon, Validée, Rejetée**, le vocabulaire de la
+    bible. DEC-105 ne nommait pas les statuts.
+13. **Une proposition ne se retient que détourée** : le bouton est grisé
+    avant, et dit pourquoi — la planche imprime les détourages.
+14. **La quantité se règle aussi sur la Mise en page**, par un pas `−`/`+` :
+    c'est là que se pose la question du §15.4.
+15. **La culture de la planche vaut par défaut la langue de l'interface**,
+    et se choisit à l'Impression.
+16. **En développement, Vite passe `/api` à l'API sans réécrire `Host`**,
+    pour que la garde d'origine de MEN-010 se comporte comme en production.
+17. **Les DTO de l'API prennent un `MappingContext`** (clause de cadrage et
+    composeur) plutôt que la clause seule : le gabarit doit dire si sa
+    clause sujet a été retouchée, ce que seul le composeur sait (DEC-067).
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -997,10 +1059,12 @@ sont dans `tests/Pawnsmith.Api.Tests/`, nouveau projet.
   ne le fait. À écrire avec le front, s'il le demande.
 - **Le doublon de `projectId` à l'import n'est pas arbitré** : l'API
   l'expose dans la liste, le front posera la question (T2 l'avait renvoyé à
-  T6, et c'est sa partie front).
+  T6, et c'est sa partie front). *Depuis le front :* la liste dit « copie
+  importée », sans rien fusionner ni demander.
 - **Le template de T3 écrit « a orc »** : sa tête est `a {race}
   {characterClass}`. Contenu de `config/`, à reprendre avec le catalogue au
-  premier lot réel.
+  premier lot réel. *Levé par DEC-106 :* la tête prend le fragment de la
+  race, `an orc`.
 
 ### T7 — code terminé, 5 tâches sur 5, fusionnée dans `main`
 
@@ -1115,6 +1179,67 @@ Le code vit dans `src/Pawnsmith.Infrastructure/Imaging/` (`RgbaImage`,
 - **Un détourage à la borne de 8 192 pixels** tient quelques centaines de
   mégaoctets le temps du calcul. Borné, et risque accepté (§F.13).
 
+### T6, seconde partie : le front — code terminé, 15 tâches sur 15
+
+**Le front est spécifié** par
+[`docs/pawnsmith-cahier-des-charges-t6-front.md`](docs/pawnsmith-cahier-des-charges-t6-front.md)
+v1.1 **et écrit**, sur la branche `claude/t6-front`. Les huit premières
+tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
+écrans.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | Cahier, DEC-105 à DEC-114, bible v0.19 | ✅ |
+| 2 | Catalogue traduit, race et classe en listes, `0.10.0` | ✅ |
+| 3 | Catalogue personnel | ✅ |
+| 4 | Bibliothèque de styles | ✅ |
+| 5 | Univers et style figés ; duplication | ✅ |
+| 6 | Clause sujet verrouillée, retour au texte automatique | ✅ |
+| 7 | Adresse du générateur depuis l'interface | ✅ |
+| 8 | Aperçu PDF en ligne ; volume `data/user` | ✅ |
+| 9 | Front : fondations | ✅ |
+| 10 | Front : Projets et Projet | ✅ |
+| 11 | Front : Gabarits, Nouvel objet, Catalogue | ✅ |
+| 12 | Front : Génération | ✅ |
+| 13 | Front : Mise en page et Impression | ✅ |
+| 14 | Front : Générateur et Journaux | ✅ |
+| 15 | Documentation | ✅ |
+
+**Les 18 tests serveur de §I.12 sont couverts.** Le dépôt porte **1 073
+tests verts**. Aucune dépendance ajoutée, ni côté .NET ni côté front. Le code
+du front vit dans `src/Pawnsmith.Web/src/` : `api/` (client et miroir des
+DTO), `app/` (routage, données partagées, enregistrement automatique),
+`components/`, `screens/` (un fichier par écran), `styles/global.css` (les
+jetons de couleur, pour que le passage par Claude Design — D8 — remplace un
+bloc), `i18n/locales/` (311 clés par langue).
+
+#### Ce que ma relecture du front a trouvé, et corrigé
+
+- **Un tri des propositions par `localeCompare`**, comparaison sensible à
+  la culture. Les dates ISO tombaient juste par chance ; triées par instant
+  désormais.
+- **Une adresse malformée (`#/p/%E0`) donnait une page blanche** :
+  `decodeURIComponent` levait pendant le rendu. La route garde le texte tel
+  quel, et l'API répond `PROJECT_NOT_FOUND`.
+- **Un nombre de propositions vidé partait en `null`**, refusé par l'API
+  après coup ; le bouton est désormais grisé.
+- **La file des lots s'affichait à l'envers** : l'API rend déjà le plus
+  récent en premier. Trouvé en éprouvant l'annulation.
+
+#### Ce qui n'est pas couvert, à connaître
+
+- **Aucun test automatisé du front** — le point 3 ci-dessus.
+- **L'aperçu PDF affiché n'a pas été regardé** : Chromium sans affichage
+  n'a pas de lecteur PDF. L'en-tête `inline` et le contenu du fichier l'ont
+  été — planche rendue en image, deux pions, légendes en anglais.
+- **Rien contre un vrai ComfyUI** : le faux rend des rectangles sur fond
+  gris, que le détourage sait découper.
+- **Le design** est celui de la maquette, sobre ; le passage par Claude
+  Design (D8) et le logo viennent après.
+- **Une erreur réseau pendant le rechargement d'un projet** remplace
+  l'écran par le message d'erreur : il faut revenir à la liste.
+- **Aucun écran ne supprime un projet**, comme l'API.
+
 ### Ce que le mode cloud ne peut pas tester — à faire sur ton poste
 
 Les sessions dans le cloud n'ont ni ComfyUI, ni carte graphique, ni les
@@ -1127,8 +1252,9 @@ suit a été remplacé par des faux ou des images fabriquées en code, et reste
 - **Le détourage sur de vraies images** (T5) : `cutout --pair` sur les
   planches de `refs/gen comfyui krea2/`, puis réglage de `CutoutOptions`
   si le fond, la bande de sol ou le contour ne sortent pas bien.
-- **La chaîne entière dans l'interface**, quand le front de T6 existera :
-  générer, détourer, élire, tirer la planche.
+- **La chaîne entière dans l'interface**, maintenant qu'elle existe :
+  générer, détourer, retenir, tirer la planche, contre ton ComfyUI. Et
+  l'aperçu PDF dans ton navigateur.
 - **T0b**, planche imprimée en main.
 
 ### Comment faire tourner les choses
@@ -1189,11 +1315,12 @@ $CLI candidate cutout --path ./data/projects/donjon --id <guid> --candidate <gui
 $CLI cutout           --pair ./paire.png --out ./detourage
 ```
 
-**Lancer l'application** — l'API de T6 est complète ; le front n'est encore
-qu'une coquille. L'API s'essaie en `curl` (voir le README).
+**Lancer l'application** — l'interface est complète, sur
+<http://127.0.0.1:8080>. Trois volumes : projets, journaux, et le dossier
+utilisateur (catalogue personnel, styles personnels, adresse du générateur).
 
 ```bash
-docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 -v pawnsmith-logs:/app/data/logs pawnsmith
+docker build -t pawnsmith . && docker run --rm -p 127.0.0.1:8080:8080 -v pawnsmith-projects:/app/data/projects -v pawnsmith-logs:/app/data/logs -v pawnsmith-user:/app/data/user pawnsmith
 ```
 
 **Lire les journaux** (T7) — une ligne JSON par événement, dans
