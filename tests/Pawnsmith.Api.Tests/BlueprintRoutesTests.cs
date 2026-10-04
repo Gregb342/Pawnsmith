@@ -94,6 +94,45 @@ public class BlueprintRoutesTests
         kept["blueprint"]!["race"]!.GetValue<string>().ShouldBe("troll");
     }
 
+    // --- §I.12 n° 12 et 13 : le cadenas de la clause sujet (DEC-109) --------------------
+
+    [Fact]
+    public async Task TheBlueprintSaysWhetherItsClauseWasEditedAndCanGoBackToTheAutomaticText()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        Guid id = await ProjectSeed.AddBlueprintAsync(api, folder);
+
+        JsonNode composed = await api.GetJsonAsync($"/api/projects/{folder}");
+        composed["blueprints"]![0]!["subjectClauseEdited"]!.GetValue<bool>().ShouldBeFalse();
+
+        JsonNode edited = await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/blueprints/{id}/subject-clause", new { clause = "a scarred goblin" });
+        edited["blueprint"]!["subjectClauseEdited"]!.GetValue<bool>().ShouldBeTrue();
+
+        JsonNode reset = await api.SendJsonAsync(HttpMethod.Delete, $"/api/projects/{folder}/blueprints/{id}/subject-clause", null);
+
+        reset["blueprint"]!["subjectClauseEdited"]!.GetValue<bool>().ShouldBeFalse();
+        reset["blueprint"]!["subjectClause"]!.GetValue<string>().ShouldStartWith("a goblin skirmisher");
+        reset["compositionDiagnostics"]!.AsArray().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task AProposalCarriesTheSubjectAndStyleClausesItWasMadeWith()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        Guid id = await ProjectSeed.AddBlueprintAsync(api, folder);
+        await ProjectSeed.AddCandidateAsync(api, folder, id, cutOut: false, FakeGenerator.Framing);
+
+        JsonNode candidate = (await api.GetJsonAsync($"/api/projects/{folder}"))["blueprints"]![0]!["candidates"]![0]!;
+
+        candidate["subjectClauseUsed"]!.GetValue<string>().ShouldNotBeNullOrWhiteSpace();
+        candidate["styleClauseUsed"].ShouldNotBeNull();
+
+        // Never the framing clause (DEC-029).
+        candidate.AsObject().Select(property => property.Key).ShouldNotContain("framingClauseUsed");
+    }
+
     // --- G.13 n° 12 : statuer ne change ni l'élection ni les fichiers ---------------------
 
     [Fact]

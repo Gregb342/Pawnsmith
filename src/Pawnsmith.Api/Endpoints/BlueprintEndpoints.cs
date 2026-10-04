@@ -28,6 +28,10 @@ public static class BlueprintEndpoints
         routes.MapPut("/api/projects/{folder}/blueprints/{id:guid}/subject-clause", (string folder, Guid id, SubjectClauseRequest request, Edit edit) =>
             edit.RunAsync(folder, project => BlueprintEditor.EditSubjectClause(project, id, request.Clause)));
 
+        // DEC-109 - "back to the automatic text".
+        routes.MapDelete("/api/projects/{folder}/blueprints/{id:guid}/subject-clause", (string folder, Guid id, Edit edit, IPromptComposer composer) =>
+            edit.RunAsync(folder, project => BlueprintEditor.ResetSubjectClause(project, id, composer)));
+
         routes.MapPut("/api/projects/{folder}/blueprints/{id:guid}/election", (string folder, Guid id, ElectionRequest request, Edit edit) =>
             edit.RunAsync(folder, project => request.CandidateId is Guid candidateId
                 ? CandidateElection.Elect(project, id, candidateId)
@@ -43,12 +47,13 @@ public static class BlueprintEndpoints
             CandidateCutout cutout,
             Calibration calibration,
             GeneratorSetup generator,
+            IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
             EditedProject edited = await cutout.CutOutAsync(directory, calibration, id, candidateId, cancellationToken);
 
-            return edited.ToDto(edited.Project.Style, generator.FramingClause);
+            return edited.ToDto(new MappingContext(generator.FramingClause, composer));
         });
 
         routes.MapPut("/api/projects/{folder}/blueprints/{id:guid}/candidates/{candidateId:guid}/status", (string folder, Guid id, Guid candidateId, StatusRequest request, Edit edit) =>
@@ -119,7 +124,8 @@ public static class BlueprintEndpoints
         IProjectRepository repository,
         ProjectWriteGate gate,
         Calibration calibration,
-        GeneratorSetup generator)
+        GeneratorSetup generator,
+        IPromptComposer composer)
     {
         /// <summary>Applies <paramref name="change"/> to the project of <paramref name="folder"/> and saves it.</summary>
         public async Task<EditedBlueprintDto> RunAsync(string folder, Func<Project, EditedProject> change)
@@ -133,7 +139,7 @@ public static class BlueprintEndpoints
 
                 Project saved = await repository.SaveAsync(directory, edited.Project, CancellationToken.None);
 
-                return (edited with { Project = saved }).ToDto(saved.Style, generator.FramingClause);
+                return (edited with { Project = saved }).ToDto(new MappingContext(generator.FramingClause, composer));
             }, CancellationToken.None);
         }
     }

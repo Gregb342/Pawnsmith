@@ -165,6 +165,43 @@ public static class BlueprintEditor
     }
 
     /// <summary>Whether the stored clause is what the composer would produce for these fields.</summary>
+    /// <summary>
+    /// Whether the blueprint's subject clause was edited by hand: it differs
+    /// from what its fields compose today (DEC-067, deduced, never stored).
+    /// </summary>
+    /// <remarks>
+    /// What the interface's lock shows (DEC-109): closed when the clause
+    /// follows the fields, open when it no longer does.
+    /// </remarks>
+    public static bool IsSubjectClauseEdited(Blueprint blueprint, Universe universe, IPromptComposer composer)
+    {
+        ArgumentNullException.ThrowIfNull(blueprint);
+        ArgumentNullException.ThrowIfNull(composer);
+
+        return !IsUnedited(blueprint, universe, composer);
+    }
+
+    /// <summary>
+    /// "Back to the automatic text" (DEC-109): the subject clause is composed
+    /// again from the fields, whatever it said.
+    /// </summary>
+    /// <remarks>
+    /// The counterpart of <see cref="EditSubjectClause"/>. After it, the
+    /// clause follows the fields again — not because a flag says so, but
+    /// because it equals their composition, which is what DEC-067 checks.
+    /// </remarks>
+    public static EditedProject ResetSubjectClause(Project project, Guid blueprintId, IPromptComposer composer)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        ArgumentNullException.ThrowIfNull(composer);
+
+        Blueprint before = Find(project, blueprintId);
+        ComposedSubject composed = composer.ComposeSubject(before, project.Universe);
+        Blueprint after = before with { SubjectClause = composed.Clause };
+
+        return new EditedProject(Replace(project, after), after, composed.Diagnostics);
+    }
+
     private static bool IsUnedited(Blueprint blueprint, Universe universe, IPromptComposer composer)
     {
         string composed = composer.ComposeSubject(blueprint, universe).Clause;

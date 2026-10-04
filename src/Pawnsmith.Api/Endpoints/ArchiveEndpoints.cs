@@ -56,6 +56,7 @@ public static class ArchiveEndpoints
             IProjectRepository repository,
             Calibration calibration,
             GeneratorSetup generator,
+            IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             // The raw body, not a multipart form: simpler, and a type no HTML
@@ -90,7 +91,7 @@ public static class ArchiveEndpoints
 
                 return Results.Created(
                     $"/api/projects/{folder}",
-                    new LoadedProjectResult(imported.Project, imported.Diagnostics).ToDto(folder, generator.FramingClause));
+                    new LoadedProjectResult(imported.Project, imported.Diagnostics).ToDto(folder, new MappingContext(generator.FramingClause, composer)));
             }
             finally
             {

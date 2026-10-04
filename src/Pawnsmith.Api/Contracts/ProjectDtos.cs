@@ -1,3 +1,4 @@
+using Pawnsmith.Application.Blueprints;
 using Pawnsmith.Application.Ports;
 using Pawnsmith.Application.Projects;
 using Pawnsmith.Domain.Primitives;
@@ -41,6 +42,7 @@ public sealed record BlueprintDto(
     IReadOnlyList<ParameterDto> OptionalParameters,
     string Details,
     string SubjectClause,
+    bool SubjectClauseEdited,
     string? ResolvedPrompt,
     int Quantity,
     Guid? ElectedCandidateId,
@@ -56,6 +58,8 @@ public sealed record CandidateDto(
     string Seed,
     CandidateStatus Status,
     IReadOnlyList<ClauseKind>? MisalignedClauses,
+    string SubjectClauseUsed,
+    string StyleClauseUsed,
     string? PairedImage,
     string? FrontImage,
     string? BackImage,
@@ -85,13 +89,24 @@ public sealed record ProjectSettingsRequest(
     OverridesDto CalibrationOverrides);
 
 /// <summary>The manual mappings of the project DTOs (DEC-021).</summary>
+/// <summary>
+/// What a project's DTO needs beyond the project: the framing clause, for the
+/// misalignment (DEC-082), and the composer, for <c>subjectClauseEdited</c>
+/// (DEC-109).
+/// </summary>
+/// <param name="FramingClause">The configured workflow's clause, or <c>null</c> when no workflow is read.</param>
+/// <param name="Composer">The composer of the application.</param>
+public sealed record MappingContext(string? FramingClause, IPromptComposer Composer);
+
 public static class ProjectMapping
 {
     /// <param name="folder">The folder the project was read from.</param>
     /// <param name="loaded">The project and its diagnostics.</param>
-    /// <param name="framingClause">The framing clause in force, or null when unknown.</param>
-    public static ProjectDto ToDto(this LoadedProjectResult loaded, string folder, string? framingClause)
+    /// <param name="context">The framing clause in force, or null when unknown, and the composer.</param>
+    public static ProjectDto ToDto(this LoadedProjectResult loaded, string folder, MappingContext context)
     {
+        string? framingClause = context.FramingClause;
+
         Project project = loaded.Project;
 
         return new ProjectDto(
@@ -103,7 +118,7 @@ public static class ProjectMapping
             PaperFormat: project.PaperFormatName,
             Style: project.Style.ToDto(),
             CalibrationOverrides: new OverridesDto(project.CalibrationOverrides.TabWidthMm, project.CalibrationOverrides.TabHeightMm),
-            Blueprints: [.. project.Blueprints.Select(blueprint => blueprint.ToDto(project.Style, framingClause))],
+            Blueprints: [.. project.Blueprints.Select(blueprint => blueprint.ToDto(project.Universe, project.Style, context))],
             CreatedAt: project.CreatedAt,
             ModifiedAt: project.ModifiedAt,
             Diagnostics: [.. loaded.Diagnostics.Select(diagnostic => new DiagnosticDto(diagnostic.Kind, diagnostic.Field))],
@@ -115,7 +130,7 @@ public static class ProjectMapping
 
     public static Style ToDomain(this StyleDto style) => new(style.Name, style.StyleClause, style.NegativeClause, style.Palette);
 
-    public static BlueprintDto ToDto(this Blueprint blueprint, Style style, string? framingClause) => new(
+    public static BlueprintDto ToDto(this Blueprint blueprint, Universe universe, Style style, MappingContext context) => new(
         Id: blueprint.Id,
         Race: blueprint.Race,
         CharacterClass: blueprint.CharacterClass,
@@ -125,10 +140,11 @@ public static class ProjectMapping
             .Select(parameter => new ParameterDto(parameter.Key, parameter.Value))],
         Details: blueprint.Details,
         SubjectClause: blueprint.SubjectClause,
-        ResolvedPrompt: framingClause is null ? null : ResolvedPrompt.From(framingClause, blueprint.SubjectClause, style.StyleClause),
+        SubjectClauseEdited: BlueprintEditor.IsSubjectClauseEdited(blueprint, universe, context.Composer),
+        ResolvedPrompt: context.FramingClause is null ? null : ResolvedPrompt.From(context.FramingClause, blueprint.SubjectClause, style.StyleClause),
         Quantity: blueprint.Quantity,
         ElectedCandidateId: blueprint.ElectedCandidateId,
-        Candidates: [.. blueprint.Candidates.Select(candidate => candidate.ToDto(blueprint, style, framingClause))]);
+        Candidates: [.. blueprint.Candidates.Select(candidate => candidate.ToDto(blueprint, style, context.FramingClause))]);
 
     public static CandidateDto ToDto(this Candidate candidate, Blueprint blueprint, Style style, string? framingClause) => new(
         Id: candidate.Id,
@@ -140,6 +156,12 @@ public static class ProjectMapping
         MisalignedClauses: framingClause is null
             ? null
             : [.. Enum.GetValues<ClauseKind>().Where(Misalignment.Of(candidate, blueprint, style, framingClause).Contains)],
+
+        // The subject and style clauses frozen at generation, for "what
+        // changed since this image". Not the framing clause: it never appears
+        // in the interface (DEC-029); a misaligned framing is named, not shown.
+        SubjectClauseUsed: candidate.SubjectClauseUsed,
+        StyleClauseUsed: candidate.StyleClauseUsed,
         PairedImage: candidate.PairedImageFile,
         FrontImage: candidate.FrontImageFile,
         BackImage: candidate.BackImageFile,
