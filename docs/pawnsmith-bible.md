@@ -3,14 +3,16 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.17 |
-| **Date** | 3 octobre 2026 |
+| **Version du document** | 0.18 |
+| **Date** | 4 octobre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
  
+> **Changements depuis la v0.17** — Spécification de la tranche T5 (`pawnsmith-cahier-des-charges-t5.md` v1.0). **DEC-098 et DEC-099, décidées par le porteur** : le détourage se fait **sans modèle**, par diffusion sur le fond uni que la clause de cadrage exige (**supersède DEC-008** sur le modèle ONNX : les poids disponibles portent la condition non commerciale de leurs données d'entraînement), et les PNG se lisent et s'écrivent à la main, sur le sous-ensemble qu'écrit ComfyUI. **DEC-100 à DEC-104** : l'algorithme et ses valeurs ; le détourage dans le lot, avant la sauvegarde, sans que son échec arrête le lot ; la signature du port (**supersède le chapitre 7**) ; cinq codes, qui **ferment la question G** ; T5 en `0.9.0` (**supersède DEC-058** sur ce point).
+
 > **Changements depuis la v0.16** — Spécification de la tranche T7 (`pawnsmith-cahier-des-charges-t7.md` v1.0), écrite sans arbitrage du porteur. **DEC-090 à DEC-097** : seuls les bords journalisent, Serilog derrière `ILogger<T>`, l'identifiant de job poussé au point d'appel du cas d'usage ; une ligne JSON par événement, rotation par jour et par taille, rétention par nombre de fichiers ; ni prompt ni corps de requête au journal (**précise le chapitre 8**) ; l'avertissement de MEN-004 et ce qu'un conteneur ne peut pas savoir ; le visualiseur par liste blanche d'énumération ; **MEN-005 étendu à la planche**, trou trouvé par la revue ; **MEN-011** — falsification de journal — entre au chapitre 9 ; et la revue elle-même, dont chaque ligne nomme son test ou son risque accepté.
 
 > **Changements depuis la v0.15** — Spécification de la première partie de T6, l'API (`pawnsmith-cahier-des-charges-t6.md` v1.0), écrite sans arbitrage du porteur. **DEC-082 à DEC-089** : l'export d'un élu désaligné passe outre et le signale (**ferme la question C**) ; un projet s'adresse par son nom de dossier canonique ; une erreur d'API rend un code et rien d'autre, les messages portant des chemins absolus ; les lots sont validés avant la file et un seul tourne à la fois ; les écritures d'un projet passent par une porte par dossier ; la configuration passe par `appsettings.json` et l'environnement ; une image n'est servie que si un candidat la référence ; **MEN-010** — requêtes intersites et rebinding DNS — entre au chapitre 9. La question E est fermée pour sa partie serveur.
@@ -409,10 +411,11 @@ public interface IImageGenerator
 // IPawnPairProducer n'existe pas (DEC-078) : T0a a retiré le risque qu'il couvrait, et
 // la production du couple est un cas d'usage appuyé sur IImageGenerator.
  
-// Détourage. Fournisseur d'exécution ONNX configurable (cpu | cuda).
+// Détourage. Superséde par DEC-102 : le port reçoit l'image jumelée et rend
+// deux PNG détourés ; DEC-098 retire le modèle ONNX et son fournisseur d'exécution.
 public interface IBackgroundRemover
 {
-    Task<TransparentImage> RemoveAsync(RawImage image, CancellationToken ct);
+    Task<CutoutPair> CutOutPairAsync(byte[] pairedPng, CancellationToken ct);
 }
  
 // Une seule méthode, et c'est le point (DEC-066). ComposeSubject produit la clause
@@ -477,7 +480,7 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 | MEN-002 | **Traversée de chemin** | Visualiseur de journaux avec nom de fichier en paramètre | Liste blanche de noms. Jamais de concaténation de chemin depuis une entrée utilisateur. **Depuis DEC-094** : le dossier est énuméré, seuls les fichiers ordinaires au nom du motif sont retenus, et c'est le chemin de l'énumération qui est ouvert. |
 | MEN-003 | **SSRF** | L'URL du générateur est fournie par l'utilisateur et appelée par le serveur | **Depuis DEC-081** : l'adresse est un réglage de déploiement, jamais modifiable par l'API. Schémas `http` et `https` seulement, ni identifiants, ni requête, ni fragment ; redirections jamais suivies ; proxy jamais utilisé. Pas de liste blanche de ports, qui ne protégerait de rien. Hypothèse de déploiement en réseau de confiance documentée. |
 | MEN-004 | **Exposition réseau** | Application sans authentification publiée sur toutes les interfaces par Docker | Documenter `-p 127.0.0.1:8080:8080` comme forme canonique. Avertissement au démarrage si l'écoute n'est pas locale. **Risque accepté** (DEC-093) : un conteneur ne voit pas comment son port est publié ; l'avertissement y est toujours émis, et c'est à l'opérateur de vérifier. |
-| MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage — **et par le rendu de la planche**, qui décode chaque élu (DEC-095) | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. Sur la planche : 8 192 pixels de côté, lus sur l'en-tête. |
+| MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage — **et par le rendu de la planche**, qui décode chaque élu (DEC-095) | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. Sur la planche : 8 192 pixels de côté, lus sur l'en-tête. Au détourage (DEC-099) : même borne sur l'en-tête, CRC vérifié, taille décompressée exactement celle que l'en-tête annonce. |
 | MEN-006 | **Fuite de secret** | Clé d'API ou identifiants sérialisés dans `project.json` puis partagés | Secrets exclusivement en variables d'environnement. Aucun champ de secret dans le modèle de projet. Test automatisé vérifiant l'absence de secret dans l'export. |
 | MEN-007 | **Consommation de ressources** | Lot de génération de taille non bornée | Plafond configurable du nombre de candidats par lot. Annulation coopérative des jobs. |
 | MEN-008 | **Exfiltration par lien symbolique à l'export** | Un lien symbolique déposé dans le dossier d'un projet et pointant hors de celui-ci — volume des journaux, dossier personnel, `/etc`. L'export le suit et le place dans une archive que l'utilisateur envoie lui-même | Ne jamais suivre un lien : résoudre le chemin absolu et vérifier le préfixe, comme MEN-001 à l'import. L'export **échoue** en nommant le lien plutôt que de l'ignorer. Doublé par la liste blanche de DEC-050, qui n'autorise que des `.png` et des `.pdf` référencés |
@@ -1093,6 +1096,34 @@ Conséquence : un nom de projet est un texte libre, venu au besoin d'une archive
 Choix : le §H.7.1 du cahier T7 dresse, pour MEN-001 à MEN-011, le test qui tient chaque menace et le risque accepté qui reste. Le critère du chapitre 12, écrit pour MEN-001 à MEN-007, est étendu à toutes les lignes. Le tableau se rouvre à chaque tranche qui ouvre une surface : T5 pour MEN-005, le front de T6 pour MEN-010 côté navigateur.
 Conséquence : une menace sans test nommé n'est pas couverte, elle est espérée. La revue a trouvé un trou réel (DEC-095) et une menace nouvelle (DEC-096) ; c'est ce qu'elle doit faire, et pourquoi elle ne peut pas être faite une seule fois à la fin.
 
+**DEC-098 — Le détourage se fait sans modèle, sur le fond uni que la clause de cadrage exige.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : chaque moitié de l'image jumelée est détourée par diffusion depuis ses bords sur un fond de couleur unie, sans modèle de segmentation. Le port `IBackgroundRemover` reste, pour qu'un modèle s'y branche si les images réelles le demandent.
+Conséquence : **supersède DEC-008** sur le « modèle ONNX embarqué » ; « local, systématique, jamais délégué au générateur » demeure. Les poids des modèles disponibles portent la condition de leurs données : BiRefNet et IS-Net sont entraînés sur DIS5K, dont les conditions interdisent l'usage commercial « même après traitement » ; U²-Net sur DUTS, sans licence commerciale claire ; RMBG est annoncé non commercial. Le code de ces modèles est sous licence permissive, pas leurs données, et la règle du projet ne laisse passer aucun d'eux sans risque. Ce qui rend l'option sans modèle possible est une décision déjà prise : la clause de cadrage (DEC-029, DEC-076) exige un fond gris uni, mesuré uniforme à 83 % au pire en T0a (DEC-043). Le prix : un vêtement du même gris que le fond, au bord de l'image, serait mangé.
+
+**DEC-099 — Les PNG se lisent et s'écrivent à la main, sur le sous-ensemble qu'écrit ComfyUI.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : un décodeur pour 8 bits par canal, RGB ou RGBA, non entrelacé, qui vérifie la signature, borne les dimensions sur l'en-tête, vérifie le CRC de chaque bloc et décompresse exactement la taille que l'en-tête annonce ; tout autre PNG est refusé avec un code. Un encodeur RGBA 8 bits qui n'écrit que `IHDR`, `IDAT` et `IEND`.
+Conséquence : ferme le choix que DEC-079 réservait au porteur. ImageSharp est écarté pour sa *Split License*, qui conditionne l'usage commercial ; SkiaSharp, sous MIT, aurait amené des bibliothèques natives par plateforme dans l'image. L'encodeur réencode toujours : les métadonnées de ComfyUI — graphe et prompt — ne passent jamais dans un détourage, ce que DEC-079 exigeait puisque les détourages partent dans une archive `Share`.
+
+**DEC-100 — L'algorithme de détourage, et ses valeurs.**
+Choix : couleur du fond = médiane des bords haut, gauche et droit ; distance de Tchebychev ; refus si moins de 60 % de ces bords sont à moins de la tolérance ; retrait par le bas des lignes de sol couvertes à 90 %, sur 5 % de la hauteur au plus ; diffusion en 4-connexité depuis les quatre bords sous une tolérance de 24 ; trous enfermés sous une tolérance stricte de 12 et d'au moins 0,05 % de la moitié retirés aussi ; bord adouci entre une et deux fois la tolérance ; recadrage sur la boîte englobante du sujet ; refus d'un sujet sous 1 % de la moitié. Les valeurs vivent dans un record d'options.
+Conséquence : la bande de sol que T0a a vue (DEC-043) est retirée avant la diffusion, sans quoi elle deviendrait la ligne des pieds et fermerait l'espace entre les jambes. Le recadrage met les pieds au bas de l'image, ce que le placement de T1 suppose (§B.4.4). Les valeurs s'arbitrent (DEC-057) et se règlent sur les images réelles avec le CLI.
+
+**DEC-101 — Le lot détoure chaque candidat avant de le sauvegarder ; un détourage raté n'arrête pas le lot.**
+Choix : `CandidateGeneration` détoure l'image reçue, hors de la porte d'écriture, puis sauvegarde en une fois l'image jumelée, la face et le dos. Un échec laisse le candidat sans détourage, est noté sur le `Job` (identifiant et code) et journalisé ; le lot continue. `CandidateCutout` détoure un candidat existant à la demande, et remplace un détourage existant.
+Conséquence : précise DEC-074 — un échec de génération arrête le lot, un échec de détourage non. Le candidat a été généré et peut être jugé sur son image jumelée (DEC-071) ; seul son détourage manque, et il se relance. Les candidats générés avant T5 se détourent par la même voie.
+
+**DEC-102 — Le port de détourage reçoit l'image jumelée et rend deux PNG.**
+Choix : `IBackgroundRemover.CutOutPairAsync(byte[] pairedPng, CancellationToken) → CutoutPair(FrontPng, BackPng)`. La découpe de DEC-079 est appliquée dans l'adaptateur.
+Conséquence : **supersède la signature du chapitre 7**, écrite avant DEC-079 et avant qu'on sache que les images voyageraient en octets PNG. La découpe demande des pixels décodés, et le décodage est de l'infrastructure.
+
+**DEC-103 — Cinq codes pour le détourage ; la question G est fermée.**
+Choix : `CUTOUT_IMAGE_INVALID`, `CUTOUT_IMAGE_TOO_LARGE`, `CUTOUT_BACKGROUND_NOT_UNIFORM`, `CUTOUT_SUBJECT_NOT_FOUND`, `CANDIDATE_NO_PAIRED_IMAGE`, tous en `422`.
+Conséquence : la moitié détourage de la question G demandait les dimensions d'entrée du modèle et la durée acceptable sur processeur. Sans modèle, la première n'existe pas, la borne est celle du générateur (8 192 pixels de côté) ; la seconde est celle d'une diffusion, de l'ordre de la centaine de millisecondes.
+
+**DEC-104 — T5 porte la version `0.9.0`.**
+Choix : la première modification de T5 passe la version à `0.9.0`.
+Conséquence : **supersède le tableau de DEC-058** sur ce point, qui réservait `0.6.0` à T5. Le dépôt est en `0.8.0` depuis T7, et un numéro de version ne recule pas ; `0.6.0` n'existera jamais. La règle de DEC-058 — une tranche livrée vaut un mineur — demeure.
+
 ---
  
 ## 12. Découpage en tranches
@@ -1154,6 +1185,8 @@ Client HTTP ComfyUI, substitution du template de workflow, génération jumelée
 ### T5 — Détourage
  
 Runtime ONNX, fournisseur d'exécution configurable, plafonds d'entrée.
+
+**Superséde par DEC-098** : pas de modèle, donc ni runtime ONNX ni fournisseur d'exécution. Spécifiée par le cahier des charges T5 (`pawnsmith-cahier-des-charges-t5.md`), dont le §F.10 fait foi.
  
 **Critères d'acceptation** : MEN-005 couvert ; échec propre sur image malformée ; PNG de sortie à fond réellement transparent.
  
@@ -1346,7 +1379,7 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 | Réf. | Sujet | À trancher avant |
 |---|---|---|
 | **E** | **Contrat d'API.** *Fermée pour sa partie serveur* par le cahier T6 (§G.3 à §G.10) : points de terminaison, verbes, charges utiles, codes et statuts. Reste ce que le front en fera — la forme exacte des écrans qui les consomment. | T6 (front) |
-| **G** | **Valeurs non fonctionnelles.** *Scindée par DEC-080* : la moitié génération — délai d'attente, plafond de candidats par lot, taille et dimensions d'une image reçue — est arbitrée au §E.9 du cahier T4. Reste la moitié détourage : dimensions maximales en entrée du modèle de segmentation, durée acceptable d'un détourage sur processeur. DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas. | T5 |
+| **G** | **Valeurs non fonctionnelles.** *Scindée par DEC-080* : la moitié génération — délai d'attente, plafond de candidats par lot, taille et dimensions d'une image reçue — est arbitrée au §E.9 du cahier T4. Reste la moitié détourage : dimensions maximales en entrée du modèle de segmentation, durée acceptable d'un détourage sur processeur. DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas. **Fermée par DEC-103** : sans modèle (DEC-098), il n'y a pas de dimension d'entrée de modèle ; la borne est celle du générateur, et la durée est celle d'une diffusion. | ~~T5~~ |
 | **H** | **Dépôt public ou privé.** *Visibilité toujours non confirmée.* Elle est citée par DEC-058, qui exclut la révision de source de la version pour ne pas publier d'identifiant de commit dans une archive — précaution qui vaut dans les deux cas, donc la question ne bloque rien. | Libre |
 | **I** | **Loi de progression des hauteurs.** DEC-032 pose la contrainte — plafond d'environ 112 mm sur US Letter — mais pas les valeurs. Se tranche en T0b, tapis sous les yeux, les cinq tailles montées côte à côte. | T0b |
 
