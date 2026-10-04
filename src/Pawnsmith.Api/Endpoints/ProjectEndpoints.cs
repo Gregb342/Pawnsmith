@@ -26,7 +26,7 @@ public static class ProjectEndpoints
             CreateProjectRequest request,
             IProjectRepository repository,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
@@ -40,7 +40,7 @@ public static class ProjectEndpoints
             // format, for instance (DEC-056).
             LoadedProjectResult loaded = await repository.LoadAsync(created.Directory, calibration, cancellationToken);
 
-            return Results.Created($"/api/projects/{folder}", loaded.ToDto(folder, new MappingContext(generator.FramingClause, composer)));
+            return Results.Created($"/api/projects/{folder}", loaded.ToDto(folder, new MappingContext(generator.Current.FramingClause, composer)));
         });
 
         routes.MapGet("/api/projects/{folder}", async (
@@ -48,14 +48,14 @@ public static class ProjectEndpoints
             PawnsmithSettings settings,
             IProjectRepository repository,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
             LoadedProjectResult loaded = await repository.LoadAsync(directory, calibration, cancellationToken);
 
-            return loaded.ToDto(folder, new MappingContext(generator.FramingClause, composer));
+            return loaded.ToDto(folder, new MappingContext(generator.Current.FramingClause, composer));
         });
 
         routes.MapPut("/api/projects/{folder}/settings", async (
@@ -65,7 +65,7 @@ public static class ProjectEndpoints
             IProjectRepository repository,
             ProjectWriteGate gate,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
@@ -84,7 +84,7 @@ public static class ProjectEndpoints
                 return await repository.LoadAsync(directory, calibration, cancellationToken);
             }, cancellationToken);
 
-            return saved.ToDto(folder, new MappingContext(generator.FramingClause, composer));
+            return saved.ToDto(folder, new MappingContext(generator.Current.FramingClause, composer));
         });
 
         // §I.8.2 - a new project, the blueprints without their proposals.
@@ -94,7 +94,7 @@ public static class ProjectEndpoints
             PawnsmithSettings settings,
             IProjectRepository repository,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
@@ -106,7 +106,7 @@ public static class ProjectEndpoints
             string copy = Path.GetFileName(created.Directory);
             LoadedProjectResult loaded = await repository.LoadAsync(created.Directory, calibration, cancellationToken);
 
-            return Results.Created($"/api/projects/{copy}", loaded.ToDto(copy, new MappingContext(generator.FramingClause, composer)));
+            return Results.Created($"/api/projects/{copy}", loaded.ToDto(copy, new MappingContext(generator.Current.FramingClause, composer)));
         });
     }
 }

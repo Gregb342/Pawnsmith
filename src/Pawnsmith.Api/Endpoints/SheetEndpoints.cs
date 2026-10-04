@@ -18,11 +18,11 @@ public static class SheetEndpoints
             PawnsmithSettings settings,
             ProjectSheet sheet,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
-            SheetReport report = await sheet.ReportAsync(directory, calibration, generator.FramingClause, cancellationToken);
+            SheetReport report = await sheet.ReportAsync(directory, calibration, generator.Current.FramingClause, cancellationToken);
 
             return report.ToDto();
         });
@@ -33,7 +33,7 @@ public static class SheetEndpoints
             PawnsmithSettings settings,
             ProjectSheet sheet,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
@@ -48,7 +48,7 @@ public static class SheetEndpoints
             // DEC-082: a misaligned elected candidate is printed; the report
             // route says which, before the user prints.
             ProjectSheetPdf pdf = await sheet.RenderAsync(
-                directory, calibration, generator.FramingClause, CultureInfo.GetCultureInfo(culture), cancellationToken);
+                directory, calibration, generator.Current.FramingClause, CultureInfo.GetCultureInfo(culture), cancellationToken);
 
             return Results.File(pdf.Pdf, "application/pdf", $"{folder}.pdf");
         });

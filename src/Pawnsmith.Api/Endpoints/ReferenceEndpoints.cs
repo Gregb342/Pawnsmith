@@ -88,10 +88,25 @@ public static class ReferenceEndpoints
             return (await styles.RemoveAsync(id, cancellationToken)).ToDto();
         });
 
-        routes.MapGet("/api/generator", async (GeneratorSetup setup, CancellationToken cancellationToken) =>
+        routes.MapGet("/api/generator", async (GeneratorHolder generators, CancellationToken cancellationToken) =>
         {
+            GeneratorSetup setup = generators.Current;
+
             // A live check when there is something to check: an absent
             // generator is a state, never an exception (§E.7.1).
+            GeneratorAvailability? availability = setup.Generator is null
+                ? null
+                : await setup.Generator.CheckAsync(cancellationToken);
+
+            return setup.ToDto(availability);
+        });
+
+        // DEC-108 - the address is set from the interface. Validated, saved,
+        // then applied; the answer is the new state, checked live.
+        routes.MapPut("/api/generator", async (GeneratorAddressRequest request, GeneratorHolder generators, CancellationToken cancellationToken) =>
+        {
+            GeneratorSetup setup = await generators.ReplaceAsync(request.Address, cancellationToken);
+
             GeneratorAvailability? availability = setup.Generator is null
                 ? null
                 : await setup.Generator.CheckAsync(cancellationToken);

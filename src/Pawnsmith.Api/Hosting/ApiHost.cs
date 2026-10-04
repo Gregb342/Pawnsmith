@@ -141,7 +141,11 @@ public static class ApiHost
         PromptTemplate template = await PromptTemplateReader.ReadAsync(
             Path.Combine(settings.ConfigDirectory, $"prompt-template.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
 
-        GeneratorSetup generator = await GeneratorSetup.LoadAsync(settings, CancellationToken.None);
+        // The address chosen in the interface wins over the configuration;
+        // without that file, the configuration applies (DEC-108).
+        (bool saved, string? savedAddress) = await new GeneratorAddressFile(settings.UserDirectory).ReadAsync(CancellationToken.None);
+        GeneratorSetup generator = await GeneratorSetup.LoadAsync(
+            saved ? savedAddress : settings.GeneratorUrl, settings.WorkflowFile, CancellationToken.None);
 
         Register(builder.Services, settings, calibration, catalog, styles, template, generator);
         replaceServices?.Invoke(builder.Services);
@@ -170,7 +174,7 @@ public static class ApiHost
         app.Lifetime.ApplicationStarted.Register(() => StartupReport.Write(
             app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(StartupReport).FullName!),
             settings,
-            app.Services.GetRequiredService<GeneratorSetup>(),
+            app.Services.GetRequiredService<GeneratorHolder>().Current,
             app.Urls,
             inContainer: string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase)));
 
@@ -198,6 +202,10 @@ public static class ApiHost
         // A factory rather than the instance, so that the container disposes
         // the HTTP client of the generator when the application stops.
         services.AddSingleton(_ => generator);
+
+        // Built from the setup in the container, so that a test which swapped
+        // the setup gets a holder of its fake.
+        services.AddSingleton(provider => new GeneratorHolder(provider.GetRequiredService<GeneratorSetup>(), settings));
 
         services.AddSingleton<IProjectRepository>(new FileSystemProjectRepository(new ProjectRepositoryOptions(settings.ProjectsRoot)));
         services.AddSingleton(new ProjectWriteGate());

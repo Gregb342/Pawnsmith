@@ -46,14 +46,14 @@ public static class BlueprintEndpoints
             PawnsmithSettings settings,
             CandidateCutout cutout,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
             EditedProject edited = await cutout.CutOutAsync(directory, calibration, id, candidateId, cancellationToken);
 
-            return edited.ToDto(new MappingContext(generator.FramingClause, composer));
+            return edited.ToDto(new MappingContext(generator.Current.FramingClause, composer));
         });
 
         routes.MapPut("/api/projects/{folder}/blueprints/{id:guid}/candidates/{candidateId:guid}/status", (string folder, Guid id, Guid candidateId, StatusRequest request, Edit edit) =>
@@ -124,7 +124,7 @@ public static class BlueprintEndpoints
         IProjectRepository repository,
         ProjectWriteGate gate,
         Calibration calibration,
-        GeneratorSetup generator,
+        GeneratorHolder generator,
         IPromptComposer composer)
     {
         /// <summary>Applies <paramref name="change"/> to the project of <paramref name="folder"/> and saves it.</summary>
@@ -139,7 +139,7 @@ public static class BlueprintEndpoints
 
                 Project saved = await repository.SaveAsync(directory, edited.Project, CancellationToken.None);
 
-                return (edited with { Project = saved }).ToDto(new MappingContext(generator.FramingClause, composer));
+                return (edited with { Project = saved }).ToDto(new MappingContext(generator.Current.FramingClause, composer));
             }, CancellationToken.None);
         }
     }

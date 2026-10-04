@@ -30,6 +30,8 @@ public static class ApiCodes
     public const string UniverseNotFound = "UNIVERSE_NOT_FOUND";
     public const string UploadTooLarge = "UPLOAD_TOO_LARGE";
     public const string GeneratorNotConfigured = "GENERATOR_NOT_CONFIGURED";
+
+    public const string GeneratorAddressInvalid = "GENERATOR_ADDRESS_INVALID";
     public const string SheetInputInvalid = "SHEET_INPUT_INVALID";
     public const string InternalError = "INTERNAL_ERROR";
 }
@@ -63,7 +65,7 @@ public static class ErrorStatus
             or "CANDIDATE_NOT_CUT_OUT" or "PAPER_FORMAT_UNKNOWN" or "SHEET_CAPACITY_EXCEEDED" or "SHEET_EMPTY"
             or "SHEET_INPUT_INVALID" or "CUTOUT_IMAGE_INVALID" or "CUTOUT_IMAGE_TOO_LARGE" or "CUTOUT_BACKGROUND_NOT_UNIFORM"
             or "CUTOUT_SUBJECT_NOT_FOUND" or "CANDIDATE_NO_PAIRED_IMAGE"
-            or "CATALOG_ENTRY_INVALID" or "STYLE_INVALID" => StatusCodes.Status422UnprocessableEntity,
+            or "CATALOG_ENTRY_INVALID" or "STYLE_INVALID" or "GENERATOR_ADDRESS_INVALID" => StatusCodes.Status422UnprocessableEntity,
 
         "GENERATOR_NOT_CONFIGURED" or "WORKFLOW_INVALID" or "WORKFLOW_UNKNOWN_TOKEN" or "WORKFLOW_SCHEMA_TOO_RECENT"
             or "GENERATOR_URL_INVALID" => StatusCodes.Status503ServiceUnavailable,

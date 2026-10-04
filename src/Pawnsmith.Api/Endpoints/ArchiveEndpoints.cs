@@ -55,7 +55,7 @@ public static class ArchiveEndpoints
             PawnsmithSettings settings,
             IProjectRepository repository,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
             IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
@@ -91,7 +91,7 @@ public static class ArchiveEndpoints
 
                 return Results.Created(
                     $"/api/projects/{folder}",
-                    new LoadedProjectResult(imported.Project, imported.Diagnostics).ToDto(folder, new MappingContext(generator.FramingClause, composer)));
+                    new LoadedProjectResult(imported.Project, imported.Diagnostics).ToDto(folder, new MappingContext(generator.Current.FramingClause, composer)));
             }
             finally
             {

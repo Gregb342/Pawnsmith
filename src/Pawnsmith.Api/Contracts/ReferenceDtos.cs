@@ -38,6 +38,8 @@ public sealed record StylePresetRequest(string Name, string StyleClause, string 
 
 public sealed record CatalogEntryRequest(string Key, string Value, IReadOnlyDictionary<string, string> Labels, string Fragment);
 
+public sealed record GeneratorAddressRequest(string? Address);
+
 public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause);
 
 /// <summary>The manual mappings of these DTOs (DEC-021): one method per type, nothing inferred.</summary>

@@ -2,12 +2,13 @@ using System.Threading.Channels;
 
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Application.Generation;
+using Pawnsmith.Application.Ports;
 using Pawnsmith.Domain.Jobs;
 
 namespace Pawnsmith.Api.Jobs;
 
 /// <summary>A job the registry knows, with what it needs to run and to be cancelled.</summary>
-public sealed class JobEntry(Job job, GenerationBatch batch, string folder)
+public sealed class JobEntry(Job job, GenerationBatch batch, string folder, IImageGenerator generator)
 {
     /// <summary>The latest state of the job.</summary>
     public Job Current { get; set; } = job;
@@ -17,6 +18,12 @@ public sealed class JobEntry(Job job, GenerationBatch batch, string folder)
 
     /// <summary>The project folder, as the API addresses it.</summary>
     public string Folder { get; } = folder;
+
+    /// <summary>
+    /// The generator in force when the batch was accepted. The batch keeps it
+    /// even if the address changes before it runs (§I.5.2, DEC-108).
+    /// </summary>
+    public IImageGenerator Generator { get; } = generator;
 
     /// <summary>Cancels the batch, queued or running.</summary>
     public CancellationTokenSource Cancellation { get; } = new();
@@ -55,11 +62,11 @@ public sealed class JobRegistry
     public ChannelReader<Guid> Queue => queue.Reader;
 
     /// <summary>Records a queued job and hands it to the worker.</summary>
-    public void Enqueue(Job queued, GenerationBatch batch, string folder)
+    public void Enqueue(Job queued, GenerationBatch batch, string folder, IImageGenerator generator)
     {
         lock (gate)
         {
-            entries[queued.Id] = new JobEntry(queued, batch, folder);
+            entries[queued.Id] = new JobEntry(queued, batch, folder, generator);
             order.Add(queued.Id);
         }
 

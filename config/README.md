@@ -100,6 +100,19 @@ projet ; modifier ce fichier ne change aucun projet existant.
 Les styles que l'utilisateur enregistre depuis l'interface vont dans le dossier
 utilisateur, au même format, jamais ici.
 
+## Le dossier utilisateur — `data/user/`
+
+Ce qui n'est **pas** dans `config/` : les fichiers que l'application écrit
+pour l'utilisateur, depuis l'interface (§I.4.2 du cahier T6 front). Réglage
+`Pawnsmith:UserDirectory`, `data/user` par défaut ; en conteneur, le volume
+`/app/data/user`. Aucune archive de projet ne les emporte.
+
+| Fichier | Contenu |
+|---|---|
+| `catalog.{univers}.json` | Les objets ajoutés au catalogue (DEC-107), au format du catalogue livré |
+| `styles.{univers}.json` | Les styles enregistrés (DEC-110), au format de la bibliothèque livrée |
+| `generator.json` | L'adresse du générateur choisie dans l'interface (DEC-108). **Elle l'emporte sur `Pawnsmith:Generator:Url`** ; supprimer ce fichier rend la main à la configuration |
+
 ## `workflow.comfyui.json` — et son exemple
 
 Le **graphe de workflow ComfyUI** que l'application soumet pour chaque candidat,
