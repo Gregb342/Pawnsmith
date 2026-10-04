@@ -25,6 +25,13 @@ internal sealed class FakeGenerator : IImageGenerator
     /// <summary>The most generations ever seen running at once.</summary>
     public int MostAtOnce { get; private set; }
 
+    /// <summary>
+    /// The PNG every generation returns: by default a plain grey image, which
+    /// the cut-out refuses (no subject); a test sets a real scene when it needs
+    /// candidates to come out cut out (T5).
+    /// </summary>
+    public byte[] Png { get; set; } = TestPng.Create(12, 8);
+
     /// <summary>When set, thrown by every call — the health check and the generations.</summary>
     public Exception? Failure { get; set; }
 
@@ -55,7 +62,7 @@ internal sealed class FakeGenerator : IImageGenerator
                 await hold.Task.WaitAsync(cancellationToken);
             }
 
-            return new GeneratedImage(TestPng.Create(12, 8), 12, 8);
+            return new GeneratedImage(Png, 12, 8);
         }
         finally
         {

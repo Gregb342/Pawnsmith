@@ -92,6 +92,17 @@ public sealed class GenerationWorker(
 
     private void LogEnd(Job finished)
     {
+        // A failed cut-out does not end the batch (DEC-101); its message,
+        // which the API never returns, comes here.
+        foreach (CutoutFailure cutout in finished.CutoutFailures)
+        {
+            logger.LogWarning(
+                "Candidate {CandidateId} saved without its cut-outs: {Code}. {Reason}",
+                cutout.CandidateId,
+                cutout.Code,
+                cutout.Message);
+        }
+
         if (finished.Failure is JobFailure failure)
         {
             logger.LogWarning(

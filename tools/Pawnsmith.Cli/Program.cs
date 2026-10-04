@@ -4,6 +4,7 @@ using Pawnsmith.Application.Blueprints;
 using Pawnsmith.Application.Generation;
 using Pawnsmith.Application.PhysicalValues;
 using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Projects;
 using Pawnsmith.Application.Prompts;
 using Pawnsmith.Application.Sheets;
 using Pawnsmith.Domain.PhysicalValues;
@@ -65,6 +66,8 @@ const string Usage = """
       generator check  --workflow <path> --generator-url <url>
       candidate generate --path <dir> --id <guid> (--count <n> | --seed <n>...)
                        --workflow <path> --generator-url <url> --calibration <path>
+      candidate cutout --path <dir> --id <guid> --candidate <guid> --calibration <path>
+      cutout           --pair <file> --out <dir>
 
     Options of the blueprint subcommands:
       --template       Sentence structure of the universe (config/prompt-template.*.json).
@@ -82,6 +85,12 @@ const string Usage = """
       --count          Number of candidates, with seeds drawn at random.
       --seed           One candidate with this seed. Repeat for several.
                        Ctrl+C cancels the batch; what was produced stays.
+
+    Options of cutout (T5):
+      --pair           Any paired image - front left, back right - such as the
+                       T0a images in refs/. No project needed: this is the tool
+                       to judge and tune the cut-out on real images (§F.8).
+      --out            Folder where front.png and back.png are written.
 
     project sheet options:
       --culture        Culture of the text printed on the sheet. Defaults to en.
@@ -129,6 +138,11 @@ catch (BlueprintRuleException error)
     Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
     return 1;
 }
+catch (CutoutException error)
+{
+    Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
+    return 1;
+}
 catch (GeneratorConfigException error)
 {
     Console.Error.WriteLine($"{error.WireCode}: {error.Message}");
@@ -172,10 +186,12 @@ async Task<int> RunAsync(string[] arguments)
         ["blueprint", "remove", .. string[] rest] => await BlueprintRemoveAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         ["generator", "check", .. string[] rest] => await GeneratorCheckAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         ["candidate", "generate", .. string[] rest] => await CandidateGenerateAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["candidate", "cutout", .. string[] rest] => await CandidateCutoutAsync(Arguments.Parse(rest)).ConfigureAwait(false),
+        ["cutout", .. string[] rest] => await CutoutAsync(Arguments.Parse(rest)).ConfigureAwait(false),
         _ => throw new ArgumentException(
             "Expected one of: sheet, project new, project check, project export, project import, project sheet, " +
             "blueprint add, blueprint edit, blueprint clause, blueprint elect, blueprint remove, " +
-            "generator check, candidate generate."),
+            "generator check, candidate generate, candidate cutout, cutout."),
     };
 }
 
@@ -623,6 +639,51 @@ async Task<int> CandidateGenerateAsync(Arguments arguments)
     return job.State == JobState.Completed ? 0 : 1;
 }
 
+// ---- candidate cutout ------------------------------------------------------
+
+async Task<int> CandidateCutoutAsync(Arguments arguments)
+{
+    Calibration calibration = await ReadCalibrationAsync(arguments).ConfigureAwait(false);
+    string directory = Path.GetFullPath(arguments.Required("--path"));
+
+    var repository = new FileSystemProjectRepository(
+        new ProjectRepositoryOptions(Path.GetDirectoryName(directory) ?? directory));
+    var useCase = new CandidateCutout(repository, new UniformBackgroundRemover(new CutoutOptions()), new ProjectWriteGate());
+
+    Guid candidateId = ReadGuid(arguments, "--candidate");
+    EditedProject edited = await useCase
+        .CutOutAsync(directory, calibration, ReadGuid(arguments, "--id"), candidateId, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    Candidate candidate = edited.Blueprint.Candidates.Single(each => each.Id == candidateId);
+    Console.WriteLine($"{candidate.Id} cut out:");
+    Console.WriteLine($"  front {candidate.FrontImageFile}");
+    Console.WriteLine($"  back  {candidate.BackImageFile}");
+
+    return 0;
+}
+
+// ---- cutout ------------------------------------------------------------------
+
+// No project, no use case: the adapter alone, on any paired image. It exists to
+// judge the cut-out on real images and tune CutoutOptions (§F.8).
+async Task<int> CutoutAsync(Arguments arguments)
+{
+    string output = Path.GetFullPath(arguments.Required("--out"));
+    byte[] paired = await File.ReadAllBytesAsync(arguments.Required("--pair")).ConfigureAwait(false);
+
+    CutoutPair cutouts = await new UniformBackgroundRemover(new CutoutOptions())
+        .CutOutPairAsync(paired, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    Directory.CreateDirectory(output);
+    await File.WriteAllBytesAsync(Path.Combine(output, "front.png"), cutouts.FrontPng).ConfigureAwait(false);
+    await File.WriteAllBytesAsync(Path.Combine(output, "back.png"), cutouts.BackPng).ConfigureAwait(false);
+
+    Console.WriteLine($"front.png and back.png written to {output}");
+    return 0;
+}
+
 async Task<ComfyUiImageGenerator> BuildGeneratorAsync(Arguments arguments)
 {
     WorkflowTemplate workflow = await WorkflowTemplateReader
@@ -661,7 +722,10 @@ void PrintJob(Job job)
     string line = job.State switch
     {
         JobState.Running when job.Produced.Count > 0 =>
-            $"  candidate {job.Produced.Count}/{job.Requested}: {job.Produced[^1]}",
+            $"  candidate {job.Produced.Count}/{job.Requested}: {job.Produced[^1]}" +
+            (job.CutoutFailures.FirstOrDefault(failure => failure.CandidateId == job.Produced[^1]) is CutoutFailure failure
+                ? $" - not cut out: {failure.Code} - {failure.Message}"
+                : " - cut out"),
         JobState.Failed => $"{job.State}: {job.Failure!.Code} - {job.Failure.Message}",
         _ => $"{job.State} ({job.Produced.Count}/{job.Requested} produced)",
     };
