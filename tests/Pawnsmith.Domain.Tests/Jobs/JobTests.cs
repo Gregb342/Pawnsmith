@@ -180,6 +180,38 @@ public class JobTests
         Should.Throw<ArgumentException>(() => running.Fail(" ", "no code"));
     }
 
+    // --- T5, DEC-101 : un détourage raté est noté, il n'arrête rien --------------------------
+
+    [Fact]
+    public void ACutOutFailureIsRecordedForAProducedCandidateAndSurvivesTheEndOfTheJob()
+    {
+        Job job = Job.Queue(BlueprintId, requested: 2).Start()
+            .RecordProduced(First)
+            .RecordCutoutFailure(First, "CUTOUT_SUBJECT_NOT_FOUND", "Nothing left.")
+            .RecordProduced(Second)
+            .Complete();
+
+        job.State.ShouldBe(JobState.Completed);
+        job.CutoutFailures.ShouldBe([new CutoutFailure(First, "CUTOUT_SUBJECT_NOT_FOUND", "Nothing left.")]);
+    }
+
+    [Fact]
+    public void ACutOutFailureIsOnlyRecordedForACandidateTheJobProduced()
+    {
+        Job running = Job.Queue(BlueprintId, requested: 1).Start();
+
+        Should.Throw<InvalidOperationException>(() => running.RecordCutoutFailure(First, "CUTOUT_IMAGE_INVALID", "x"));
+    }
+
+    [Fact]
+    public void ACutOutFailureIsOnlyRecordedWhileRunning()
+    {
+        Job completed = Job.Queue(BlueprintId, requested: 1).Start().RecordProduced(First).Complete();
+
+        Should.Throw<InvalidOperationException>(() => completed.RecordCutoutFailure(First, "CUTOUT_IMAGE_INVALID", "x"));
+    }
+
+
     /// <summary>A job of one candidate, brought to the given state by legal transitions only.</summary>
     private static Job InState(JobState state)
     {

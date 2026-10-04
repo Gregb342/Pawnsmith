@@ -2,6 +2,7 @@ using Pawnsmith.Api.Contracts;
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Api.Hosting;
 using Pawnsmith.Application.Blueprints;
+using Pawnsmith.Application.Generation;
 using Pawnsmith.Application.Ports;
 using Pawnsmith.Application.Projects;
 using Pawnsmith.Domain.PhysicalValues;
@@ -31,6 +32,24 @@ public static class BlueprintEndpoints
             edit.RunAsync(folder, project => request.CandidateId is Guid candidateId
                 ? CandidateElection.Elect(project, id, candidateId)
                 : CandidateElection.Unelect(project, id)));
+
+        // T5 (§F.7): cuts an existing candidate out, replacing its cut-outs.
+        // The use case takes the write gate itself, around its save only.
+        routes.MapPost("/api/projects/{folder}/blueprints/{id:guid}/candidates/{candidateId:guid}/cutout", async (
+            string folder,
+            Guid id,
+            Guid candidateId,
+            PawnsmithSettings settings,
+            CandidateCutout cutout,
+            Calibration calibration,
+            GeneratorSetup generator,
+            CancellationToken cancellationToken) =>
+        {
+            string directory = ProjectAccess.Directory(settings, folder);
+            EditedProject edited = await cutout.CutOutAsync(directory, calibration, id, candidateId, cancellationToken);
+
+            return edited.ToDto(edited.Project.Style, generator.FramingClause);
+        });
 
         routes.MapPut("/api/projects/{folder}/blueprints/{id:guid}/candidates/{candidateId:guid}/status", (string folder, Guid id, Guid candidateId, StatusRequest request, Edit edit) =>
             edit.RunAsync(folder, project => CandidateJudgement.SetStatus(project, id, candidateId, request.Status)));

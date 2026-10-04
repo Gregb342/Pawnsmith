@@ -98,11 +98,26 @@ internal sealed class InMemoryProjectRepository : IProjectRepository
         return Task.FromResult(path);
     }
 
+    public Task<CutoutFiles> WriteCutoutImagesAsync(string projectDirectory, Guid candidateId, byte[] frontPng, byte[] backPng, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var files = new CutoutFiles($"images/{candidateId}-front.png", $"images/{candidateId}-back.png");
+        Images.RemoveAll(image => image.Path == files.Front || image.Path == files.Back);
+        Images.Add((files.Front, frontPng));
+        Images.Add((files.Back, backPng));
+        return Task.FromResult(files);
+    }
+
     public Task<int> DeleteImagesAsync(string projectDirectory, IReadOnlyList<string> relativePaths, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Not used by the batch.");
 
-    public Task<Stream?> OpenImageAsync(string projectDirectory, string relativePath, CancellationToken cancellationToken) =>
-        throw new NotSupportedException("Not used by the batch.");
+    /// <summary>The last image written at that path, or null; for the on-demand cut-out (T5).</summary>
+    public Task<Stream?> OpenImageAsync(string projectDirectory, string relativePath, CancellationToken cancellationToken)
+    {
+        (string Path, byte[] Png) found = Images.LastOrDefault(image => image.Path == relativePath);
+        return Task.FromResult<Stream?>(found.Png is null ? null : new MemoryStream(found.Png));
+    }
 
     public Task<IReadOnlyList<ProjectListing>> ListAsync(Calibration calibration, CancellationToken cancellationToken) =>
         throw new NotSupportedException("Not used by the batch.");

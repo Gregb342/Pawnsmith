@@ -103,6 +103,21 @@ public interface IProjectRepository
         byte[] png,
         CancellationToken cancellationToken);
 
+    /// <summary>Writes the two cut-outs of a candidate, replacing existing ones (§F.5, DEC-101).</summary>
+    /// <remarks>
+    /// Added in T5. The repository chooses the names,
+    /// <c>images/{candidateId}-front.png</c> and <c>-back.png</c>, as it does
+    /// for the paired image. Unlike the paired image, an existing cut-out is
+    /// replaced: cutting a candidate out again is ordinary.
+    /// </remarks>
+    /// <returns>The paths to store in <c>frontImageFile</c> and <c>backImageFile</c>.</returns>
+    Task<CutoutFiles> WriteCutoutImagesAsync(
+        string projectDirectory,
+        Guid candidateId,
+        byte[] frontPng,
+        byte[] backPng,
+        CancellationToken cancellationToken);
+
     /// <summary>Deletes image files of a project, exactly those listed (DEC-070).</summary>
     /// <remarks>
     /// Added in T6, so that the API can finish what <c>BlueprintRemoval</c>
@@ -207,3 +222,6 @@ public sealed record ProjectMismatch(string Kind, string Field, string Message);
 /// <param name="Project">The project, when it loads.</param>
 /// <param name="ErrorCode">The code that stopped it loading, when it does not.</param>
 public sealed record ProjectListing(string Folder, string Directory, Project? Project, string? ErrorCode);
+
+/// <summary>Where the two cut-outs of a candidate were written, relative to the project folder.</summary>
+public sealed record CutoutFiles(string Front, string Back);

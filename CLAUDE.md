@@ -294,10 +294,11 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.17**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.18**, cahier des charges T1
 **v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
-**cahier des charges T4 v1.1**, **cahier des charges T6 v1.1** (l'API seule),
-**cahier des charges T7 v1.1**, protocole T0 **v1.4**.
+**cahier des charges T4 v1.1**, **cahier des charges T5 v1.1**, **cahier des
+charges T6 v1.1** (l'API seule), **cahier des charges T7 v1.1**, protocole T0
+**v1.4**.
 
 ### Décisions prises sans toi, à relire en premier
 
@@ -449,6 +450,61 @@ La plus engageante d'abord.
 12. **Un démarrage impossible écrit une ligne `Fatal`** : le journal est
     construit avant toute lecture de fichier.
 13. **Version `0.8.0`**, comme DEC-058 l'annonçait pour T7.
+
+#### Pour T5 — branche `claude/t5-cutout`, partie de `main`
+
+**T5 est fusionnée dans `main`** le 4 octobre 2026, par
+Gregb342/Pawnsmith#5, en commit de fusion, CI verte. Tu m'as délégué cette
+fusion. **La relecture intégrale reste à faire**, comme pour T4, l'API de T6
+et T7. La branche part de `main` après la fusion des trois PR (`eb18ef4`).
+Les deux choix que tu t'étais
+réservés, **tu les as tranchés** le 4 octobre : détourage **sans modèle**
+(DEC-098) et PNG **écrits à la main** (DEC-099). Le reste est tranché sans
+toi, DEC-100 à DEC-104.
+
+1. **Le détourage n'a jamais vu une vraie image de ComfyUI.** Toutes les
+   images de test sont des scènes fabriquées en code, à fond uni bruité et
+   bande de sol. C'est le risque le plus concret de la tranche : **les
+   valeurs de `CutoutOptions` sont arbitrées, pas mesurées** (DEC-100), et
+   se règlent avec `cutout --pair` sur les planches de T0a.
+2. **L'algorithme** (DEC-100) : couleur du fond = médiane des bords haut,
+   gauche et droit (pas le bas, où sont les pieds) ; refus si moins de 60 %
+   de ces bords lui ressemblent ; bande de sol retirée par le bas, 5 % de la
+   hauteur au plus ; diffusion 4-connexe depuis les bords, tolérance 24 ;
+   trous enclos retirés à tolérance moitié, 12, s'ils dépassent 0,05 % de la
+   moitié ; bord adouci sur un pixel ; recadrage serré sur le sujet.
+3. **Le lot détoure avant de sauvegarder, hors de la porte d'écriture**
+   (DEC-101). Un détourage raté **n'arrête pas le lot** : le candidat est
+   sauvé sans ses détourages, et l'échec est rangé sur
+   `Job.CutoutFailures`, montré par l'API, le CLI et le journal. Seul un
+   `CutoutException` est rattrapé ; toute autre exception arrête le lot
+   comme avant.
+4. **Le port reçoit l'image jumelée entière et rend deux PNG** (DEC-102) :
+   la découpe de DEC-079 et le détourage sont faits ensemble, par
+   l'adaptateur. Supersède la signature du chapitre 7.
+5. **Cinq codes, tous en `422`** (DEC-103) : `CUTOUT_IMAGE_INVALID`,
+   `CUTOUT_IMAGE_TOO_LARGE`, `CUTOUT_BACKGROUND_NOT_UNIFORM`,
+   `CUTOUT_SUBJECT_NOT_FOUND`, `CANDIDATE_NO_PAIRED_IMAGE`. La moitié
+   détourage de la question G est fermée.
+6. **Version `0.9.0`, pas `0.6.0`** (DEC-104) : le dépôt était en `0.8.0`, et
+   un numéro de version ne recule pas. `0.6.0` n'existera jamais.
+7. **Le détourage à la demande est synchrone, dans la requête** :
+   `POST …/candidates/{id}/cutout`. Il remplace un détourage existant et ne
+   touche ni le statut ni l'élection.
+8. **Les détourages sont réencodés depuis les pixels** : ils ne portent que
+   `IHDR`, `IDAT`, `IEND`. Le graphe et le prompt que ComfyUI inscrit dans
+   l'image jumelée ne passent pas (MEN-006).
+9. **Le décodeur lit un sous-ensemble** : 8 bits, RGB ou RGBA, non entrelacé.
+   C'est ce que ComfyUI écrit ; tout le reste est refusé avec
+   `CUTOUT_IMAGE_INVALID`, jamais deviné. Côté refusé sur les 24 premiers
+   octets, CRC vérifié par bloc, taille décompressée exacte.
+10. **L'image jumelée est bornée à 64 Mio**, la borne même du générateur —
+    né de ma relecture, voir plus bas.
+11. **Le paramètre `IBackgroundRemover` de `CandidateGeneration` est
+    obligatoire**, pas optionnel : un lot sans détourage n'a plus de sens
+    depuis T5, et un défaut silencieux l'aurait caché.
+12. **Deux commandes de CLI** : `candidate cutout` sur un candidat de projet,
+    et `cutout --pair` sur un fichier quelconque, hors de tout projet.
 
 **La tranche T1 (moteur de mise en page et rendu PDF) est écrite**, ses onze
 tâches committées, plus quatre décisions nées de son usage sur de vraies
@@ -1010,6 +1066,71 @@ borne.
 - **En conteneur, l'avertissement de MEN-004 ne peut pas savoir** comment le
   port est publié ; il le rappelle à chaque démarrage.
 
+### T5 — code terminé, 7 tâches sur 7, fusionnée dans `main`
+
+**T5 est spécifiée** par
+[`docs/pawnsmith-cahier-des-charges-t5.md`](docs/pawnsmith-cahier-des-charges-t5.md)
+v1.1 **et écrite**, sur la branche `claude/t5-cutout`, partie de `main`
+(`eb18ef4`). Elle se relit d'une traite avec `git log --oneline eb18ef4..`.
+
+| # | Tâche | État |
+|---|---|---|
+| 1 | PNG lus et écrits à la main, `0.9.0` | ✅ |
+| 2 | `UniformBackground` : l'algorithme | ✅ |
+| 3 | Port `IBackgroundRemover`, adaptateur, écriture des détourages | ✅ |
+| 4 | Le lot détoure ; `CandidateCutout` à la demande | ✅ |
+| 5 | API et CLI ; échecs du lot montrés et journalisés | ✅ |
+| 6 | Bout en bout : générer, détourer, élire, imprimer | ✅ |
+| 7 | Documentation, revue du chapitre 9 (§F.13) | ✅ |
+
+**Les tests de F.9 sont couverts.** Le dépôt porte **999 tests verts**.
+Aucune dépendance ajoutée. Chaque étape de l'algorithme et chaque contrôle
+du décodeur a été éprouvé par mutation. La planche tirée du test de bout en
+bout a été regardée : fonds transparents, recto en place, verso à 180°.
+
+Le code vit dans `src/Pawnsmith.Infrastructure/Imaging/` (`RgbaImage`,
+`Crc32`, `PngDecoder`, `PngEncoder`), `Cutout/`, et
+`src/Pawnsmith.Application/Generation/CandidateCutout.cs`.
+
+#### Ce que ma relecture de T5 a trouvé, et corrigé
+
+- **Le détourage à la demande lisait l'image jumelée sans borne.** Une
+  archive importée peut porter une entrée de plusieurs gigaoctets (C.9.3), et
+  le décodeur ne regarde l'en-tête qu'une fois le fichier entier en mémoire.
+  La lecture s'arrête désormais, et refuse, dès qu'elle passe 64 Mio ;
+  l'adaptateur refait le contrôle avant de décoder.
+
+#### Ce qui n'est pas couvert, à connaître
+
+- **Aucune vraie image n'a été détourée** — le point 1 ci-dessus. À faire
+  chez toi, sur les planches de T0a :
+  `$CLI cutout --pair "refs/gen comfyui krea2/<fichier>.png" --out ./detourage`.
+- **Un vêtement gris qui touche le bord de l'image est mangé** : la diffusion
+  part des bords, et ne distingue pas un gris de fond d'un gris de tissu qui
+  lui est connexe. La clause de cadrage demande un sujet entier, centré.
+- **Les ombres portées sont gardées**, sauf la bande de sol qui couvre toute
+  la largeur.
+- **Les pixels transparents gardent leur couleur grise** : un halo léger peut
+  apparaître si un lecteur interpole sans tenir compte de l'alpha.
+- **Un détourage à la borne de 8 192 pixels** tient quelques centaines de
+  mégaoctets le temps du calcul. Borné, et risque accepté (§F.13).
+
+### Ce que le mode cloud ne peut pas tester — à faire sur ton poste
+
+Les sessions dans le cloud n'ont ni ComfyUI, ni carte graphique, ni les
+planches de T0a (`refs/` n'est pas versionné), ni imprimante. Tout ce qui
+suit a été remplacé par des faux ou des images fabriquées en code, et reste
+**à éprouver de retour sur ton ordinateur** :
+
+- **Un lot réel contre ComfyUI** (T4) : ton `config/workflow.comfyui.json`
+  exporté, et l'ordre de la clause de cadrage avant `Subject:` (§E.5.5).
+- **Le détourage sur de vraies images** (T5) : `cutout --pair` sur les
+  planches de `refs/gen comfyui krea2/`, puis réglage de `CutoutOptions`
+  si le fond, la bande de sol ou le contour ne sortent pas bien.
+- **La chaîne entière dans l'interface**, quand le front de T6 existera :
+  générer, détourer, élire, tirer la planche.
+- **T0b**, planche imprimée en main.
+
 ### Comment faire tourner les choses
 
 **Produire une planche** — c'est le livrable réel de T1 :
@@ -1057,6 +1178,15 @@ GEN="--workflow ./config/workflow.comfyui.json --generator-url http://127.0.0.1:
 $CLI generator check    $GEN
 $CLI candidate generate --path ./data/projects/donjon --id <guid> --count 4 $GEN --calibration ./config/calibration.json
 $CLI candidate generate --path ./data/projects/donjon --id <guid> --seed 42 --seed 43 $GEN --calibration ./config/calibration.json
+```
+
+**Détourer** (T5) — un candidat existant, ou une image jumelée quelconque,
+hors de tout projet. La seconde forme sert à régler `CutoutOptions` sur de
+vraies images.
+
+```bash
+$CLI candidate cutout --path ./data/projects/donjon --id <guid> --candidate <guid> --calibration ./config/calibration.json
+$CLI cutout           --pair ./paire.png --out ./detourage
 ```
 
 **Lancer l'application** — l'API de T6 est complète ; le front n'est encore

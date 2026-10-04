@@ -28,7 +28,11 @@ public sealed record JobDto(
     JobState State,
     int Requested,
     IReadOnlyList<Guid> Produced,
-    string? FailureCode);
+    string? FailureCode,
+    IReadOnlyList<CutoutFailureDto> CutoutFailures);
+
+/// <summary>A candidate the batch saved without its cut-outs, with the code why (DEC-101). Never the message (DEC-084).</summary>
+public sealed record CutoutFailureDto(Guid CandidateId, string Code);
 
 /// <summary>The routes of the batch queue (§G.7.1).</summary>
 public static class JobEndpoints
@@ -43,6 +47,7 @@ public static class JobEndpoints
             GeneratorSetup setup,
             IProjectRepository repository,
             GenerationOptions options,
+            IBackgroundRemover remover,
             ProjectWriteGate gate,
             Calibration calibration,
             JobRegistry registry,
@@ -57,7 +62,7 @@ public static class JobEndpoints
             string directory = ProjectAccess.Directory(settings, folder);
             var batch = new GenerationBatch(directory, id, Seeds(request, options), setup.FramingClause!, calibration);
 
-            var generation = new CandidateGeneration(generator, repository, options, TimeProvider.System, gate);
+            var generation = new CandidateGeneration(generator, remover, repository, options, TimeProvider.System, gate);
             Job queued = await generation.QueueAsync(batch, cancellationToken);
 
             registry.Enqueue(queued, batch, folder);
@@ -79,7 +84,8 @@ public static class JobEndpoints
         entry.Current.State,
         entry.Current.Requested,
         entry.Current.Produced,
-        entry.Current.Failure?.Code);
+        entry.Current.Failure?.Code,
+        [.. entry.Current.CutoutFailures.Select(failure => new CutoutFailureDto(failure.CandidateId, failure.Code))]);
 
     /// <summary>The seeds of the request, or <c>count</c> random ones.</summary>
     /// <remarks>

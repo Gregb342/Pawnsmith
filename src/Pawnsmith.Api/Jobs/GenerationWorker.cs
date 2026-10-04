@@ -37,6 +37,7 @@ public sealed class GenerationWorker(
     JobRegistry registry,
     GeneratorSetup setup,
     IProjectRepository repository,
+    IBackgroundRemover remover,
     GenerationOptions options,
     ProjectWriteGate gate,
     ILogger<GenerationWorker> logger) : BackgroundService
@@ -50,7 +51,7 @@ public sealed class GenerationWorker(
             return;
         }
 
-        var generation = new CandidateGeneration(generator, repository, options, TimeProvider.System, gate);
+        var generation = new CandidateGeneration(generator, remover, repository, options, TimeProvider.System, gate);
 
         await foreach (Guid id in registry.Queue.ReadAllAsync(stoppingToken))
         {
@@ -91,6 +92,17 @@ public sealed class GenerationWorker(
 
     private void LogEnd(Job finished)
     {
+        // A failed cut-out does not end the batch (DEC-101); its message,
+        // which the API never returns, comes here.
+        foreach (CutoutFailure cutout in finished.CutoutFailures)
+        {
+            logger.LogWarning(
+                "Candidate {CandidateId} saved without its cut-outs: {Code}. {Reason}",
+                cutout.CandidateId,
+                cutout.Code,
+                cutout.Message);
+        }
+
         if (finished.Failure is JobFailure failure)
         {
             logger.LogWarning(

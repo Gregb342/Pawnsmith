@@ -5,6 +5,7 @@ using Pawnsmith.Domain.PhysicalValues;
 using Pawnsmith.Domain.Primitives;
 using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
+using Pawnsmith.Infrastructure.Cutout;
 using Pawnsmith.Infrastructure.Generation;
 using Pawnsmith.Infrastructure.Projects;
 using Pawnsmith.Infrastructure.Tests.Fixtures;
@@ -25,6 +26,12 @@ namespace Pawnsmith.Infrastructure.Tests.Generation;
 /// </remarks>
 public class GenerationEndToEndTests
 {
+    private static readonly UniformBackgroundRemover Remover = new(new CutoutOptions());
+
+    /// <summary>A distinct paired scene per call.</summary>
+    private static byte[] Scene(int index) =>
+        TestScene.PairPng(new Rgb((byte)(150 + index), 40, 40), new Rgb(40, 60, (byte)(150 + index)));
+
     private static readonly DateTimeOffset Instant = new(2026, 10, 3, 11, 42, 17, TimeSpan.Zero);
 
     private static Calibration Calibration() => ProjectCalibration.WithPaperFormats("A4");
@@ -70,14 +77,15 @@ public class GenerationEndToEndTests
         using TempWorkspace workspace = new();
         (IProjectRepository repository, string directory, Guid blueprintId) = await ProjectWithOneBlueprint(workspace);
 
-        await using var comfy = new FakeComfyUi { Image = index => TestPng.Create(32 + index, 16, grey: (byte)(0x40 + index)) };
+        // Real paired scenes, so that the real cut-out has a figure to find (T5).
+        await using var comfy = new FakeComfyUi { Image = Scene };
 
         WorkflowTemplate workflow = WorkflowTemplateReader.Parse(WorkflowFixture.File(), "workflow.test.json");
         using var generator = new ComfyUiImageGenerator(
             new ComfyUiOptions(comfy.BaseAddress) { PollInterval = TimeSpan.FromMilliseconds(10) },
             workflow);
 
-        var batch = new CandidateGeneration(generator, repository, new GenerationOptions(), new FixedClock(Instant));
+        var batch = new CandidateGeneration(generator, Remover, repository, new GenerationOptions(), new FixedClock(Instant));
 
         Job job = await batch.RunAsync(
             new GenerationBatch(directory, blueprintId, [7UL, 8UL], generator.FramingClause, Calibration()),
@@ -100,7 +108,13 @@ public class GenerationEndToEndTests
             // under the name Pawnsmith chose.
             candidate.PairedImageFile.ShouldBe($"images/{candidate.Id}-pair.png");
             byte[] onDisk = await File.ReadAllBytesAsync(Path.Combine(directory, "images", $"{candidate.Id}-pair.png"));
-            onDisk.ShouldBe(TestPng.Create(32 + index, 16, grey: (byte)(0x40 + index)));
+            onDisk.ShouldBe(Scene(index));
+
+            // And it was cut out on the way (T5, DEC-101): both views exist
+            // and the candidate references them.
+            candidate.FrontImageFile.ShouldBe($"images/{candidate.Id}-front.png");
+            candidate.BackImageFile.ShouldBe($"images/{candidate.Id}-back.png");
+            File.Exists(Path.Combine(directory, "images", $"{candidate.Id}-back.png")).ShouldBeTrue();
 
             // What the server received is what the candidate froze (DEC-049) -
             // literal {{SEED}}, quotes and accents included.
@@ -127,7 +141,7 @@ public class GenerationEndToEndTests
             new ComfyUiOptions(comfy.BaseAddress) { PollInterval = TimeSpan.FromMilliseconds(10) },
             WorkflowTemplateReader.Parse(WorkflowFixture.File(), "workflow.test.json"));
 
-        Job job = await new CandidateGeneration(generator, repository, new GenerationOptions()).RunAsync(
+        Job job = await new CandidateGeneration(generator, Remover, repository, new GenerationOptions()).RunAsync(
             new GenerationBatch(directory, blueprintId, [7UL, 8UL, 9UL], generator.FramingClause, Calibration()),
             onChange: null,
             CancellationToken.None);

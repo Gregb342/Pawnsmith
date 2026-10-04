@@ -83,7 +83,8 @@ internal static class ProjectSeed
         Guid blueprintId,
         bool cutOut,
         string framing,
-        bool elect = false)
+        bool elect = false,
+        byte[]? pairedPng = null)
     {
         IProjectRepository repository = api.Services.GetRequiredService<IProjectRepository>();
         Calibration calibration = api.Services.GetRequiredService<Calibration>();
@@ -96,7 +97,7 @@ internal static class ProjectSeed
         string images = Path.Combine(directory, "images");
         Directory.CreateDirectory(images);
 
-        await File.WriteAllBytesAsync(Path.Combine(images, $"{candidateId}-pair.png"), TestPng.Create(24, 16));
+        await File.WriteAllBytesAsync(Path.Combine(images, $"{candidateId}-pair.png"), pairedPng ?? TestPng.Create(24, 16));
 
         if (cutOut)
         {

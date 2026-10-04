@@ -13,12 +13,12 @@
 
     <!-- DEC-058 - one delivered slice is one minor, bumped at the FIRST commit
          of the slice, not the last: the number says "this binary belongs to T2",
-         not "T2 is validated". Foundations 0.1.0, T1 0.2.0, T2 0.3.0, T3 0.4.0, T4 0.5.0, T6 0.7.0, T7 0.8.0 - 0.6.0 stays T5's, which is not written.
+         not "T2 is validated". Foundations 0.1.0, T1 0.2.0, T2 0.3.0, T3 0.4.0, T4 0.5.0, T6 0.7.0, T7 0.8.0, T5 0.9.0 - 0.6.0 was skipped, since a version does not go back (DEC-104).
          Read by reflection on the assembly, never copied into a constant.
          The source revision is excluded because the SDK otherwise appends
          "+3f9a1c..." to AssemblyInformationalVersion, and that suffix would name
          a commit inside every archive.json a human is meant to read. -->
-    <Version>0.8.0</Version>
+    <Version>0.9.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 

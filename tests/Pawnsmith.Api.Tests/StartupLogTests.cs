@@ -62,7 +62,7 @@ public class StartupLogTests
         await using ApiHarness api = await ApiHarness.StartAsync(generator.Setup());
 
         JsonNode started = api.LogEvents().Single(logEvent => Template(logEvent).StartsWith("Pawnsmith {Version} started", StringComparison.Ordinal));
-        LogFiles.Property(started, "Version").ShouldBe("0.8.0");
+        LogFiles.Property(started, "Version").ShouldBe("0.9.0");
         LogFiles.Property(started, "ProjectsRoot").ShouldBe(api.ProjectsRoot);
         LogFiles.Property(started, "LogsDirectory").ShouldBe(api.LogsDirectory);
         LogFiles.Property(started, "GeneratorState").ShouldBe("Configured");

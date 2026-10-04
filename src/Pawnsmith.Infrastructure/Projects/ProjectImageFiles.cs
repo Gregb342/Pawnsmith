@@ -54,8 +54,49 @@ public static class ProjectImageFiles
         byte[] png,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
         ArgumentNullException.ThrowIfNull(png);
+
+        (string relative, string full) = Prepare(projectDirectory, candidateId, "pair", "paired image");
+        await WriteAsync(full, png, overwrite: false, cancellationToken).ConfigureAwait(false);
+
+        return relative;
+    }
+
+    /// <summary>
+    /// Writes the two cut-outs of a candidate, <c>images/{candidateId}-front.png</c>
+    /// and <c>-back.png</c>, and returns the paths to store on it (§F.5).
+    /// </summary>
+    /// <remarks>
+    /// The same guarantees as the paired image — Pawnsmith's names, a temporary
+    /// file then a move, no <c>images</c> folder that is a link — with one
+    /// difference: an existing cut-out is <b>replaced</b>. Cutting a candidate
+    /// out again, after a setting changed, is an ordinary operation (DEC-101).
+    /// Both paths are checked before either file is written.
+    /// </remarks>
+    /// <exception cref="ProjectException"><c>PROJECT_NOT_FOUND</c> or <c>PROJECT_PATH_ESCAPE</c>.</exception>
+    public static async Task<(string Front, string Back)> WriteCutoutsAsync(
+        string projectDirectory,
+        Guid candidateId,
+        byte[] frontPng,
+        byte[] backPng,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(frontPng);
+        ArgumentNullException.ThrowIfNull(backPng);
+
+        (string frontRelative, string frontFull) = Prepare(projectDirectory, candidateId, "front", "front cut-out");
+        (string backRelative, string backFull) = Prepare(projectDirectory, candidateId, "back", "back cut-out");
+
+        await WriteAsync(frontFull, frontPng, overwrite: true, cancellationToken).ConfigureAwait(false);
+        await WriteAsync(backFull, backPng, overwrite: true, cancellationToken).ConfigureAwait(false);
+
+        return (frontRelative, backRelative);
+    }
+
+    /// <summary>Checks the folder and the name, and gives the relative and full paths of an image of a candidate.</summary>
+    private static (string Relative, string Full) Prepare(string projectDirectory, Guid candidateId, string suffix, string field)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
 
         string root = Path.GetFullPath(projectDirectory);
 
@@ -66,8 +107,8 @@ public static class ProjectImageFiles
                 $"The project folder '{projectDirectory}' does not exist; the image has nowhere to go.");
         }
 
-        string relative = $"{ImagePathRules.ImagesFolder}{ImagePathRules.Separator}{candidateId:D}-pair.png";
-        ImagePathRules.Validate(relative, "paired image");
+        string relative = $"{ImagePathRules.ImagesFolder}{ImagePathRules.Separator}{candidateId:D}-{suffix}.png";
+        ImagePathRules.Validate(relative, field);
 
         string images = Path.Combine(root, ImagePathRules.ImagesFolder);
 
@@ -82,12 +123,18 @@ public static class ProjectImageFiles
         string full = Resolve(root, relative);
         Directory.CreateDirectory(images);
 
-        string temporary = Path.Combine(images, $".{candidateId:D}-pair.png.tmp");
+        return (relative, full);
+    }
+
+    /// <summary>Writes to a temporary name beside the target, then moves it into place.</summary>
+    private static async Task WriteAsync(string full, byte[] png, bool overwrite, CancellationToken cancellationToken)
+    {
+        string temporary = Path.Combine(Path.GetDirectoryName(full)!, $".{Path.GetFileName(full)}.tmp");
 
         try
         {
             await File.WriteAllBytesAsync(temporary, png, cancellationToken).ConfigureAwait(false);
-            File.Move(temporary, full, overwrite: false);
+            File.Move(temporary, full, overwrite);
         }
         finally
         {
@@ -98,8 +145,6 @@ public static class ProjectImageFiles
                 File.Delete(temporary);
             }
         }
-
-        return relative;
     }
 
     /// <summary>Opens an image of the project for reading, or returns null when it is not on the disk.</summary>

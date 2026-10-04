@@ -35,6 +35,16 @@ public sealed record GenerationBatch(
 /// the cut is decided by <c>PairSplit</c> and executed in T5.
 /// </para>
 /// <para>
+/// <b>Each image is cut out before it is saved</b> (DEC-101). It is already in
+/// memory, so the cut-out runs outside the write gate — it neither reads nor
+/// writes the project — and the save then writes the paired image and both
+/// cut-outs at once, with a candidate that references all three. <b>A failed
+/// cut-out does not stop the batch</b>: the candidate is saved with its paired
+/// image only, can still be judged on it (DEC-071), and the failure is recorded
+/// on the job. Only a <see cref="CutoutException"/> is a failed cut-out; any
+/// other exception is a defect and ends the job like one.
+/// </para>
+/// <para>
 /// <b>One prompt for the whole batch.</b> The three clauses are frozen once, at
 /// the start; the seeds are what varies. A candidate produced after the user
 /// edited the subject clause still carries the old one, and is misaligned from
@@ -65,11 +75,16 @@ public sealed class CandidateGeneration
     public const string UnexpectedErrorCode = "JOB_UNEXPECTED_ERROR";
 
     private readonly IImageGenerator generator;
+    private readonly IBackgroundRemover remover;
     private readonly IProjectRepository repository;
     private readonly GenerationOptions options;
     private readonly TimeProvider clock;
     private readonly ProjectWriteGate gate;
 
+    /// <param name="remover">
+    /// Cuts each image out (DEC-101). Required: a batch that silently skipped
+    /// the cut-out when none was given would be a hidden mode.
+    /// </param>
     /// <param name="clock">Where <c>generatedAt</c> comes from. Injected so a test can pin it.</param>
     /// <param name="gate">
     /// The per-project write gate shared with every other writer (DEC-086).
@@ -78,16 +93,19 @@ public sealed class CandidateGeneration
     /// </param>
     public CandidateGeneration(
         IImageGenerator generator,
+        IBackgroundRemover remover,
         IProjectRepository repository,
         GenerationOptions options,
         TimeProvider? clock = null,
         ProjectWriteGate? gate = null)
     {
         ArgumentNullException.ThrowIfNull(generator);
+        ArgumentNullException.ThrowIfNull(remover);
         ArgumentNullException.ThrowIfNull(repository);
         ArgumentNullException.ThrowIfNull(options);
 
         this.generator = generator;
+        this.remover = remover;
         this.repository = repository;
         this.options = options;
         this.clock = clock ?? TimeProvider.System;
@@ -187,11 +205,20 @@ public sealed class CandidateGeneration
                     .GenerateAsync(new GenerationRequest(clauses.Prompt, clauses.Negative, seed), cancellationToken)
                     .ConfigureAwait(false);
 
+                // Outside the gate: the cut-out reads and writes nothing of the project.
+                (CutoutPair? cutouts, CutoutException? cutoutFailure) = await TryCutOutAsync(image, cancellationToken).ConfigureAwait(false);
+
                 Guid candidateId = await gate
-                    .RunAsync(batch.ProjectDirectory, () => PersistAsync(batch, clauses, seed, image), CancellationToken.None)
+                    .RunAsync(batch.ProjectDirectory, () => PersistAsync(batch, clauses, seed, image, cutouts), CancellationToken.None)
                     .ConfigureAwait(false);
 
                 job = job.RecordProduced(candidateId);
+
+                if (cutoutFailure is not null)
+                {
+                    job = job.RecordCutoutFailure(candidateId, cutoutFailure.WireCode, cutoutFailure.Message);
+                }
+
                 onChange?.Invoke(job);
             }
 
@@ -240,7 +267,21 @@ public sealed class CandidateGeneration
     /// round of the loop observes the cancellation. The gate is what makes the
     /// reload worth something once another writer exists (DEC-086).
     /// </remarks>
-    private async Task<Guid> PersistAsync(GenerationBatch batch, FrozenClauses clauses, ulong seed, GeneratedImage image)
+    /// <summary>The two cut-outs of an image, or the refusal that kept them from existing (DEC-101).</summary>
+    private async Task<(CutoutPair? Cutouts, CutoutException? Failure)> TryCutOutAsync(GeneratedImage image, CancellationToken cancellationToken)
+    {
+        try
+        {
+            CutoutPair cutouts = await remover.CutOutPairAsync(image.Png, cancellationToken).ConfigureAwait(false);
+            return (cutouts, null);
+        }
+        catch (CutoutException failure)
+        {
+            return (null, failure);
+        }
+    }
+
+    private async Task<Guid> PersistAsync(GenerationBatch batch, FrozenClauses clauses, ulong seed, GeneratedImage image, CutoutPair? cutouts)
     {
         LoadedProjectResult current = await repository
             .LoadAsync(batch.ProjectDirectory, batch.Calibration, CancellationToken.None)
@@ -256,6 +297,12 @@ public sealed class CandidateGeneration
             .WritePairedImageAsync(batch.ProjectDirectory, candidateId, image.Png, CancellationToken.None)
             .ConfigureAwait(false);
 
+        CutoutFiles? cutoutFiles = cutouts is null
+            ? null
+            : await repository
+                .WriteCutoutImagesAsync(batch.ProjectDirectory, candidateId, cutouts.FrontPng, cutouts.BackPng, CancellationToken.None)
+                .ConfigureAwait(false);
+
         var candidate = new Candidate(
             Id: candidateId,
             Seed: seed,
@@ -264,8 +311,8 @@ public sealed class CandidateGeneration
             StyleClauseUsed: clauses.Style,
             Status: CandidateStatus.Draft,
             PairedImageFile: pairedImageFile,
-            FrontImageFile: null,
-            BackImageFile: null,
+            FrontImageFile: cutoutFiles?.Front,
+            BackImageFile: cutoutFiles?.Back,
             GeneratedAt: TruncateToSecond(clock.GetUtcNow()));
 
         // Appended last; the election, the other statuses and the clause do
