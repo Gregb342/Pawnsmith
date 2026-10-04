@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "lint": "eslint .",
+    "lint": "eslint . && node scripts/check-i18n.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },

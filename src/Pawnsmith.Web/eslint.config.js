@@ -47,9 +47,13 @@ export default tseslint.config(
   },
 
   {
-    // This file configures the tooling and is not part of the application, so
-    // it sits outside the type-aware programme.
-    files: ['eslint.config.js'],
+    // These files configure or check the tooling and are not part of the
+    // application, so they sit outside the type-aware programme. The scripts
+    // run under Node, whose globals (process, console) they use.
+    files: ['eslint.config.js', 'scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 );

@@ -2,7 +2,8 @@
   "app": {
     "name": "Pawnsmith",
     "documentTitle": "Pawnsmith",
-    "tagline": "Cardboard miniature sheets, calibrated for home printing."
+    "loading": "Loading…",
+    "comingInThisSlice": "Screen coming in this slice."
   },
   "language": {
     "label": "Language",
@@ -10,5 +11,110 @@
       "fr": "Français",
       "en": "English"
     }
+  },
+  "shell": {
+    "project": "Project",
+    "catalog": "Catalogue",
+    "logs": "Logs",
+    "steps": "Steps"
+  },
+  "steps": {
+    "project": "Project",
+    "blueprints": "Blueprints",
+    "generation": "Generation",
+    "layout": "Layout",
+    "print": "Print"
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved"
+  },
+  "generator": {
+    "title": "Generator",
+    "unknown": "ComfyUI: state unknown",
+    "states": {
+      "Available": "ComfyUI connected",
+      "Unreachable": "ComfyUI unreachable",
+      "Unhealthy": "ComfyUI in trouble",
+      "NotConfigured": "ComfyUI not set up",
+      "Misconfigured": "ComfyUI misconfigured"
+    }
+  },
+  "projects": {
+    "title": "Projects"
+  },
+  "catalog": {
+    "title": "Catalogue"
+  },
+  "logs": {
+    "title": "Logs"
+  },
+  "errors": {
+    "NETWORK_ERROR": "The server does not answer. Check that the application is still running.",
+    "UNEXPECTED": "An unexpected error occurred.",
+    "HTTP_400": "The server refused the request.",
+    "HTTP_413": "The file sent is too large.",
+    "REQUEST_INVALID": "The request is not valid.",
+    "CROSS_ORIGIN_REFUSED": "Request refused: it does not come from this application.",
+    "ROUTE_NOT_FOUND": "This address does not exist in the API.",
+    "PROJECT_NOT_FOUND": "This project does not exist.",
+    "PROJECT_INVALID": "The project file is not valid.",
+    "PROJECT_PATH_ESCAPE": "A path of the project leaves its folder: refused.",
+    "PROJECT_OVERRIDE_INVALID": "A tab dimension is not valid: it must be positive.",
+    "PROJECT_SCHEMA_TOO_RECENT": "This project was saved by a newer version of Pawnsmith.",
+    "PROJECT_TOO_LARGE": "This project exceeds the size limits.",
+    "PAPER_FORMAT_UNKNOWN": "This paper format is not in the calibration.",
+    "BLUEPRINT_NOT_FOUND": "This blueprint no longer exists.",
+    "CANDIDATE_NOT_FOUND": "This proposal no longer exists.",
+    "CANDIDATE_NOT_CUT_OUT": "This proposal is not cut out, so it cannot be kept.",
+    "CANDIDATE_NO_PAIRED_IMAGE": "This proposal no longer has its paired image (share archive, or missing file): nothing to cut out.",
+    "CUTOUT_IMAGE_INVALID": "The paired image is not a PNG the cut-out can read.",
+    "CUTOUT_IMAGE_TOO_LARGE": "The paired image is larger than a generator may send.",
+    "CUTOUT_BACKGROUND_NOT_UNIFORM": "The background is not plain, so the cut-out cannot remove it. Generate another proposal.",
+    "CUTOUT_SUBJECT_NOT_FOUND": "Almost nothing is left once the background is removed: no character found.",
+    "ARCHIVE_REJECTED": "This archive is refused: it is not a valid Pawnsmith project archive.",
+    "ARCHIVE_LIMIT_EXCEEDED": "This archive exceeds the size limits.",
+    "ARCHIVE_EXPORT_FAILED": "The archive export failed.",
+    "IMPORT_DESTINATION_EXISTS": "A project already has this folder name: choose another name.",
+    "UPLOAD_TOO_LARGE": "The file sent is too large.",
+    "IMAGE_NOT_FOUND": "Image not found.",
+    "LOG_NOT_FOUND": "This log file does not exist.",
+    "UNIVERSE_NOT_FOUND": "This universe does not exist.",
+    "UNIVERSE_MISMATCH": "The configuration files are not of the same universe.",
+    "UNIVERSE_FROZEN": "This project already has proposals: its universe no longer changes. Duplicate it to change it.",
+    "STYLE_FROZEN": "This project already has proposals: its style no longer changes. Duplicate it to change it.",
+    "STYLE_INVALID": "A style needs a name and a style clause.",
+    "STYLE_NOT_FOUND": "This style no longer exists.",
+    "STYLE_SHIPPED": "A style shipped with the application is not removed.",
+    "STYLES_INVALID": "The style library file is not valid.",
+    "STYLES_SCHEMA_TOO_RECENT": "The style library comes from a newer version.",
+    "CATALOG_INVALID": "The catalogue file is not valid.",
+    "CATALOG_SCHEMA_TOO_RECENT": "The catalogue comes from a newer version.",
+    "CATALOG_ENTRY_INVALID": "The item is incomplete: it needs a value, a label in each language and a phrase for the prompt.",
+    "CATALOG_ENTRY_DUPLICATE": "This list already has this value.",
+    "CATALOG_ENTRY_NOT_FOUND": "This item no longer exists.",
+    "CATALOG_ENTRY_SHIPPED": "An item shipped with the application is not removed.",
+    "TEMPLATE_INVALID": "The prompt template is not valid.",
+    "TEMPLATE_UNKNOWN_TOKEN": "The prompt template has an unknown token.",
+    "TEMPLATE_SCHEMA_TOO_RECENT": "The prompt template comes from a newer version.",
+    "GENERATOR_NOT_CONFIGURED": "No generator is set up: enter ComfyUI’s address.",
+    "GENERATOR_ADDRESS_INVALID": "This address is not accepted: http or https, without credentials or parameters.",
+    "GENERATOR_URL_INVALID": "The configured generator address is not valid.",
+    "GENERATOR_UNREACHABLE": "ComfyUI does not answer. Check that it runs at the configured address.",
+    "GENERATOR_TIMEOUT": "ComfyUI did not answer in time.",
+    "GENERATOR_REJECTED": "ComfyUI refused the request: check the workflow.",
+    "GENERATOR_FAILED": "ComfyUI failed during the generation.",
+    "GENERATOR_OUTPUT_INVALID": "ComfyUI returned an image the application cannot use.",
+    "WORKFLOW_INVALID": "The workflow file is not valid or is missing.",
+    "WORKFLOW_UNKNOWN_TOKEN": "The workflow has an unknown token.",
+    "WORKFLOW_SCHEMA_TOO_RECENT": "The workflow comes from a newer version.",
+    "BATCH_SIZE_INVALID": "A batch has between 1 and 20 proposals.",
+    "JOB_NOT_FOUND": "This batch no longer exists.",
+    "JOB_ALREADY_FINISHED": "This batch has already ended.",
+    "JOB_UNEXPECTED_ERROR": "The batch stopped on an unexpected error: see the logs.",
+    "SHEET_CAPACITY_EXCEEDED": "A size does not fit on this paper format.",
+    "SHEET_EMPTY": "Nothing to print: no blueprint has a kept proposal.",
+    "SHEET_INPUT_INVALID": "A kept image is unreadable or too large.",
+    "INTERNAL_ERROR": "Internal server error: see the logs."
   }
 }

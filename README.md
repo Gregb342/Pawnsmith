@@ -77,7 +77,8 @@ dotnet run --project src/Pawnsmith.Api
 En développement, `appsettings.Development.json` fait lire à l'API les dossiers
 du dépôt : `config/` pour la calibration, `data/projects/` pour les projets
 (ignoré par git). Hors conteneur, l'API sert son propre `wwwroot`, qui est
-vide : c'est le serveur Vite qui affiche le front. Pour vérifier l'assemblage réel — l'API servant le
+vide : c'est le serveur Vite qui affiche le front, sur `http://localhost:5173`,
+et qui passe les appels `/api` à l'API, sur le port 8080. Pour vérifier l'assemblage réel — l'API servant le
 front compilé, comme en production — passer par le conteneur.
 
 ---

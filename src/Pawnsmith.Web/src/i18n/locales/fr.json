@@ -2,7 +2,8 @@
   "app": {
     "name": "Pawnsmith",
     "documentTitle": "Pawnsmith",
-    "tagline": "Planches de figurines en carton, calibrées pour l'impression domestique."
+    "loading": "Chargement…",
+    "comingInThisSlice": "Écran à venir dans cette tranche."
   },
   "language": {
     "label": "Langue",
@@ -10,5 +11,110 @@
       "fr": "Français",
       "en": "English"
     }
+  },
+  "shell": {
+    "project": "Projet",
+    "catalog": "Catalogue",
+    "logs": "Journaux",
+    "steps": "Étapes"
+  },
+  "steps": {
+    "project": "Projet",
+    "blueprints": "Gabarits",
+    "generation": "Génération",
+    "layout": "Mise en page",
+    "print": "Impression"
+  },
+  "save": {
+    "saving": "Enregistrement…",
+    "saved": "Enregistré"
+  },
+  "generator": {
+    "title": "Générateur",
+    "unknown": "ComfyUI : état inconnu",
+    "states": {
+      "Available": "ComfyUI connecté",
+      "Unreachable": "ComfyUI injoignable",
+      "Unhealthy": "ComfyUI en difficulté",
+      "NotConfigured": "ComfyUI non configuré",
+      "Misconfigured": "ComfyUI mal configuré"
+    }
+  },
+  "projects": {
+    "title": "Projets"
+  },
+  "catalog": {
+    "title": "Catalogue"
+  },
+  "logs": {
+    "title": "Journaux"
+  },
+  "errors": {
+    "NETWORK_ERROR": "Le serveur ne répond pas. Vérifiez que l’application tourne toujours.",
+    "UNEXPECTED": "Une erreur inattendue est survenue.",
+    "HTTP_400": "Requête refusée par le serveur.",
+    "HTTP_413": "Le fichier envoyé est trop gros.",
+    "REQUEST_INVALID": "La requête n’est pas valide.",
+    "CROSS_ORIGIN_REFUSED": "Requête refusée : elle ne vient pas de cette application.",
+    "ROUTE_NOT_FOUND": "Cette adresse n’existe pas dans l’API.",
+    "PROJECT_NOT_FOUND": "Ce projet n’existe pas.",
+    "PROJECT_INVALID": "Le fichier du projet n’est pas valide.",
+    "PROJECT_PATH_ESCAPE": "Un chemin du projet sort de son dossier : refusé.",
+    "PROJECT_OVERRIDE_INVALID": "Une cote d’onglet n’est pas valide : elle doit être positive.",
+    "PROJECT_SCHEMA_TOO_RECENT": "Ce projet a été enregistré par une version plus récente de Pawnsmith.",
+    "PROJECT_TOO_LARGE": "Ce projet dépasse les limites de taille.",
+    "PAPER_FORMAT_UNKNOWN": "Ce format de papier n’est pas dans la calibration.",
+    "BLUEPRINT_NOT_FOUND": "Ce gabarit n’existe plus.",
+    "CANDIDATE_NOT_FOUND": "Cette proposition n’existe plus.",
+    "CANDIDATE_NOT_CUT_OUT": "Cette proposition n’est pas détourée : on ne peut pas la retenir.",
+    "CANDIDATE_NO_PAIRED_IMAGE": "Cette proposition n’a plus d’image jumelée (archive de partage, ou fichier manquant) : rien à détourer.",
+    "CUTOUT_IMAGE_INVALID": "L’image jumelée n’est pas un PNG que le détourage sait lire.",
+    "CUTOUT_IMAGE_TOO_LARGE": "L’image jumelée dépasse la taille qu’un générateur peut envoyer.",
+    "CUTOUT_BACKGROUND_NOT_UNIFORM": "Le fond de l’image n’est pas uni : le détourage ne sait pas l’enlever. Générez une autre proposition.",
+    "CUTOUT_SUBJECT_NOT_FOUND": "Une fois le fond retiré, il ne reste presque rien : aucun personnage trouvé.",
+    "ARCHIVE_REJECTED": "Cette archive est refusée : elle n’est pas une archive de projet Pawnsmith valide.",
+    "ARCHIVE_LIMIT_EXCEEDED": "Cette archive dépasse les limites de taille.",
+    "ARCHIVE_EXPORT_FAILED": "L’export de l’archive a échoué.",
+    "IMPORT_DESTINATION_EXISTS": "Un projet porte déjà ce nom de dossier : choisissez un autre nom.",
+    "UPLOAD_TOO_LARGE": "Le fichier envoyé est trop gros.",
+    "IMAGE_NOT_FOUND": "Image introuvable.",
+    "LOG_NOT_FOUND": "Ce fichier de journal n’existe pas.",
+    "UNIVERSE_NOT_FOUND": "Cet univers n’existe pas.",
+    "UNIVERSE_MISMATCH": "Les fichiers de configuration ne sont pas du même univers.",
+    "UNIVERSE_FROZEN": "Ce projet a déjà des propositions : son univers ne change plus. Dupliquez-le pour en changer.",
+    "STYLE_FROZEN": "Ce projet a déjà des propositions : son style ne change plus. Dupliquez-le pour en changer.",
+    "STYLE_INVALID": "Un style a besoin d’un nom et d’une clause de style.",
+    "STYLE_NOT_FOUND": "Ce style n’existe plus.",
+    "STYLE_SHIPPED": "Un style livré avec l’application ne se supprime pas.",
+    "STYLES_INVALID": "Le fichier de la bibliothèque de styles n’est pas valide.",
+    "STYLES_SCHEMA_TOO_RECENT": "La bibliothèque de styles vient d’une version plus récente.",
+    "CATALOG_INVALID": "Le fichier du catalogue n’est pas valide.",
+    "CATALOG_SCHEMA_TOO_RECENT": "Le catalogue vient d’une version plus récente.",
+    "CATALOG_ENTRY_INVALID": "L’objet est incomplet : il faut une valeur, un libellé dans chaque langue et une phrase pour le prompt.",
+    "CATALOG_ENTRY_DUPLICATE": "Cette liste contient déjà cette valeur.",
+    "CATALOG_ENTRY_NOT_FOUND": "Cet objet n’existe plus.",
+    "CATALOG_ENTRY_SHIPPED": "Un objet livré avec l’application ne se supprime pas.",
+    "TEMPLATE_INVALID": "Le template de prompt n’est pas valide.",
+    "TEMPLATE_UNKNOWN_TOKEN": "Le template de prompt contient un jeton inconnu.",
+    "TEMPLATE_SCHEMA_TOO_RECENT": "Le template de prompt vient d’une version plus récente.",
+    "GENERATOR_NOT_CONFIGURED": "Aucun générateur n’est configuré : renseignez l’adresse de ComfyUI.",
+    "GENERATOR_ADDRESS_INVALID": "Cette adresse n’est pas acceptée : http ou https, sans identifiants, sans paramètres.",
+    "GENERATOR_URL_INVALID": "L’adresse configurée du générateur n’est pas valide.",
+    "GENERATOR_UNREACHABLE": "ComfyUI ne répond pas. Vérifiez qu’il tourne à l’adresse configurée.",
+    "GENERATOR_TIMEOUT": "ComfyUI n’a pas répondu à temps.",
+    "GENERATOR_REJECTED": "ComfyUI a refusé la demande : vérifiez le workflow.",
+    "GENERATOR_FAILED": "ComfyUI a échoué pendant la génération.",
+    "GENERATOR_OUTPUT_INVALID": "ComfyUI a renvoyé une image que l’application ne peut pas utiliser.",
+    "WORKFLOW_INVALID": "Le fichier de workflow n’est pas valide ou est absent.",
+    "WORKFLOW_UNKNOWN_TOKEN": "Le workflow contient un jeton inconnu.",
+    "WORKFLOW_SCHEMA_TOO_RECENT": "Le workflow vient d’une version plus récente.",
+    "BATCH_SIZE_INVALID": "Un lot compte entre 1 et 20 propositions.",
+    "JOB_NOT_FOUND": "Ce lot n’existe plus.",
+    "JOB_ALREADY_FINISHED": "Ce lot est déjà terminé.",
+    "JOB_UNEXPECTED_ERROR": "Le lot s’est arrêté sur une erreur inattendue : voir les journaux.",
+    "SHEET_CAPACITY_EXCEEDED": "Une taille ne tient pas sur ce format de papier.",
+    "SHEET_EMPTY": "Rien à imprimer : aucun gabarit n’a de proposition retenue.",
+    "SHEET_INPUT_INVALID": "Une image retenue est illisible ou trop grande.",
+    "INTERNAL_ERROR": "Erreur interne du serveur : voir les journaux."
   }
 }
