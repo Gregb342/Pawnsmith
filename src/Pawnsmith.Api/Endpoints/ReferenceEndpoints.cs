@@ -2,6 +2,7 @@ using Pawnsmith.Api.Contracts;
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Api.Hosting;
 using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Prompts;
 using Pawnsmith.Domain.PhysicalValues;
 using Pawnsmith.Domain.Prompts;
 
@@ -17,17 +18,40 @@ public static class ReferenceEndpoints
     {
         routes.MapGet("/api/configuration", (Calibration calibration) => calibration.ToDto());
 
-        routes.MapGet("/api/universes/{universe}/catalog", (string universe, Catalog catalog) =>
+        routes.MapGet("/api/universes/{universe}/catalog", (string universe, CatalogBook catalog) =>
         {
-            // Matched against the member names, exactly: Enum.TryParse would
-            // also accept "0", and an address that changes meaning with its
-            // spelling is the kind of leniency the rest of the project refuses.
-            if (!string.Equals(universe, catalog.Universe.ToString(), StringComparison.Ordinal))
-            {
-                throw new ApiException(ApiCodes.UniverseNotFound);
-            }
+            RequireUniverse(universe, catalog);
 
-            return catalog.ToDto();
+            return catalog.Current.ToDto();
+        });
+
+        // §I.4.3 - the personal catalogue. The book validates and writes;
+        // these routes only translate (G.0).
+        routes.MapPost("/api/universes/{universe}/catalog/entries", async (
+            string universe,
+            CatalogEntryRequest request,
+            CatalogBook catalog,
+            CancellationToken cancellationToken) =>
+        {
+            RequireUniverse(universe, catalog);
+
+            Catalog updated = await catalog.AddEntryAsync(request.Key, request.Value, request.Labels, request.Fragment, cancellationToken);
+
+            return Results.Created($"/api/universes/{universe}/catalog", updated.ToDto());
+        });
+
+        routes.MapDelete("/api/universes/{universe}/catalog/entries/{key}/{value}", async (
+            string universe,
+            string key,
+            string value,
+            CatalogBook catalog,
+            CancellationToken cancellationToken) =>
+        {
+            RequireUniverse(universe, catalog);
+
+            Catalog updated = await catalog.RemoveEntryAsync(key, value, cancellationToken);
+
+            return updated.ToDto();
         });
 
         routes.MapGet("/api/generator", async (GeneratorSetup setup, CancellationToken cancellationToken) =>
@@ -40,5 +64,16 @@ public static class ReferenceEndpoints
 
             return setup.ToDto(availability);
         });
+    }
+
+    // Matched against the member names, exactly: Enum.TryParse would also
+    // accept "0", and an address that changes meaning with its spelling is the
+    // kind of leniency the rest of the project refuses.
+    private static void RequireUniverse(string universe, CatalogBook catalog)
+    {
+        if (!string.Equals(universe, catalog.Current.Universe.ToString(), StringComparison.Ordinal))
+        {
+            throw new ApiException(ApiCodes.UniverseNotFound);
+        }
     }
 }

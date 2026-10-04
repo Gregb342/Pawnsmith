@@ -32,6 +32,8 @@ public sealed record CatalogEntryDto(string Value, string Fragment, IReadOnlyDic
 /// <param name="Code">Why it is misconfigured.</param>
 /// <param name="Address">The configured address.</param>
 /// <param name="FramingClause">The framing clause of the workflow, read-only (DEC-029).</param>
+public sealed record CatalogEntryRequest(string Key, string Value, IReadOnlyDictionary<string, string> Labels, string Fragment);
+
 public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause);
 
 /// <summary>The manual mappings of these DTOs (DEC-021): one method per type, nothing inferred.</summary>

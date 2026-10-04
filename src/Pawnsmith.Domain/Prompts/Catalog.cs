@@ -213,6 +213,60 @@ public sealed class Catalog
         return fragments.ContainsKey(key);
     }
 
+    /// <summary>The parameter of this key, or <c>null</c>.</summary>
+    public CatalogParameter? Find(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        return Parameters.FirstOrDefault(parameter => string.Equals(parameter.Key, key, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The catalogue the interface serves: this one, followed key by key by the
+    /// user's personal entries (DEC-107).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A personal entry joins an existing key, never a new one.</b> A key is
+    /// a parameter of the blueprint and of the template's order; inventing one
+    /// from the interface would add a field nothing else knows about.
+    /// </para>
+    /// <para>
+    /// The result goes through <see cref="Create"/>, so a personal value that
+    /// repeats a shipped one is refused by the same rule that refuses a
+    /// repetition inside one file. Every personal entry is marked
+    /// <see cref="CatalogEntryOrigin.Personal"/>, whatever it said.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="CatalogException">A personal key the catalogue does not declare, or any rule of <see cref="Create"/>.</exception>
+    public Catalog WithPersonal(IReadOnlyList<CatalogParameter> personal)
+    {
+        ArgumentNullException.ThrowIfNull(personal);
+
+        foreach (CatalogParameter parameter in personal)
+        {
+            if (!KnowsKey(parameter.Key))
+            {
+                throw new CatalogException(
+                    $"The personal catalogue adds to the key '{parameter.Key}', which the catalogue does not declare.");
+            }
+        }
+
+        List<CatalogParameter> merged = [];
+
+        foreach (CatalogParameter parameter in Parameters)
+        {
+            IEnumerable<CatalogEntry> added = personal
+                .Where(extra => string.Equals(extra.Key, parameter.Key, StringComparison.Ordinal))
+                .SelectMany(extra => extra.Entries)
+                .Select(entry => entry with { Origin = CatalogEntryOrigin.Personal });
+
+            merged.Add(parameter with { Entries = [.. parameter.Entries, .. added] });
+        }
+
+        return Create(Universe, merged);
+    }
+
     private static void RequireLabels(IReadOnlyDictionary<string, string>? labels, string what)
     {
         // One label per interface culture, none empty: a list the interface

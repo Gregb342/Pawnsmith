@@ -124,8 +124,13 @@ public static class ApiHost
         // One universe in v1 (DEC-025); TemplatePromptComposer holds one.
         string universeFile = Universe.Fantasy.ToString().ToLowerInvariant();
 
-        Catalog catalog = await CatalogReader.ReadAsync(
+        Catalog shipped = await CatalogReader.ReadAsync(
             Path.Combine(settings.ConfigDirectory, $"catalog.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
+
+        // The shipped catalogue followed by the user's own entries (DEC-107).
+        // A personal file that cannot be read stops the start-up, like the
+        // calibration: silently serving without it would hide the user's data.
+        CatalogBook catalog = await CatalogBook.LoadAsync(shipped, new PersonalCatalogFile(settings.UserDirectory), CancellationToken.None);
 
         PromptTemplate template = await PromptTemplateReader.ReadAsync(
             Path.Combine(settings.ConfigDirectory, $"prompt-template.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
@@ -144,6 +149,15 @@ public static class ApiHost
         WebApplication app = builder.Build();
         Configure(app);
 
+        // Personal entries set aside because an upgrade now ships the same
+        // value, or dropped the key: said once, at start-up (§I.4.2).
+        if (catalog.Dropped.Count > 0)
+        {
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(CatalogBook).FullName!).LogWarning(
+                "Personal catalogue entries set aside, the shipped catalogue now has them or no longer has their key: {Entries}",
+                string.Join(", ", catalog.Dropped));
+        }
+
         // Once the server listens, and not before: only then are its
         // addresses known (§H.5). The generator is read back from the
         // container, so that a test which swapped it is reported as it runs.
@@ -161,14 +175,17 @@ public static class ApiHost
         IServiceCollection services,
         PawnsmithSettings settings,
         Calibration calibration,
-        Catalog catalog,
+        CatalogBook catalog,
         PromptTemplate template,
         GeneratorSetup generator)
     {
         services.AddSingleton(settings);
         services.AddSingleton(calibration);
         services.AddSingleton(catalog);
-        services.AddSingleton<IPromptComposer>(new TemplatePromptComposer(template, catalog));
+
+        // Reads the catalogue at each composition, so that a personal entry
+        // added a second ago composes like a shipped one.
+        services.AddSingleton<IPromptComposer>(new TemplatePromptComposer(template, () => catalog.Current));
 
         // A factory rather than the instance, so that the container disposes
         // the HTTP client of the generator when the application stops.

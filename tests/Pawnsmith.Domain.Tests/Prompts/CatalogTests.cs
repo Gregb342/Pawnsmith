@@ -168,4 +168,36 @@ public class CatalogTests
     {
         PromptFixture.Entry("axe", "wielding an axe").Origin.ShouldBe(CatalogEntryOrigin.Shipped);
     }
+
+    // --- DEC-107 : la fusion avec le catalogue personnel -------------------
+
+    [Fact]
+    public void PersonalEntriesFollowTheShippedOnesOfTheirKeyAndAreMarkedPersonal()
+    {
+        var shipped = Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("axe", "wielding an axe"))]);
+
+        Catalog merged = shipped.WithPersonal([Weapon(PromptFixture.Entry("halberd", "holding a halberd"))]);
+
+        merged.Find("weapon")!.Entries.Select(entry => (entry.Value, entry.Origin))
+            .ShouldBe([("axe", CatalogEntryOrigin.Shipped), ("halberd", CatalogEntryOrigin.Personal)]);
+    }
+
+    [Fact]
+    public void APersonalEntryNeverCreatesAKey()
+    {
+        var shipped = Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("axe", "wielding an axe"))]);
+
+        CatalogException error = Should.Throw<CatalogException>(() =>
+            shipped.WithPersonal([PromptFixture.Param("mount", PromptFixture.Entry("horse", "riding a horse"))]));
+
+        error.Message.ShouldContain("'mount'");
+    }
+
+    [Fact]
+    public void APersonalValueRepeatingAShippedOneIsRefused()
+    {
+        var shipped = Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("axe", "wielding an axe"))]);
+
+        Should.Throw<CatalogException>(() => shipped.WithPersonal([Weapon(PromptFixture.Entry("axe", "my axe"))]));
+    }
 }

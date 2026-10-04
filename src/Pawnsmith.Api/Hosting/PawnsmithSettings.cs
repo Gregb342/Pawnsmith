@@ -32,6 +32,7 @@ namespace Pawnsmith.Api.Hosting;
 public sealed record PawnsmithSettings(
     string ProjectsRoot,
     string ConfigDirectory,
+    string UserDirectory,
     string? GeneratorUrl,
     string WorkflowFile,
     long MaxUploadBytes,
@@ -56,6 +57,12 @@ public sealed record PawnsmithSettings(
         return new PawnsmithSettings(
             ProjectsRoot: Resolve(contentRoot, configuration["Pawnsmith:ProjectsRoot"] ?? "data/projects"),
             ConfigDirectory: Resolve(contentRoot, configuration["Pawnsmith:ConfigDirectory"] ?? "config"),
+
+            // The user's own files - personal catalogue, personal styles,
+            // generator address (§I.4.2). Beside the projects, never inside
+            // one: no archive carries them (DEC-022). In the container, the
+            // volume /app/data/user.
+            UserDirectory: Resolve(contentRoot, configuration["Pawnsmith:UserDirectory"] ?? "data/user"),
             GeneratorUrl: string.IsNullOrWhiteSpace(url) ? null : url.Trim(),
             WorkflowFile: Resolve(contentRoot, configuration["Pawnsmith:Generator:WorkflowFile"] ?? "config/workflow.comfyui.json"),
 

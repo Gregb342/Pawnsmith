@@ -40,6 +40,31 @@ public static class CatalogReader
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
 
+        (Universe universe, List<CatalogParameter> parameters) = await ReadParametersAsync(path, expected, cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            return Catalog.Create(universe, parameters);
+        }
+        catch (CatalogException error)
+        {
+            throw new PromptFileException(
+                PromptFileErrorCode.CatalogInvalid,
+                $"The {What} '{path}' is not coherent: {error.Message}",
+                error);
+        }
+    }
+
+    /// <summary>
+    /// The parameters of a catalogue file, read and shape-checked but not yet
+    /// checked for coherence — shared with the personal catalogue, whose
+    /// coherence is only known once merged with the shipped one (DEC-107).
+    /// </summary>
+    internal static async Task<(Universe Universe, List<CatalogParameter> Parameters)> ReadParametersAsync(
+        string path,
+        Universe expected,
+        CancellationToken cancellationToken)
+    {
         CatalogDocument document = await PromptDataFile
             .ReadAsync<CatalogDocument>(path, What, PromptFileErrorCode.CatalogInvalid, cancellationToken)
             .ConfigureAwait(false);
@@ -73,17 +98,7 @@ public static class CatalogReader
             parameters.Add(new CatalogParameter(parameter.Key!, Labels(parameter.Labels), entries));
         }
 
-        try
-        {
-            return Catalog.Create(universe, parameters);
-        }
-        catch (CatalogException error)
-        {
-            throw new PromptFileException(
-                PromptFileErrorCode.CatalogInvalid,
-                $"The {What} '{path}' is not coherent: {error.Message}",
-                error);
-        }
+        return (universe, parameters);
     }
 
     // An absent object becomes an empty dictionary: the domain then names the
@@ -97,7 +112,7 @@ public static class CatalogReader
     // Calqués sur le fichier, distincts des types du domaine, qui ne portent
     // aucun attribut de sérialisation (A.3).
 
-    private sealed record CatalogDocument
+    internal sealed record CatalogDocument
     {
         [JsonPropertyName("versionSchema")]
         public int VersionSchema { get; init; }
@@ -109,19 +124,21 @@ public static class CatalogReader
         public List<ParameterDocument>? Parameters { get; init; }
     }
 
-    private sealed record ParameterDocument
+    internal sealed record ParameterDocument
     {
         [JsonPropertyName("key")]
         public string? Key { get; init; }
 
+        // Absent from a personal file, which takes the shipped labels.
         [JsonPropertyName("labels")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, string>? Labels { get; init; }
 
         [JsonPropertyName("entries")]
         public List<EntryDocument>? Entries { get; init; }
     }
 
-    private sealed record EntryDocument
+    internal sealed record EntryDocument
     {
         [JsonPropertyName("value")]
         public string? Value { get; init; }
