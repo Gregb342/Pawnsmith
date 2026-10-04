@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 4 octobre 2026 |
 | **Document parent** | `pawnsmith-bible.md` v0.18 — chapitres 4, 7, 9, 11 et 12 en particulier |
 | **Documents frères** | les cahiers T1 à T4, T6 et T7, dont ce document reprend la forme |
 | **Portée** | Découper l'image jumelée en deux moitiés et détourer chacune, dans le lot comme à la demande |
+
+> **Changements depuis la v1.0** — Écriture de la tranche et sa relecture. Une borne de plus, `MaxImageBytes` (64 Mio, celle du générateur) : la relecture a trouvé que le détourage à la demande lisait l'image jumelée entière avant que le décodeur n'en voie l'en-tête, alors que les bornes d'archive de C.9.3 admettent une entrée de plusieurs gigaoctets (F.2.1, F.3.7). Le CLI de `candidate generate` dit, candidat par candidat, s'il a été détouré. Ajout du §F.13, la revue du chapitre 9 pour T5.
 
 > **Régime d'écriture.** Comme T4, T6 et T7, ce document est écrit dans le régime « tranche et consigne ». **Les deux choix que le porteur s'était réservés ont été tranchés par lui**, le 4 octobre 2026 : un détourage **sans modèle**, et des PNG lus et écrits **à la main**. Le reste a été tranché sans lui ; chaque décision est une fiche du chapitre 11 (DEC-098 à DEC-104), reprise au §8 de `CLAUDE.md`.
 
@@ -63,6 +65,7 @@ Le décodeur ne lit que ce que ComfyUI écrit : **8 bits par canal, RGB ou RGBA,
 
 Contrôles, dans l'ordre :
 
+0. **Le poids du fichier**, avant même de le lire en entier : au-delà de 64 Mio — la borne du générateur (§E.9) —, `CUTOUT_IMAGE_TOO_LARGE`. Le détourage à la demande arrête la lecture dès qu'elle dépasse la borne, jamais après.
 1. Signature PNG, puis `IHDR` en tête.
 2. **Dimensions sur l'en-tête, avant toute allocation** : un côté de plus de 8 192 pixels rend `CUTOUT_IMAGE_TOO_LARGE` (MEN-005). La borne est celle du générateur (§E.9) et de la planche (DEC-095).
 3. **CRC de chaque bloc** vérifié : un fichier tronqué ou altéré se refuse, il ne se décode pas à moitié.
@@ -124,6 +127,7 @@ Un sujet de moins de **1 %** des pixels de la moitié — ou aucun — rend `CUT
 | Option | Défaut | Motif |
 |---|---|---|
 | `MaxImageDimensionPx` | 8 192 | La borne du générateur et de la planche |
+| `MaxImageBytes` | 64 Mio | La borne du générateur ; une image jumelée plus lourde n'en vient pas |
 | `BackgroundTolerance` | 24 | Absorbe le bruit d'un fond « uni » généré sans mordre sur un vêtement clair |
 | `HoleTolerance` | 12 | La moitié : un trou enfermé doit être vraiment du fond |
 | `MinHoleFraction` | 0,0005 | Écarte reflets et pixels isolés |
@@ -287,3 +291,19 @@ Le critère du chapitre 12 — « runtime ONNX, fournisseur d'exécution configu
 | 7 | Documentation : chapitre 9, `CLAUDE.md`, README |
 
 **La version est `0.9.0`, pas `0.6.0`.** DEC-058 réservait `0.6.0` à T5, mais le dépôt est en `0.8.0` depuis T7, et un numéro de version ne recule pas. `0.6.0` n'existera jamais ; la trace en est DEC-104.
+
+---
+
+## F.13 La revue du chapitre 9 pour T5
+
+DEC-097 rouvre le tableau à chaque tranche qui ouvre une surface. T5 en ouvre une : un décodeur d'images, qui lit ce que le générateur envoie et ce qu'une archive importée apporte.
+
+| Menace | Tenue par | Risque accepté |
+|---|---|---|
+| **MEN-005** Image non fiable, au détourage | `PngCodecTests` : dimensions refusées sur les 24 premiers octets, CRC faux, taille décompressée exacte (plus longue, plus courte), format hors du sous-ensemble, filtre inconnu, fichier tronqué. `UniformBackgroundRemoverTests` et `CandidateCutoutTests` : poids refusé avant décodage, et pendant la lecture | Une image à la borne — 8 192 pixels de côté — demande au plus quelques centaines de mégaoctets le temps d'un détourage : l'image décodée, puis les tableaux de la diffusion sur une moitié. C'est borné, et c'est le prix d'un décodage en mémoire |
+| **MEN-006** Fuite par une archive | `PngCodecTests` : un bloc `tEXt` de la source ne survit pas au réencodage ; les détourages ne portent que `IHDR`, `IDAT`, `IEND` | — |
+| **MEN-008** Lien symbolique | `UniformBackgroundRemoverTests` : rien n'est écrit à travers un dossier `images` qui est un lien | Dégradé sous Windows sans privilège de lien, comme ailleurs |
+| **MEN-007** Ressources | Le détourage à la demande est synchrone, dans la requête, et ne passe la porte d'écriture qu'autour de sa sauvegarde | Des appels répétés occupent un cœur de processeur ; l'application est locale et mono-utilisateur (§1.5, MEN-004) |
+
+Aucune menace nouvelle : le détourage ne lit que des images que T4 et T2 bornaient déjà à l'entrée, et il les borne une seconde fois avant de les décoder.
+

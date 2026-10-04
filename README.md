@@ -20,14 +20,15 @@ plutôt que d'être interdites de changement (DEC-030).
 > projet, persistance, archives —, la tranche **T3** — composition de la
 > clause sujet, catalogue, règles de gestion — et la tranche **T4** — client
 > du générateur ComfyUI, lots de candidats — sont écrites, ainsi que l'**API
-> de T6** (sans son front) et la tranche **T7** — journaux, visualiseur côté
-> API, revue du modèle de menace. **928 tests verts.**
+> de T6** (sans son front), la tranche **T7** — journaux, visualiseur côté
+> API, revue du modèle de menace — et la tranche **T5** — détourage sans
+> modèle, sur fond uni. **999 tests verts.**
 >
 > Il n'y a **pas encore d'interface** : son front est la seconde partie de
 > T6. Ce qui tourne aujourd'hui se pilote par l'**API HTTP** du conteneur, ou
 > par le harnais en ligne de commande de `tools/` : produire une planche PDF, créer un projet, y ajouter des gabarits
 > dont la clause sujet est composée depuis un catalogue, générer des candidats
-> auprès d'un ComfyUI, élire un candidat,
+> auprès d'un ComfyUI, les détourer, élire un candidat,
 > tirer la planche du projet, l'exporter en archive, la réimporter. Le
 > conteneur, lui, ne sert qu'une coquille de front sans fonctionnalité.
 > Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
@@ -38,6 +39,7 @@ des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md),
 [T2](docs/pawnsmith-cahier-des-charges-t2.md),
 [T3](docs/pawnsmith-cahier-des-charges-t3.md),
 [T4](docs/pawnsmith-cahier-des-charges-t4.md),
+[T5](docs/pawnsmith-cahier-des-charges-t5.md),
 [T6](docs/pawnsmith-cahier-des-charges-t6.md) et
 [T7](docs/pawnsmith-cahier-des-charges-t7.md) pour les spécifications
 détaillées.
@@ -164,6 +166,21 @@ générateur éteint est un état, pas une erreur. `candidate generate` affiche
 chaque transition du lot ; chaque candidat est sauvegardé dès qu'il existe, et
 `Ctrl+C` annule le lot en gardant ce qui a été produit (DEC-074, DEC-075).
 
+**Détourer** — les sous-commandes de T5. Le lot détoure déjà chaque candidat
+qu'il produit ; un détourage raté n'arrête pas le lot, il est nommé dans son
+compte rendu (DEC-101). `candidate cutout` redétoure un candidat existant, et
+`cutout` détoure une image jumelée quelconque, hors de tout projet — c'est
+l'outil pour régler les valeurs de `CutoutOptions` sur de vraies images.
+
+```bash
+$CLI candidate cutout --path $P --id <guid> --candidate <guid> --calibration ./config/calibration.json
+$CLI cutout           --pair ./paire.png --out ./detourage
+```
+
+Le détourage ne demande **aucun modèle** (DEC-098) : il exige le fond uni que
+la clause de cadrage impose, et le refuse s'il ne le trouve pas
+(`CUTOUT_BACKGROUND_NOT_UNIFORM`).
+
 ---
 
 ## Lancement en conteneur
@@ -258,6 +275,7 @@ curl -s -X POST $API/projects/donjon/blueprints -H 'Content-Type: application/js
      -d '{"race":"goblin","characterClass":"skirmisher","size":"Medium","optionalParameters":[{"key":"weapon","value":"spear"}],"details":"","quantity":6}'
 curl -s -X POST $API/projects/donjon/blueprints/<id>/jobs -H 'Content-Type: application/json' -d '{"count":4}'
 curl -s $API/jobs
+curl -s -X POST $API/projects/donjon/blueprints/<id>/candidates/<candidateId>/cutout
 curl -s $API/projects/donjon/sheet/report
 curl -s -o planche.pdf "$API/projects/donjon/sheet.pdf?culture=fr"
 ```
@@ -295,7 +313,7 @@ compilateur qui le tient, par les références de projet.
 thématiques** dont les namespaces suivent le chemin. Le domaine se range par
 sujet (`Primitives`, `PhysicalValues`, `Units`, `Sheets`, `Projects`,
 `Prompts`), l'infrastructure par technologie d'adaptateur (`Json`, `Imaging`,
-`Pdf`, `Projects`). Le §A.3 du cahier T1 en donne la règle et les deux pièges.
+`Pdf`, `Projects`, `Cutout`). Le §A.3 du cahier T1 en donne la règle et les deux pièges.
 
 ---
 
