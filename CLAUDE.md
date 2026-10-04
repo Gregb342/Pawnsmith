@@ -453,8 +453,11 @@ La plus engageante d'abord.
 
 #### Pour T5 — branche `claude/t5-cutout`, partie de `main`
 
-**T5 n'est pas fusionnée.** Elle est poussée sur sa branche, partie de `main`
-après la fusion des trois PR (`eb18ef4`). Les deux choix que tu t'étais
+**T5 est fusionnée dans `main`** le 4 octobre 2026, par
+Gregb342/Pawnsmith#5, en commit de fusion, CI verte. Tu m'as délégué cette
+fusion. **La relecture intégrale reste à faire**, comme pour T4, l'API de T6
+et T7. La branche part de `main` après la fusion des trois PR (`eb18ef4`).
+Les deux choix que tu t'étais
 réservés, **tu les as tranchés** le 4 octobre : détourage **sans modèle**
 (DEC-098) et PNG **écrits à la main** (DEC-099). Le reste est tranché sans
 toi, DEC-100 à DEC-104.
@@ -1063,7 +1066,7 @@ borne.
 - **En conteneur, l'avertissement de MEN-004 ne peut pas savoir** comment le
   port est publié ; il le rappelle à chaque démarrage.
 
-### T5 — code terminé, 7 tâches sur 7, poussée, non fusionnée
+### T5 — code terminé, 7 tâches sur 7, fusionnée dans `main`
 
 **T5 est spécifiée** par
 [`docs/pawnsmith-cahier-des-charges-t5.md`](docs/pawnsmith-cahier-des-charges-t5.md)
@@ -1111,6 +1114,22 @@ Le code vit dans `src/Pawnsmith.Infrastructure/Imaging/` (`RgbaImage`,
   apparaître si un lecteur interpole sans tenir compte de l'alpha.
 - **Un détourage à la borne de 8 192 pixels** tient quelques centaines de
   mégaoctets le temps du calcul. Borné, et risque accepté (§F.13).
+
+### Ce que le mode cloud ne peut pas tester — à faire sur ton poste
+
+Les sessions dans le cloud n'ont ni ComfyUI, ni carte graphique, ni les
+planches de T0a (`refs/` n'est pas versionné), ni imprimante. Tout ce qui
+suit a été remplacé par des faux ou des images fabriquées en code, et reste
+**à éprouver de retour sur ton ordinateur** :
+
+- **Un lot réel contre ComfyUI** (T4) : ton `config/workflow.comfyui.json`
+  exporté, et l'ordre de la clause de cadrage avant `Subject:` (§E.5.5).
+- **Le détourage sur de vraies images** (T5) : `cutout --pair` sur les
+  planches de `refs/gen comfyui krea2/`, puis réglage de `CutoutOptions`
+  si le fond, la bande de sol ou le contour ne sortent pas bien.
+- **La chaîne entière dans l'interface**, quand le front de T6 existera :
+  générer, détourer, élire, tirer la planche.
+- **T0b**, planche imprimée en main.
 
 ### Comment faire tourner les choses
 
