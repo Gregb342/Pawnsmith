@@ -14,6 +14,7 @@ using Pawnsmith.Application.Sheets;
 using Pawnsmith.Domain.PhysicalValues;
 using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
+using Pawnsmith.Infrastructure.Cutout;
 using Pawnsmith.Infrastructure.Imaging;
 using Pawnsmith.Infrastructure.Json;
 using Pawnsmith.Infrastructure.Logging;
@@ -177,6 +178,14 @@ public static class ApiHost
         services.AddSingleton(new ProjectWriteGate());
         services.AddSingleton(new GenerationOptions());
         services.AddSingleton<IImageSizeReader>(new FileImageSizeReader());
+
+        // T5: the cut-out of v1 uses no model (DEC-098); its values keep their
+        // defaults, like the other bounds records (§G.2.1).
+        services.AddSingleton<IBackgroundRemover>(new UniformBackgroundRemover(new CutoutOptions()));
+        services.AddSingleton(provider => new CandidateCutout(
+            provider.GetRequiredService<IProjectRepository>(),
+            provider.GetRequiredService<IBackgroundRemover>(),
+            provider.GetRequiredService<ProjectWriteGate>()));
         services.AddSingleton(provider => new ProjectSheet(
             provider.GetRequiredService<IProjectRepository>(),
             provider.GetRequiredService<IImageSizeReader>(),

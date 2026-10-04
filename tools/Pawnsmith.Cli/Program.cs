@@ -13,6 +13,7 @@ using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
 using Pawnsmith.Domain.Sheets;
 using Pawnsmith.Infrastructure;
+using Pawnsmith.Infrastructure.Cutout;
 using Pawnsmith.Infrastructure.Generation;
 using Pawnsmith.Infrastructure.Imaging;
 using Pawnsmith.Infrastructure.Json;
@@ -602,7 +603,7 @@ async Task<int> CandidateGenerateAsync(Arguments arguments)
     var repository = new FileSystemProjectRepository(
         new ProjectRepositoryOptions(Path.GetDirectoryName(directory) ?? directory));
 
-    var useCase = new CandidateGeneration(generator, repository, new GenerationOptions());
+    var useCase = new CandidateGeneration(generator, new UniformBackgroundRemover(new CutoutOptions()), repository, new GenerationOptions());
 
     using var cancellation = new CancellationTokenSource();
 

@@ -37,6 +37,7 @@ public sealed class GenerationWorker(
     JobRegistry registry,
     GeneratorSetup setup,
     IProjectRepository repository,
+    IBackgroundRemover remover,
     GenerationOptions options,
     ProjectWriteGate gate,
     ILogger<GenerationWorker> logger) : BackgroundService
@@ -50,7 +51,7 @@ public sealed class GenerationWorker(
             return;
         }
 
-        var generation = new CandidateGeneration(generator, repository, options, TimeProvider.System, gate);
+        var generation = new CandidateGeneration(generator, remover, repository, options, TimeProvider.System, gate);
 
         await foreach (Guid id in registry.Queue.ReadAllAsync(stoppingToken))
         {

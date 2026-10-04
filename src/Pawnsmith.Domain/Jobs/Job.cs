@@ -35,6 +35,12 @@ public enum JobState
 /// <param name="Message">What happened, for a log or a command line. Never translated.</param>
 public sealed record JobFailure(string Code, string Message);
 
+/// <summary>A candidate the batch saved without its cut-outs, and why (DEC-101).</summary>
+/// <param name="CandidateId">The candidate, saved with its paired image only.</param>
+/// <param name="Code">The wire code of the cut-out's refusal (§F.6).</param>
+/// <param name="Message">What happened, for a log. Never translated.</param>
+public sealed record CutoutFailure(Guid CandidateId, string Code, string Message);
+
 /// <summary>
 /// A traceable unit of asynchronous work: in T4, the generation of a batch of
 /// candidates for one blueprint.
@@ -70,7 +76,8 @@ public sealed record Job
         int requested,
         IReadOnlyList<Guid> produced,
         JobState state,
-        JobFailure? failure)
+        JobFailure? failure,
+        IReadOnlyList<CutoutFailure> cutoutFailures)
     {
         Id = id;
         BlueprintId = blueprintId;
@@ -78,6 +85,7 @@ public sealed record Job
         Produced = produced;
         State = state;
         Failure = failure;
+        CutoutFailures = cutoutFailures;
     }
 
     /// <summary>Identifier, propagated through the logs once T7 exists (chapter 8).</summary>
@@ -98,6 +106,13 @@ public sealed record Job
     /// <summary>Why it failed. Set in <see cref="JobState.Failed"/> and only there.</summary>
     public JobFailure? Failure { get; }
 
+    /// <summary>
+    /// The candidates saved without their cut-outs, in the order they were
+    /// produced (DEC-101). A failed cut-out does not stop the batch, so it is
+    /// not a <see cref="Failure"/>: the job can be <c>Completed</c> and list some.
+    /// </summary>
+    public IReadOnlyList<CutoutFailure> CutoutFailures { get; }
+
     /// <summary>Whether no transition can leave this state any more.</summary>
     public bool IsTerminal => State is JobState.Completed or JobState.Failed or JobState.Cancelled;
 
@@ -108,7 +123,7 @@ public sealed record Job
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(requested, 1);
 
-        return new Job(Guid.NewGuid(), blueprintId, requested, [], JobState.Queued, failure: null);
+        return new Job(Guid.NewGuid(), blueprintId, requested, [], JobState.Queued, failure: null, cutoutFailures: []);
     }
 
     /// <summary><c>Queued → Running</c>.</summary>
@@ -134,7 +149,23 @@ public sealed record Job
                 $"Job {Id} already produced the {Requested} candidate(s) it was asked for.");
         }
 
-        return new Job(Id, BlueprintId, Requested, [.. Produced, candidateId], State, Failure);
+        return new Job(Id, BlueprintId, Requested, [.. Produced, candidateId], State, Failure, CutoutFailures);
+    }
+
+    /// <summary>Records that a candidate already produced was saved without its cut-outs. Only while running.</summary>
+    public Job RecordCutoutFailure(Guid candidateId, string code, string message)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+        ArgumentNullException.ThrowIfNull(message);
+        Require(JobState.Running, nameof(RecordCutoutFailure));
+
+        if (!Produced.Contains(candidateId))
+        {
+            throw new InvalidOperationException(
+                $"Job {Id} did not produce the candidate {candidateId}; it cannot record its cut-out.");
+        }
+
+        return new Job(Id, BlueprintId, Requested, Produced, State, Failure, [.. CutoutFailures, new CutoutFailure(candidateId, code, message)]);
     }
 
     /// <summary><c>Running → Completed</c>, once everything requested has been produced.</summary>
@@ -161,7 +192,7 @@ public sealed record Job
         ArgumentNullException.ThrowIfNull(message);
         Require(JobState.Running, nameof(Fail));
 
-        return new Job(Id, BlueprintId, Requested, Produced, JobState.Failed, new JobFailure(code, message));
+        return new Job(Id, BlueprintId, Requested, Produced, JobState.Failed, new JobFailure(code, message), CutoutFailures);
     }
 
     /// <summary><c>Queued → Cancelled</c> or <c>Running → Cancelled</c>, keeping what was produced.</summary>
@@ -175,7 +206,7 @@ public sealed record Job
         return With(JobState.Cancelled);
     }
 
-    private Job With(JobState state) => new(Id, BlueprintId, Requested, Produced, state, Failure);
+    private Job With(JobState state) => new(Id, BlueprintId, Requested, Produced, state, Failure, CutoutFailures);
 
     private void Require(JobState expected, string transition)
     {

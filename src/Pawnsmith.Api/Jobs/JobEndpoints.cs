@@ -43,6 +43,7 @@ public static class JobEndpoints
             GeneratorSetup setup,
             IProjectRepository repository,
             GenerationOptions options,
+            IBackgroundRemover remover,
             ProjectWriteGate gate,
             Calibration calibration,
             JobRegistry registry,
@@ -57,7 +58,7 @@ public static class JobEndpoints
             string directory = ProjectAccess.Directory(settings, folder);
             var batch = new GenerationBatch(directory, id, Seeds(request, options), setup.FramingClause!, calibration);
 
-            var generation = new CandidateGeneration(generator, repository, options, TimeProvider.System, gate);
+            var generation = new CandidateGeneration(generator, remover, repository, options, TimeProvider.System, gate);
             Job queued = await generation.QueueAsync(batch, cancellationToken);
 
             registry.Enqueue(queued, batch, folder);

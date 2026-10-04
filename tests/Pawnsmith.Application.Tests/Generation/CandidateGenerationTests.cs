@@ -26,6 +26,7 @@ public class CandidateGenerationTests
 
     private readonly InMemoryProjectRepository repository;
     private readonly ScriptedImageGenerator generator = new();
+    private readonly ScriptedBackgroundRemover remover = new();
     private readonly List<Job> changes = [];
 
     public CandidateGenerationTests()
@@ -40,7 +41,7 @@ public class CandidateGenerationTests
     }
 
     private CandidateGeneration UseCase(int maxBatchSize = 20) =>
-        new(generator, repository, new GenerationOptions { MaxBatchSize = maxBatchSize }, new FixedClock(Now));
+        new(generator, remover, repository, new GenerationOptions { MaxBatchSize = maxBatchSize }, new FixedClock(Now));
 
     private Task<Job> Run(IReadOnlyList<ulong> seeds, CancellationToken cancellationToken = default, Guid? blueprintId = null) =>
         UseCase().RunAsync(
@@ -62,12 +63,18 @@ public class CandidateGenerationTests
         job.State.ShouldBe(JobState.Completed);
         Produced.Select(candidate => candidate.Seed).ShouldBe([11UL, 22UL, 33UL]);
         Produced.ShouldAllBe(candidate => candidate.Status == CandidateStatus.Draft);
-        Produced.ShouldAllBe(candidate => candidate.FrontImageFile == null && candidate.BackImageFile == null);
         job.Produced.ShouldBe(Produced.Select(candidate => candidate.Id).ToList());
 
-        // Each candidate references the image written for it, and only that one.
-        Produced.Select(candidate => candidate.PairedImageFile).ShouldBe(repository.Images.Select(image => image.Path).ToList());
-        repository.Images.Select(image => image.Png).ShouldBe(
+        // T5 (DEC-101): each candidate is cut out on the way, and references
+        // its two cut-outs beside its paired image.
+        Produced.ShouldAllBe(candidate => candidate.FrontImageFile == $"images/{candidate.Id}-front.png"
+            && candidate.BackImageFile == $"images/{candidate.Id}-back.png");
+        job.CutoutFailures.ShouldBeEmpty();
+
+        // Each candidate references the paired image written for it, and only that one.
+        List<(string Path, byte[] Png)> paired = [.. repository.Images.Where(image => image.Path.EndsWith("-pair.png", StringComparison.Ordinal))];
+        Produced.Select(candidate => candidate.PairedImageFile).ShouldBe(paired.Select(image => image.Path).ToList());
+        paired.Select(image => image.Png).ShouldBe(
         [
             ScriptedImageGenerator.ImageFor(0).Png,
             ScriptedImageGenerator.ImageFor(1).Png,
@@ -212,7 +219,8 @@ public class CandidateGenerationTests
         job.State.ShouldBe(JobState.Cancelled);
         job.Failure.ShouldBeNull();
         Produced.Select(candidate => candidate.Seed).ShouldBe([11UL]);
-        repository.Images.Count.ShouldBe(1);
+        // The paired image and its two cut-outs (T5).
+        repository.Images.Count.ShouldBe(3);
         generator.Requests.Count.ShouldBe(1);
     }
 
@@ -236,7 +244,8 @@ public class CandidateGenerationTests
 
         job.State.ShouldBe(JobState.Cancelled);
         Produced.Select(candidate => candidate.Seed).ShouldBe([11UL]);
-        repository.Images.Count.ShouldBe(1);
+        // The paired image and its two cut-outs (T5).
+        repository.Images.Count.ShouldBe(3);
     }
 
     // --- E.12 n° 37 : générateur injoignable -----------------------------------------------
@@ -278,8 +287,9 @@ public class CandidateGenerationTests
         job.Produced.Count.ShouldBe(1);
 
         // The second image arrived after the deletion and was not written:
-        // nothing would have referenced it.
-        repository.Images.Count.ShouldBe(1);
+        // nothing would have referenced it. The first candidate's three files
+        // are its paired image and its two cut-outs (T5).
+        repository.Images.Count.ShouldBe(3);
     }
 
     // --- E.12 n° 39 : lot vide ou trop grand -------------------------------------------------
@@ -457,7 +467,7 @@ public class CandidateGenerationTests
     public async Task TheBatchWaitsAtTheProjectsGateBeforeSaving()
     {
         var gate = new ProjectWriteGate();
-        var useCase = new CandidateGeneration(generator, repository, new GenerationOptions(), new FixedClock(Now), gate);
+        var useCase = new CandidateGeneration(generator, remover, repository, new GenerationOptions(), new FixedClock(Now), gate);
         var release = new TaskCompletionSource<int>();
 
         // Another writer holds the project.
