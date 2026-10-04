@@ -5,6 +5,7 @@ import { ErrorNotice } from '../components/ErrorNotice';
 import { StepRail, TopBar } from '../components/Shell';
 import { BlueprintsScreen } from '../screens/BlueprintsScreen';
 import { CatalogScreen } from '../screens/CatalogScreen';
+import { GenerationScreen } from '../screens/GenerationScreen';
 import { Placeholder } from '../screens/Placeholder';
 import { ProjectScreen } from '../screens/ProjectScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
@@ -67,6 +68,8 @@ function Screen(props: { route: Route; navigate: (route: Route) => void }) {
           return <ProjectScreen navigate={props.navigate} />;
         case 'blueprints':
           return <BlueprintsScreen />;
+        case 'generation':
+          return <GenerationScreen />;
         default:
           return <Placeholder title={`steps.${route.step}`} />;
       }
