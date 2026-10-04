@@ -20,8 +20,17 @@ export type Route =
   | { name: 'catalog' }
   | { name: 'logs' };
 
+/** A malformed escape such as `%E0` would make decodeURIComponent throw, and the whole page with it. */
+function decode(part: string): string {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return part;
+  }
+}
+
 export function parse(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, '').split('/').filter((part) => part.length > 0).map(decodeURIComponent);
+  const parts = hash.replace(/^#\/?/, '').split('/').filter((part) => part.length > 0).map(decode);
 
   if (parts[0] === 'p' && parts[1] !== undefined) {
     const step = steps.find((each) => each === parts[2]) ?? 'project';

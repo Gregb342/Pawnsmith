@@ -122,11 +122,14 @@ function LaunchBatch(props: { blueprint: BlueprintDto; onStarted: (job: JobDto) 
 
   const seedList = seeds.split(/[\s,;]+/).filter((seed) => seed !== '');
   const seedsValid = seedList.every((seed) => SEED.test(seed));
+  const countValue = Number.parseInt(count, 10);
+  // An empty count would travel as null; the API would refuse it, but the button can say so first.
+  const launchable = seedsValid && (seedList.length > 0 || countValue >= 1);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     try {
-      const body = seedList.length > 0 ? { seeds: seedList } : { count: Number.parseInt(count, 10) };
+      const body = seedList.length > 0 ? { seeds: seedList } : { count: countValue };
       props.onStarted(await api.startJob(project.folder, props.blueprint.id, body));
       setError(null);
     } catch (failure) {
@@ -156,8 +159,8 @@ function LaunchBatch(props: { blueprint: BlueprintDto; onStarted: (job: JobDto) 
       </div>
       <ErrorNotice code={error} />
       <div>
-        <button type="submit" className="btn primary" disabled={!seedsValid}>
-          {seedList.length > 0 ? t('generation.launchSeeds', { count: seedList.length }) : t('generation.launchCount', { count: Number.parseInt(count, 10) || 0 })}
+        <button type="submit" className="btn primary" disabled={!launchable}>
+          {seedList.length > 0 ? t('generation.launchSeeds', { count: seedList.length }) : t('generation.launchCount', { count: countValue || 0 })}
         </button>
       </div>
     </form>
@@ -221,8 +224,8 @@ function Gallery(props: { blueprint: BlueprintDto }) {
   // A cut-out is rewritten under the same name; the browser would show the old one.
   const [versions, setVersions] = useState<Record<string, number>>({});
 
-  // The newest first.
-  const candidates = [...blueprint.candidates].sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+  // The newest first, by instant: never a culture-aware string comparison.
+  const candidates = [...blueprint.candidates].sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
   const selected = candidates.find((candidate) => candidate.id === selectedId) ?? null;
 
   return (
