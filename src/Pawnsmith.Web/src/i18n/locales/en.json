@@ -2,8 +2,7 @@
   "app": {
     "name": "Pawnsmith",
     "documentTitle": "Pawnsmith",
-    "loading": "Loading…",
-    "comingInThisSlice": "Screen coming in this slice."
+    "loading": "Loading…"
   },
   "language": {
     "label": "Language",
@@ -38,7 +37,20 @@
       "Unhealthy": "ComfyUI in trouble",
       "NotConfigured": "ComfyUI not set up",
       "Misconfigured": "ComfyUI misconfigured"
-    }
+    },
+    "lead": "ComfyUI runs on its own, on this machine or another one of the local network. Pawnsmith sends it the prompts and brings the images back.",
+    "stateTitle": "State",
+    "test": "Test now",
+    "workflow": "Workflow",
+    "workflowRead": "read",
+    "workflowMissing": "missing",
+    "workflowHint": "The workflow is ComfyUI’s “Export (API)”, placed in config/ on the server: see config/README.md.",
+    "address": "Address",
+    "addressLabel": "ComfyUI address",
+    "addressHint": "http or https, without credentials. Saved on the server, it wins over the configuration at the next start.",
+    "saveAddress": "Save and test",
+    "clearAddress": "Remove the address",
+    "runningBatches": "A batch already launched keeps the address it started with; the new one applies to the next batches."
   },
   "projects": {
     "title": "Projects",
@@ -64,7 +76,18 @@
     "fragment": "Phrase"
   },
   "logs": {
-    "title": "Logs"
+    "title": "Logs",
+    "lead": "One line per event, the newest at the top. No prompt is written there.",
+    "disabled": "Logging to files is disabled on this server.",
+    "file": "File",
+    "fileOption": "{{name}} · {{size}} KiB",
+    "lines": "Last lines",
+    "seriousOnly": "Warnings and errors only",
+    "none": "No log file.",
+    "truncated": "The file is longer: only its end is read.",
+    "time": "Time",
+    "level": "Level",
+    "message": "Message"
   },
   "errors": {
     "NETWORK_ERROR": "The server does not answer. Check that the application is still running.",

@@ -2,8 +2,7 @@
   "app": {
     "name": "Pawnsmith",
     "documentTitle": "Pawnsmith",
-    "loading": "Chargement…",
-    "comingInThisSlice": "Écran à venir dans cette tranche."
+    "loading": "Chargement…"
   },
   "language": {
     "label": "Langue",
@@ -38,7 +37,20 @@
       "Unhealthy": "ComfyUI en difficulté",
       "NotConfigured": "ComfyUI non configuré",
       "Misconfigured": "ComfyUI mal configuré"
-    }
+    },
+    "lead": "ComfyUI tourne à part, sur cette machine ou une autre du réseau local. Pawnsmith lui envoie les prompts et rapatrie les images.",
+    "stateTitle": "État",
+    "test": "Tester maintenant",
+    "workflow": "Workflow",
+    "workflowRead": "lu",
+    "workflowMissing": "absent",
+    "workflowHint": "Le workflow est l’export « Export (API) » de ComfyUI, posé dans config/ sur le serveur : voir config/README.md.",
+    "address": "Adresse",
+    "addressLabel": "Adresse de ComfyUI",
+    "addressHint": "http ou https, sans identifiants. Enregistrée sur le serveur, elle l’emporte sur la configuration au prochain démarrage.",
+    "saveAddress": "Enregistrer et tester",
+    "clearAddress": "Retirer l’adresse",
+    "runningBatches": "Un lot déjà lancé garde l’adresse avec laquelle il est parti ; la nouvelle vaut pour les lots suivants."
   },
   "projects": {
     "title": "Projets",
@@ -64,7 +76,18 @@
     "fragment": "Formulation"
   },
   "logs": {
-    "title": "Journaux"
+    "title": "Journaux",
+    "lead": "Une ligne par événement, la plus récente en haut. Aucun prompt n’y est écrit.",
+    "disabled": "La journalisation dans des fichiers est désactivée sur ce serveur.",
+    "file": "Fichier",
+    "fileOption": "{{name}} · {{size}} Kio",
+    "lines": "Dernières lignes",
+    "seriousOnly": "Avertissements et erreurs seulement",
+    "none": "Aucun fichier de journal.",
+    "truncated": "Le fichier est plus long : seule sa fin est lue.",
+    "time": "Heure",
+    "level": "Niveau",
+    "message": "Message"
   },
   "errors": {
     "NETWORK_ERROR": "Le serveur ne répond pas. Vérifiez que l’application tourne toujours.",
