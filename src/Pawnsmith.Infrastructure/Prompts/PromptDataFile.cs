@@ -24,9 +24,6 @@ namespace Pawnsmith.Infrastructure.Prompts;
 /// </remarks>
 internal static class PromptDataFile
 {
-    /// <summary>Schema version both readers understand.</summary>
-    public const int SupportedVersionSchema = 1;
-
     public static readonly JsonSerializerOptions Options = new()
     {
         PropertyNameCaseInsensitive = false,
@@ -54,22 +51,22 @@ internal static class PromptDataFile
         }
     }
 
-    public static void RequireSchema(int versionSchema, string what, string path, PromptFileErrorCode tooRecent, PromptFileErrorCode invalid)
+    public static void RequireSchema(int versionSchema, int supported, string what, string path, PromptFileErrorCode tooRecent, PromptFileErrorCode invalid)
     {
-        if (versionSchema > SupportedVersionSchema)
+        if (versionSchema > supported)
         {
             throw new PromptFileException(
                 tooRecent,
                 $"The {what} '{path}' declares schema version {versionSchema}; " +
-                $"only version {SupportedVersionSchema} is supported.");
+                $"only version {supported} is supported.");
         }
 
-        if (versionSchema != SupportedVersionSchema)
+        if (versionSchema != supported)
         {
             throw new PromptFileException(
                 invalid,
                 $"The {what} '{path}' declares schema version {versionSchema}; " +
-                $"it must be {SupportedVersionSchema}.");
+                $"it must be {supported}.");
         }
     }
 

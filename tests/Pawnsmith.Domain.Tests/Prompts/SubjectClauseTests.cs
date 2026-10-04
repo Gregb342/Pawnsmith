@@ -269,4 +269,53 @@ public class SubjectClauseTests
         composed.Clause.ShouldBe("a goblin skirmisher, wielding a short spear, one ear torn");
         composed.Clause.ShouldNotContain("Medium");
     }
+
+    // --- I.12 n° 2 et 3 : la tête prend les fragments de la race et de la classe (DEC-106)
+
+    private static Catalog WithHeadLists() => Catalog.Create(Pawnsmith.Domain.Projects.Universe.Fantasy,
+    [
+        PromptFixture.Param("race", PromptFixture.Entry("orc", "an orc"), PromptFixture.Entry("goblin", "a goblin")),
+        PromptFixture.Param("characterClass", PromptFixture.Entry("warrior", "warrior")),
+        PromptFixture.Param("weapon", PromptFixture.Entry("axe", "wielding a large battle axe")),
+    ]);
+
+    [Fact]
+    public void TheHeadTakesTheFragmentsOfTheRaceAndTheClass()
+    {
+        // The article belongs to the entry: "an orc", never "a orc".
+        ComposedSubject composed = Compose(
+            race: "orc",
+            characterClass: "warrior",
+            parameters: PromptFixture.Parameters(("weapon", "axe")),
+            template: PromptFixture.Template(head: "{race} {characterClass}"),
+            catalog: WithHeadLists());
+
+        composed.Clause.ShouldBe("an orc warrior, wielding a large battle axe");
+        composed.Diagnostics.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ARaceTheListDoesNotKnowIsInsertedAsWrittenAndSignalled()
+    {
+        ComposedSubject composed = Compose(
+            race: " dragonborn ",
+            characterClass: "warrior",
+            template: PromptFixture.Template(head: "{race} {characterClass}"),
+            catalog: WithHeadLists());
+
+        composed.Clause.ShouldBe("dragonborn warrior");
+        CompositionDiagnostic diagnostic = composed.Diagnostics.ShouldHaveSingleItem();
+        diagnostic.Key.ShouldBe("race");
+        diagnostic.Value.ShouldBe("dragonborn");
+    }
+
+    [Fact]
+    public void ACatalogueWithoutAListForAFieldSaysNothingAboutIt()
+    {
+        // No "race" key: there was nothing to look the value up in.
+        ComposedSubject composed = Compose(race: "dragonborn", characterClass: "warrior");
+
+        composed.Clause.ShouldBe("a dragonborn warrior");
+        composed.Diagnostics.ShouldBeEmpty();
+    }
 }

@@ -1,64 +1,112 @@
 {
-  "versionSchema": 1,
+  "versionSchema": 2,
   "universe": "Fantasy",
   "parameters": [
     {
-      "key": "weapon",
+      "key": "race",
+      "labels": {"en": "Race", "fr": "Race"},
       "entries": [
-        { "value": "sword", "fragment": "wielding a straight sword held vertically flat against the body" },
-        { "value": "axe", "fragment": "wielding a large battle axe held vertically flat against the body" },
-        { "value": "spear", "fragment": "wielding a short spear held vertically against the body" },
-        { "value": "bow", "fragment": "carrying a longbow held vertically against the side, a quiver on the back" },
-        { "value": "dagger", "fragment": "holding a dagger low against the thigh" },
-        { "value": "staff", "fragment": "holding a tall wooden staff vertically against the body" },
-        { "value": "mace", "fragment": "wielding a heavy mace held vertically flat against the body" },
-        { "value": "crossbow", "fragment": "carrying a crossbow held vertically against the chest" }
+        { "value": "human", "labels": {"en": "human", "fr": "humain"}, "fragment": "a human" },
+        { "value": "elf", "labels": {"en": "elf", "fr": "elfe"}, "fragment": "an elf" },
+        { "value": "dwarf", "labels": {"en": "dwarf", "fr": "nain"}, "fragment": "a dwarf" },
+        { "value": "halfling", "labels": {"en": "halfling", "fr": "halfelin"}, "fragment": "a halfling" },
+        { "value": "gnome", "labels": {"en": "gnome", "fr": "gnome"}, "fragment": "a gnome" },
+        { "value": "goblin", "labels": {"en": "goblin", "fr": "gobelin"}, "fragment": "a goblin" },
+        { "value": "hobgoblin", "labels": {"en": "hobgoblin", "fr": "hobgobelin"}, "fragment": "a hobgoblin" },
+        { "value": "kobold", "labels": {"en": "kobold", "fr": "kobold"}, "fragment": "a kobold" },
+        { "value": "orc", "labels": {"en": "orc", "fr": "orque"}, "fragment": "an orc" },
+        { "value": "gnoll", "labels": {"en": "gnoll", "fr": "gnoll"}, "fragment": "a gnoll" },
+        { "value": "ogre", "labels": {"en": "ogre", "fr": "ogre"}, "fragment": "an ogre" },
+        { "value": "troll", "labels": {"en": "troll", "fr": "troll"}, "fragment": "a troll" },
+        { "value": "skeleton", "labels": {"en": "skeleton", "fr": "squelette"}, "fragment": "a skeleton" },
+        { "value": "zombie", "labels": {"en": "zombie", "fr": "zombie"}, "fragment": "a zombie" },
+        { "value": "lizardfolk", "labels": {"en": "lizardfolk", "fr": "homme-lézard"}, "fragment": "a lizardfolk" }
+      ]
+    },
+    {
+      "key": "characterClass",
+      "labels": {"en": "Class", "fr": "Classe"},
+      "entries": [
+        { "value": "warrior", "labels": {"en": "warrior", "fr": "guerrier"}, "fragment": "warrior" },
+        { "value": "skirmisher", "labels": {"en": "skirmisher", "fr": "tirailleur"}, "fragment": "skirmisher" },
+        { "value": "archer", "labels": {"en": "archer", "fr": "archer"}, "fragment": "archer" },
+        { "value": "guard", "labels": {"en": "guard", "fr": "garde"}, "fragment": "guard" },
+        { "value": "knight", "labels": {"en": "knight", "fr": "chevalier"}, "fragment": "knight" },
+        { "value": "brute", "labels": {"en": "brute", "fr": "brute"}, "fragment": "brute" },
+        { "value": "chieftain", "labels": {"en": "chieftain", "fr": "chef de guerre"}, "fragment": "chieftain" },
+        { "value": "rogue", "labels": {"en": "rogue", "fr": "voleur"}, "fragment": "rogue" },
+        { "value": "ranger", "labels": {"en": "ranger", "fr": "rôdeur"}, "fragment": "ranger" },
+        { "value": "cleric", "labels": {"en": "cleric", "fr": "prêtre"}, "fragment": "cleric" },
+        { "value": "wizard", "labels": {"en": "wizard", "fr": "magicien"}, "fragment": "wizard" },
+        { "value": "shaman", "labels": {"en": "shaman", "fr": "chaman"}, "fragment": "shaman" },
+        { "value": "necromancer", "labels": {"en": "necromancer", "fr": "nécromancien"}, "fragment": "necromancer" },
+        { "value": "bard", "labels": {"en": "bard", "fr": "barde"}, "fragment": "bard" },
+        { "value": "merchant", "labels": {"en": "merchant", "fr": "marchand"}, "fragment": "merchant" }
+      ]
+    },
+    {
+      "key": "weapon",
+      "labels": {"en": "Weapon", "fr": "Arme"},
+      "entries": [
+        { "value": "sword", "labels": {"en": "sword", "fr": "épée"}, "fragment": "wielding a straight sword held vertically flat against the body" },
+        { "value": "axe", "labels": {"en": "battle axe", "fr": "hache de bataille"}, "fragment": "wielding a large battle axe held vertically flat against the body" },
+        { "value": "spear", "labels": {"en": "short spear", "fr": "lance courte"}, "fragment": "wielding a short spear held vertically against the body" },
+        { "value": "bow", "labels": {"en": "longbow", "fr": "arc long"}, "fragment": "carrying a longbow held vertically against the side, a quiver on the back" },
+        { "value": "dagger", "labels": {"en": "dagger", "fr": "dague"}, "fragment": "holding a dagger low against the thigh" },
+        { "value": "staff", "labels": {"en": "staff", "fr": "bâton"}, "fragment": "holding a tall wooden staff vertically against the body" },
+        { "value": "mace", "labels": {"en": "mace", "fr": "masse d’armes"}, "fragment": "wielding a heavy mace held vertically flat against the body" },
+        { "value": "crossbow", "labels": {"en": "crossbow", "fr": "arbalète"}, "fragment": "carrying a crossbow held vertically against the chest" }
       ]
     },
     {
       "key": "shield",
+      "labels": {"en": "Shield", "fr": "Bouclier"},
       "entries": [
-        { "value": "round", "fragment": "a round wooden shield strapped flat against the forearm" },
-        { "value": "kite", "fragment": "a tall kite shield held close against the side" },
-        { "value": "buckler", "fragment": "a small buckler strapped to the forearm" }
+        { "value": "round", "labels": {"en": "round wooden shield", "fr": "bouclier rond en bois"}, "fragment": "a round wooden shield strapped flat against the forearm" },
+        { "value": "kite", "labels": {"en": "kite shield", "fr": "bouclier en amande"}, "fragment": "a tall kite shield held close against the side" },
+        { "value": "buckler", "labels": {"en": "buckler", "fr": "rondache"}, "fragment": "a small buckler strapped to the forearm" }
       ]
     },
     {
       "key": "armour",
+      "labels": {"en": "Armour", "fr": "Armure"},
       "entries": [
-        { "value": "none", "fragment": "unarmoured" },
-        { "value": "leather", "fragment": "wearing leather scraps" },
-        { "value": "studded", "fragment": "wearing studded leather armour" },
-        { "value": "mail", "fragment": "wearing a mail hauberk" },
-        { "value": "plate", "fragment": "wearing full plate armour" },
-        { "value": "robes", "fragment": "wearing long layered robes" }
+        { "value": "none", "labels": {"en": "no armour", "fr": "sans armure"}, "fragment": "unarmoured" },
+        { "value": "leather", "labels": {"en": "leather scraps", "fr": "cuir rapiécé"}, "fragment": "wearing leather scraps" },
+        { "value": "studded", "labels": {"en": "studded leather", "fr": "cuir clouté"}, "fragment": "wearing studded leather armour" },
+        { "value": "mail", "labels": {"en": "mail hauberk", "fr": "cotte de mailles"}, "fragment": "wearing a mail hauberk" },
+        { "value": "plate", "labels": {"en": "full plate", "fr": "armure de plates"}, "fragment": "wearing full plate armour" },
+        { "value": "robes", "labels": {"en": "long robes", "fr": "robes longues"}, "fragment": "wearing long layered robes" }
       ]
     },
     {
       "key": "clothing",
+      "labels": {"en": "Clothing", "fr": "Vêtements"},
       "entries": [
-        { "value": "rags", "fragment": "dressed in torn rags" },
-        { "value": "tunic", "fragment": "dressed in a simple belted tunic" },
-        { "value": "noble", "fragment": "dressed in fine embroidered noble clothes" },
-        { "value": "travel", "fragment": "dressed in worn travelling clothes" }
+        { "value": "rags", "labels": {"en": "torn rags", "fr": "haillons"}, "fragment": "dressed in torn rags" },
+        { "value": "tunic", "labels": {"en": "belted tunic", "fr": "tunique ceinturée"}, "fragment": "dressed in a simple belted tunic" },
+        { "value": "noble", "labels": {"en": "noble clothes", "fr": "habits nobles brodés"}, "fragment": "dressed in fine embroidered noble clothes" },
+        { "value": "travel", "labels": {"en": "travelling clothes", "fr": "habits de voyage"}, "fragment": "dressed in worn travelling clothes" }
       ]
     },
     {
       "key": "headgear",
+      "labels": {"en": "Headgear", "fr": "Couvre-chef"},
       "entries": [
-        { "value": "none", "fragment": "bareheaded" },
-        { "value": "helm", "fragment": "wearing a closed steel helm" },
-        { "value": "hood", "fragment": "wearing a hood pulled up" },
-        { "value": "cap", "fragment": "wearing a leather cap" },
-        { "value": "crown", "fragment": "wearing a thin metal crown" }
+        { "value": "none", "labels": {"en": "bareheaded", "fr": "tête nue"}, "fragment": "bareheaded" },
+        { "value": "helm", "labels": {"en": "closed helm", "fr": "heaume fermé"}, "fragment": "wearing a closed steel helm" },
+        { "value": "hood", "labels": {"en": "hood", "fr": "capuche"}, "fragment": "wearing a hood pulled up" },
+        { "value": "cap", "labels": {"en": "leather cap", "fr": "calotte de cuir"}, "fragment": "wearing a leather cap" },
+        { "value": "crown", "labels": {"en": "thin crown", "fr": "couronne fine"}, "fragment": "wearing a thin metal crown" }
       ]
     },
     {
       "key": "cloak",
+      "labels": {"en": "Cloak", "fr": "Cape"},
       "entries": [
-        { "value": "none", "fragment": "no cloak" },
-        { "value": "short", "fragment": "a short cloak hanging straight down against the back" },
-        { "value": "long", "fragment": "a long cloak hanging straight down against the back, not spread" }
+        { "value": "none", "labels": {"en": "no cloak", "fr": "sans cape"}, "fragment": "no cloak" },
+        { "value": "short", "labels": {"en": "short cloak", "fr": "cape courte"}, "fragment": "a short cloak hanging straight down against the back" },
+        { "value": "long", "labels": {"en": "long cloak", "fr": "cape longue"}, "fragment": "a long cloak hanging straight down against the back, not spread" }
       ]
     }
   ]

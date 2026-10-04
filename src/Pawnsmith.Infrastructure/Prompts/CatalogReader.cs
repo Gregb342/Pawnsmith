@@ -25,6 +25,13 @@ namespace Pawnsmith.Infrastructure.Prompts;
 /// </remarks>
 public static class CatalogReader
 {
+    /// <summary>
+    /// Schema version this reader understands. Version 2 added the labels of
+    /// every parameter and entry (DEC-106); version 1 is no longer read — the
+    /// only such file was the shipped one, rewritten in the same commit.
+    /// </summary>
+    public const int SupportedVersionSchema = 2;
+
     private const string What = "catalogue file";
 
     /// <summary>Reads and validates a catalogue file for the given universe.</summary>
@@ -38,7 +45,7 @@ public static class CatalogReader
             .ConfigureAwait(false);
 
         PromptDataFile.RequireSchema(
-            document.VersionSchema, What, path,
+            document.VersionSchema, SupportedVersionSchema, What, path,
             PromptFileErrorCode.CatalogSchemaTooRecent, PromptFileErrorCode.CatalogInvalid);
 
         Universe universe = PromptDataFile.RequireUniverse(
@@ -60,10 +67,10 @@ public static class CatalogReader
                 PromptDataFile.Require(entry.Value, "parameters[].entries[].value", What, path, PromptFileErrorCode.CatalogInvalid);
                 PromptDataFile.Require(entry.Fragment, "parameters[].entries[].fragment", What, path, PromptFileErrorCode.CatalogInvalid);
 
-                entries.Add(new CatalogEntry(entry.Value!, entry.Fragment!));
+                entries.Add(new CatalogEntry(entry.Value!, entry.Fragment!, Labels(entry.Labels)));
             }
 
-            parameters.Add(new CatalogParameter(parameter.Key!, entries));
+            parameters.Add(new CatalogParameter(parameter.Key!, Labels(parameter.Labels), entries));
         }
 
         try
@@ -78,6 +85,13 @@ public static class CatalogReader
                 error);
         }
     }
+
+    // An absent object becomes an empty dictionary: the domain then names the
+    // missing label, culture by culture, instead of the reader saying only that
+    // something is missing. Copied with an ordinal comparer, like every
+    // dictionary of free strings in the project.
+    private static Dictionary<string, string> Labels(Dictionary<string, string>? labels) =>
+        labels is null ? new(StringComparer.Ordinal) : new(labels, StringComparer.Ordinal);
 
     // --- Documents de sérialisation --------------------------------------
     // Calqués sur le fichier, distincts des types du domaine, qui ne portent
@@ -100,6 +114,9 @@ public static class CatalogReader
         [JsonPropertyName("key")]
         public string? Key { get; init; }
 
+        [JsonPropertyName("labels")]
+        public Dictionary<string, string>? Labels { get; init; }
+
         [JsonPropertyName("entries")]
         public List<EntryDocument>? Entries { get; init; }
     }
@@ -108,6 +125,9 @@ public static class CatalogReader
     {
         [JsonPropertyName("value")]
         public string? Value { get; init; }
+
+        [JsonPropertyName("labels")]
+        public Dictionary<string, string>? Labels { get; init; }
 
         [JsonPropertyName("fragment")]
         public string? Fragment { get; init; }

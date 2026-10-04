@@ -84,7 +84,8 @@ public class BlueprintRoutesTests
         Guid id = await ProjectSeed.AddBlueprintAsync(api, folder);
 
         JsonNode recomposed = await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/blueprints/{id}", Fields(race: "orc"));
-        recomposed["blueprint"]!["subjectClause"]!.GetValue<string>().ShouldStartWith("a orc skirmisher");
+        // The article comes from the catalogue's race entry (DEC-106).
+        recomposed["blueprint"]!["subjectClause"]!.GetValue<string>().ShouldStartWith("an orc skirmisher");
 
         await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/blueprints/{id}/subject-clause", new { clause = "a scarred orc with a notched axe" });
 

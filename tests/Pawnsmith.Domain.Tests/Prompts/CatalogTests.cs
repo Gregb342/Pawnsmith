@@ -1,6 +1,8 @@
 using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
 
+using Pawnsmith.Domain.Tests.Fixtures;
+
 namespace Pawnsmith.Domain.Tests.Prompts;
 
 /// <summary>
@@ -10,15 +12,15 @@ namespace Pawnsmith.Domain.Tests.Prompts;
 /// </summary>
 public class CatalogTests
 {
-    private static CatalogParameter Weapon(params CatalogEntry[] entries) => new("weapon", entries);
+    private static CatalogParameter Weapon(params CatalogEntry[] entries) => PromptFixture.Param("weapon", entries);
 
     [Fact]
     public void AWellFormedCatalogueAnswersForTheValuesItKnows()
     {
         var catalog = Catalog.Create(Universe.Fantasy,
         [
-            Weapon(new CatalogEntry("axe", "wielding a large battle axe"), new CatalogEntry("spear", "wielding a short spear")),
-            new CatalogParameter("armour", [new("leather", "wearing leather scraps")]),
+            Weapon(PromptFixture.Entry("axe", "wielding a large battle axe"), PromptFixture.Entry("spear", "wielding a short spear")),
+            PromptFixture.Param("armour", PromptFixture.Entry("leather", "wearing leather scraps")),
         ]);
 
         catalog.TryGetFragment("weapon", "spear", out string fragment).ShouldBeTrue();
@@ -29,7 +31,7 @@ public class CatalogTests
     [Fact]
     public void AnUnknownKeyOrValueIsSimplyNotFound()
     {
-        var catalog = Catalog.Create(Universe.Fantasy, [Weapon(new CatalogEntry("axe", "wielding an axe"))]);
+        var catalog = Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("axe", "wielding an axe"))]);
 
         catalog.TryGetFragment("weapon", "halberd", out _).ShouldBeFalse();
         catalog.TryGetFragment("mount", "horse", out _).ShouldBeFalse();
@@ -42,7 +44,7 @@ public class CatalogTests
         // The project's rule for free strings, everywhere (C.3.3, C.5.4). A
         // lenient match here would make the composed clause obey a rule the
         // misalignment check does not share.
-        var catalog = Catalog.Create(Universe.Fantasy, [Weapon(new CatalogEntry("axe", "wielding an axe"))]);
+        var catalog = Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("axe", "wielding an axe"))]);
 
         catalog.TryGetFragment("Weapon", "axe", out _).ShouldBeFalse();
         catalog.TryGetFragment("weapon", "Axe", out _).ShouldBeFalse();
@@ -56,8 +58,8 @@ public class CatalogTests
         CatalogException error = Should.Throw<CatalogException>(() =>
             Catalog.Create(Universe.Fantasy,
             [
-                Weapon(new CatalogEntry("axe", "wielding an axe")),
-                Weapon(new CatalogEntry("spear", "wielding a spear")),
+                Weapon(PromptFixture.Entry("axe", "wielding an axe")),
+                Weapon(PromptFixture.Entry("spear", "wielding a spear")),
             ]));
 
         error.Message.ShouldContain("'weapon'");
@@ -71,7 +73,7 @@ public class CatalogTests
         CatalogException error = Should.Throw<CatalogException>(() =>
             Catalog.Create(Universe.Fantasy,
             [
-                Weapon(new CatalogEntry("axe", "wielding an axe"), new CatalogEntry("axe", "wielding another axe")),
+                Weapon(PromptFixture.Entry("axe", "wielding an axe"), PromptFixture.Entry("axe", "wielding another axe")),
             ]));
 
         error.Message.ShouldContain("'weapon'");
@@ -84,8 +86,8 @@ public class CatalogTests
         // "leather" can be an armour and a clothing. Uniqueness is per key.
         var catalog = Catalog.Create(Universe.Fantasy,
         [
-            new CatalogParameter("armour", [new("leather", "wearing leather armour")]),
-            new CatalogParameter("clothing", [new("leather", "dressed in leather")]),
+            PromptFixture.Param("armour", PromptFixture.Entry("leather", "wearing leather armour")),
+            PromptFixture.Param("clothing", PromptFixture.Entry("leather", "dressed in leather")),
         ]);
 
         catalog.TryGetFragment("armour", "leather", out string armour).ShouldBeTrue();
@@ -99,7 +101,7 @@ public class CatalogTests
     public void AnEmptyFragmentIsRefusedAndTheEntryIsNamed()
     {
         CatalogException error = Should.Throw<CatalogException>(() =>
-            Catalog.Create(Universe.Fantasy, [Weapon(new CatalogEntry("axe", "   "))]));
+            Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("axe", "   "))]));
 
         error.Message.ShouldContain("weapon: axe");
     }
@@ -108,10 +110,10 @@ public class CatalogTests
     public void AnEmptyKeyOrValueIsRefused()
     {
         Should.Throw<CatalogException>(() =>
-            Catalog.Create(Universe.Fantasy, [new CatalogParameter(" ", [])]));
+            Catalog.Create(Universe.Fantasy, [PromptFixture.Param(" ")]));
 
         Should.Throw<CatalogException>(() =>
-            Catalog.Create(Universe.Fantasy, [Weapon(new CatalogEntry("", "wielding something"))]));
+            Catalog.Create(Universe.Fantasy, [Weapon(PromptFixture.Entry("", "wielding something"))]));
     }
 
     [Fact]
@@ -129,10 +131,41 @@ public class CatalogTests
         // D.11 n° 22, domain half: the composition rule relies on this order.
         var catalog = Catalog.Create(Universe.Fantasy,
         [
-            new CatalogParameter("weapon", []),
-            new CatalogParameter("armour", []),
+            PromptFixture.Param("weapon"),
+            PromptFixture.Param("armour"),
         ]);
 
         catalog.Parameters.Select(parameter => parameter.Key).ShouldBe(["weapon", "armour"]);
+    }
+
+    // --- I.12 n° 1 : un libellé par culture d'interface (DEC-106) ------------
+
+    [Fact]
+    public void AnEntryWithoutAFrenchLabelIsRefusedAndNamed()
+    {
+        var englishOnly = new Dictionary<string, string>(StringComparer.Ordinal) { ["en"] = "axe" };
+
+        CatalogException error = Should.Throw<CatalogException>(() =>
+            Catalog.Create(Universe.Fantasy, [Weapon(new CatalogEntry("axe", "wielding an axe", englishOnly))]));
+
+        error.Message.ShouldContain("weapon: axe");
+        error.Message.ShouldContain("'fr'");
+    }
+
+    [Fact]
+    public void AParameterWithABlankLabelIsRefused()
+    {
+        var blank = new Dictionary<string, string>(StringComparer.Ordinal) { ["en"] = "Weapon", ["fr"] = "  " };
+
+        CatalogException error = Should.Throw<CatalogException>(() =>
+            Catalog.Create(Universe.Fantasy, [new CatalogParameter("weapon", blank, [])]));
+
+        error.Message.ShouldContain("'weapon'");
+    }
+
+    [Fact]
+    public void AnEntryIsShippedUnlessSaidOtherwise()
+    {
+        PromptFixture.Entry("axe", "wielding an axe").Origin.ShouldBe(CatalogEntryOrigin.Shipped);
     }
 }

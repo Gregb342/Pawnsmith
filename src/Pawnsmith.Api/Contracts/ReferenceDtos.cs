@@ -23,9 +23,9 @@ public sealed record SizeDto(Size Size, double GridFootprintMm, double PawnWidth
 /// <summary>The catalogue of a universe, in the order of its file (§D.4.5).</summary>
 public sealed record CatalogDto(Universe Universe, IReadOnlyList<CatalogParameterDto> Parameters);
 
-public sealed record CatalogParameterDto(string Key, IReadOnlyList<CatalogEntryDto> Entries);
+public sealed record CatalogParameterDto(string Key, IReadOnlyDictionary<string, string> Labels, IReadOnlyList<CatalogEntryDto> Entries);
 
-public sealed record CatalogEntryDto(string Value, string Fragment);
+public sealed record CatalogEntryDto(string Value, string Fragment, IReadOnlyDictionary<string, string> Labels, CatalogEntryOrigin Origin);
 
 /// <summary>The state of the generator, as shown — never changed — by the API (DEC-081).</summary>
 /// <param name="State"><c>Available</c>, <c>Unreachable</c>, <c>Unhealthy</c>, <c>NotConfigured</c> or <c>Misconfigured</c>.</param>
@@ -38,7 +38,7 @@ public sealed record GeneratorDto(string State, string? Code, string? Address, s
 public static class ReferenceMapping
 {
     /// <summary>The cultures a sheet can be printed in (chapter 10).</summary>
-    public static readonly IReadOnlyList<string> Cultures = ["en", "fr"];
+    public static readonly IReadOnlyList<string> Cultures = InterfaceCulture.All;
 
     public static ConfigurationDto ToDto(this Calibration calibration) => new(
         // Sorted by name, ordinal: a dictionary has no order of its own, and
@@ -63,7 +63,13 @@ public static class ReferenceMapping
         catalog.Universe,
         [.. catalog.Parameters.Select(parameter => new CatalogParameterDto(
             parameter.Key,
-            [.. parameter.Entries.Select(entry => new CatalogEntryDto(entry.Value, entry.Fragment))]))]);
+            SortedLabels(parameter.Labels),
+            [.. parameter.Entries.Select(entry => new CatalogEntryDto(entry.Value, entry.Fragment, SortedLabels(entry.Labels), entry.Origin))]))]);
+
+    // A dictionary has no order of its own; two identical calls must give
+    // identical bodies (§G.4).
+    private static SortedDictionary<string, string> SortedLabels(IReadOnlyDictionary<string, string> labels) =>
+        new(labels.ToDictionary(label => label.Key, label => label.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
     /// <summary>The generator's state: from the start-up setup, and from a live check when it is configured.</summary>
     public static GeneratorDto ToDto(this GeneratorSetup setup, GeneratorAvailability? availability) => new(

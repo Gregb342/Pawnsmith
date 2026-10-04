@@ -117,6 +117,20 @@ public class HostTests
         keys.Length.ShouldBeGreaterThan(1);
     }
 
+    [Fact]
+    public async Task TheCatalogueCarriesItsLabelsAndTheOriginOfEachEntry()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+
+        JsonNode catalog = await api.GetJsonAsync("/api/universes/Fantasy/catalog");
+        JsonNode weapon = catalog["parameters"]!.AsArray().Single(parameter => parameter!["key"]!.GetValue<string>() == "weapon")!;
+        JsonNode spear = weapon["entries"]!.AsArray().Single(entry => entry!["value"]!.GetValue<string>() == "spear")!;
+
+        weapon["labels"]!["fr"]!.GetValue<string>().ShouldBe("Arme");
+        spear["labels"]!["en"]!.GetValue<string>().ShouldBe("short spear");
+        spear["origin"]!.GetValue<string>().ShouldBe("Shipped");
+    }
+
     [Theory]
     [InlineData("fantasy")]
     [InlineData("0")]
