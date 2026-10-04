@@ -18,7 +18,7 @@ const CHARACTER_CLASS = 'characterClass';
 /** The option of a list that opens "New item" rather than choosing a value. */
 const OTHER = '\u0000other';
 
-function fieldsOf(blueprint: BlueprintDto): BlueprintFields {
+export function fieldsOf(blueprint: BlueprintDto): BlueprintFields {
   return {
     race: blueprint.race,
     characterClass: blueprint.characterClass,

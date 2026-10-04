@@ -308,5 +308,49 @@
     "framingChanged": "The workflow's framing clause changed since this image.",
     "then": "{{clause}} — when the image was made",
     "now": "{{clause}} — today"
+  },
+  "layout": {
+    "title": "Layout",
+    "lead": "The sheet is computed, not composed: a page holds one size only, and the preview is the PDF itself, marks included.",
+    "onSheet": "On the sheet",
+    "copies": "Copies",
+    "less": "One fewer",
+    "more": "One more",
+    "skip": {
+      "NoElectedCandidate": "Not printed: no proposal kept.",
+      "ElectedCandidateNotFound": "Not printed: the kept proposal no longer exists.",
+      "ElectedCandidateNotCutOut": "Not printed: the kept proposal is not cut out."
+    },
+    "pages": "Pages",
+    "page": "Page {{number}} · {{size}}",
+    "preview": "Sheet preview",
+    "empty": "Nothing to print: no blueprint has a kept, cut-out proposal.",
+    "toGeneration": "Go to generation",
+    "measures": "Measures",
+    "pageCount": "Pages",
+    "cellsUsed": "{{used}} / {{capacity}}",
+    "cellsLeft_one": "cells used · {{count}} free",
+    "cellsLeft_other": "cells used · {{count}} free",
+    "changeFormat": "Change the format or the geometry",
+    "findings": "Before printing",
+    "misaligned": "{{name}}: the kept proposal’s prompt changed since ({{clauses}}). It will be printed as it is.",
+    "widthLimited": "{{name}} ({{size}}): the image is held back by its width and fills only {{usage}}% of the height ({{printed}} mm of {{available}} mm)."
+  },
+  "print": {
+    "title": "Print",
+    "lead": "Download the PDF and print it as it is: no scaling, neither here nor in the print dialog.",
+    "sheet": "The sheet",
+    "culture": "Language of the sheet’s labels",
+    "cultureHint": "Independent of the interface’s language.",
+    "summary": "{{pages}} page(s), {{pawns}} pawn(s).",
+    "download": "Download the PDF",
+    "checks": "Before cutting",
+    "check": {
+      "actualSize": "Print at “actual size” or 100%, never “fit to page”.",
+      "paper": "Load {{paper}} paper, the project’s.",
+      "ruler": "Measure the calibration line at the bottom of the page: it must be exactly 100 mm.",
+      "correction": "If it does not, the printer rescales: correct the calibration’s scale factor before printing again.",
+      "cut": "Cut along the solid lines, fold along the dashed ones."
+    }
   }
 }

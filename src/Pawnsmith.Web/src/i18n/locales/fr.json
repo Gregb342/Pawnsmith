@@ -308,5 +308,49 @@
     "framingChanged": "La clause de cadrage du workflow a changé depuis cette image.",
     "then": "{{clause}} — à la création de l’image",
     "now": "{{clause}} — aujourd’hui"
+  },
+  "layout": {
+    "title": "Mise en page",
+    "lead": "La planche est calculée, pas composée : une page ne porte qu’une taille, et l’aperçu est le PDF lui-même, repères compris.",
+    "onSheet": "Sur la planche",
+    "copies": "Exemplaires",
+    "less": "Un de moins",
+    "more": "Un de plus",
+    "skip": {
+      "NoElectedCandidate": "Pas imprimé : aucune proposition retenue.",
+      "ElectedCandidateNotFound": "Pas imprimé : la proposition retenue n’existe plus.",
+      "ElectedCandidateNotCutOut": "Pas imprimé : la proposition retenue n’est pas détourée."
+    },
+    "pages": "Pages",
+    "page": "Page {{number}} · {{size}}",
+    "preview": "Aperçu de la planche",
+    "empty": "Rien à imprimer : aucun gabarit n’a de proposition retenue et détourée.",
+    "toGeneration": "Aller à la génération",
+    "measures": "Mesures",
+    "pageCount": "Pages",
+    "cellsUsed": "{{used}} / {{capacity}}",
+    "cellsLeft_one": "cellules occupées · {{count}} libre",
+    "cellsLeft_other": "cellules occupées · {{count}} libres",
+    "changeFormat": "Changer de format ou de géométrie",
+    "findings": "Avant d’imprimer",
+    "misaligned": "{{name}} : la proposition retenue a un prompt modifié depuis ({{clauses}}). Elle sera imprimée telle quelle.",
+    "widthLimited": "{{name}} ({{size}}) : l’image est limitée par sa largeur et n’occupe que {{usage}} % de la hauteur ({{printed}} mm sur {{available}} mm)."
+  },
+  "print": {
+    "title": "Impression",
+    "lead": "Téléchargez le PDF et imprimez-le tel quel : aucune mise à l’échelle, ni ici ni dans la boîte d’impression.",
+    "sheet": "La planche",
+    "culture": "Langue des légendes de la planche",
+    "cultureHint": "Indépendante de la langue de l’interface.",
+    "summary": "{{pages}} page(s), {{pawns}} pion(s).",
+    "download": "Télécharger le PDF",
+    "checks": "Avant de découper",
+    "check": {
+      "actualSize": "Imprimer en « taille réelle » ou à 100 %, jamais « ajuster à la page ».",
+      "paper": "Charger du papier {{paper}}, celui du projet.",
+      "ruler": "Mesurer le trait de calibration en bas de page : il doit faire exactement 100 mm.",
+      "correction": "S’il ne les fait pas, l’imprimante redimensionne : corriger le facteur d’échelle de la calibration avant de réimprimer.",
+      "cut": "Découper sur les traits pleins, plier sur les pointillés."
+    }
   }
 }

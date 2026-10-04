@@ -6,13 +6,15 @@ import { StepRail, TopBar } from '../components/Shell';
 import { BlueprintsScreen } from '../screens/BlueprintsScreen';
 import { CatalogScreen } from '../screens/CatalogScreen';
 import { GenerationScreen } from '../screens/GenerationScreen';
+import { LayoutScreen } from '../screens/LayoutScreen';
 import { Placeholder } from '../screens/Placeholder';
+import { PrintScreen } from '../screens/PrintScreen';
 import { ProjectScreen } from '../screens/ProjectScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
 import { AppDataProvider } from './AppData';
 import { ProjectProvider } from './ProjectData';
 import { useRoute } from './router';
-import type { Route } from './router';
+import type { Route, Step } from './router';
 import { SaveStatusProvider } from './SaveStatus';
 
 /**
@@ -63,21 +65,27 @@ function Screen(props: { route: Route; navigate: (route: Route) => void }) {
 
   switch (route.name) {
     case 'project':
-      switch (route.step) {
-        case 'project':
-          return <ProjectScreen navigate={props.navigate} />;
-        case 'blueprints':
-          return <BlueprintsScreen />;
-        case 'generation':
-          return <GenerationScreen />;
-        default:
-          return <Placeholder title={`steps.${route.step}`} />;
-      }
+      return <StepScreen step={route.step} goTo={(step) => props.navigate({ name: 'project', folder: route.folder, step })} navigate={props.navigate} />;
     case 'projects':
       return <ProjectsScreen navigate={props.navigate} />;
     case 'catalog':
       return <CatalogScreen />;
     default:
       return <Placeholder title={`${route.name}.title`} />;
+  }
+}
+
+function StepScreen(props: { step: Step; goTo: (step: Step) => void; navigate: (route: Route) => void }) {
+  switch (props.step) {
+    case 'project':
+      return <ProjectScreen navigate={props.navigate} />;
+    case 'blueprints':
+      return <BlueprintsScreen />;
+    case 'generation':
+      return <GenerationScreen />;
+    case 'layout':
+      return <LayoutScreen goTo={props.goTo} />;
+    case 'print':
+      return <PrintScreen />;
   }
 }
