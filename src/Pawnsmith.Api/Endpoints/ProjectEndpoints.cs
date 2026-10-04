@@ -74,12 +74,35 @@ public static class ProjectEndpoints
             LoadedProjectResult saved = await gate.RunAsync(directory, async () =>
             {
                 LoadedProjectResult loaded = await repository.LoadAsync(directory, calibration, cancellationToken);
-                await repository.SaveAsync(directory, loaded.Project.Apply(request), cancellationToken);
+                // DEC-112: the use case compares with the project it loaded, in
+                // the gate; the save still never sees the previous state.
+                await repository.SaveAsync(directory, ProjectSettingsEditor.Apply(loaded.Project, request.ToDomain()), cancellationToken);
 
                 return await repository.LoadAsync(directory, calibration, cancellationToken);
             }, cancellationToken);
 
             return saved.ToDto(folder, generator.FramingClause);
+        });
+
+        // §I.8.2 - a new project, the blueprints without their proposals.
+        routes.MapPost("/api/projects/{folder}/duplicate", async (
+            string folder,
+            DuplicateProjectRequest request,
+            PawnsmithSettings settings,
+            IProjectRepository repository,
+            Calibration calibration,
+            GeneratorSetup generator,
+            CancellationToken cancellationToken) =>
+        {
+            string directory = ProjectAccess.Directory(settings, folder);
+
+            CreatedProjectResult created = await new ProjectDuplication(repository)
+                .DuplicateAsync(directory, calibration, request.Name, request.Style?.ToDomain(), cancellationToken);
+
+            string copy = Path.GetFileName(created.Directory);
+            LoadedProjectResult loaded = await repository.LoadAsync(created.Directory, calibration, cancellationToken);
+
+            return Results.Created($"/api/projects/{copy}", loaded.ToDto(copy, generator.FramingClause));
         });
     }
 }

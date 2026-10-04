@@ -6,6 +6,7 @@ using Pawnsmith.Api.Tests.Fixtures;
 using Pawnsmith.Application.Blueprints;
 using Pawnsmith.Application.Generation;
 using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Projects;
 using Pawnsmith.Application.Prompts;
 using Pawnsmith.Application.Sheets;
 using Pawnsmith.Infrastructure.Generation;
@@ -65,6 +66,7 @@ public class HostTests
             .. Enum.GetValues<CutoutErrorCode>().Select(code => code.ToWireCode()),
             .. Enum.GetValues<CatalogRuleCode>().Select(code => code.ToWireCode()),
             .. Enum.GetValues<StyleRuleCode>().Select(code => code.ToWireCode()),
+            .. Enum.GetValues<ProjectRuleCode>().Select(code => code.ToWireCode()),
             .. typeof(ApiCodes).GetFields().Select(field => (string)field.GetValue(null)!),
         ];
 

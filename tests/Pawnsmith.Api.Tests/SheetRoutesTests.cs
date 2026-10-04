@@ -90,14 +90,15 @@ public class SheetRoutesTests
         await using ApiHarness api = await ApiHarness.StartAsync(generator.Setup());
         (string folder, Guid blueprint, Guid candidate) = await ReadyToPrintAsync(api);
 
-        await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(styleClause: "oil painting, heavy impasto"));
+        // The subject moves; the style no longer can once a proposal exists (DEC-112).
+        await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/blueprints/{blueprint}/subject-clause", new { clause = "a scarred goblin" });
 
         JsonNode report = await api.GetJsonAsync($"/api/projects/{folder}/sheet/report");
         report["misalignmentKnown"]!.GetValue<bool>().ShouldBeTrue();
         JsonNode misaligned = report["misalignedElections"]!.AsArray().Single()!;
         misaligned["blueprintId"]!.GetValue<Guid>().ShouldBe(blueprint);
         misaligned["candidateId"]!.GetValue<Guid>().ShouldBe(candidate);
-        misaligned["clauses"]!.AsArray().Select(clause => clause!.GetValue<string>()).ShouldBe(["Style"]);
+        misaligned["clauses"]!.AsArray().Select(clause => clause!.GetValue<string>()).ShouldBe(["Subject"]);
 
         using HttpResponseMessage pdf = await api.Client.GetAsync($"/api/projects/{folder}/sheet.pdf?culture=en");
         pdf.StatusCode.ShouldBe(HttpStatusCode.OK);

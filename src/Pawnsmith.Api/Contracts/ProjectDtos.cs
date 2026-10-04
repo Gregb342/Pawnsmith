@@ -1,4 +1,5 @@
 using Pawnsmith.Application.Ports;
+using Pawnsmith.Application.Projects;
 using Pawnsmith.Domain.Primitives;
 using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
@@ -22,7 +23,8 @@ public sealed record ProjectDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset ModifiedAt,
     IReadOnlyList<DiagnosticDto> Diagnostics,
-    bool MisalignmentKnown);
+    bool MisalignmentKnown,
+    bool UniverseAndStyleFrozen);
 
 public sealed record StyleDto(string Name, string StyleClause, string NegativeClause, string Palette);
 
@@ -72,6 +74,8 @@ public sealed record ProjectListingDto(
 public sealed record CreateProjectRequest(string Name, Universe Universe, Geometry Geometry, string PaperFormat);
 
 /// <summary>Everything of a project that is not its blueprints. Nothing is locked (DEC-055).</summary>
+public sealed record DuplicateProjectRequest(string Name, StyleDto? Style);
+
 public sealed record ProjectSettingsRequest(
     string Name,
     Universe Universe,
@@ -103,7 +107,8 @@ public static class ProjectMapping
             CreatedAt: project.CreatedAt,
             ModifiedAt: project.ModifiedAt,
             Diagnostics: [.. loaded.Diagnostics.Select(diagnostic => new DiagnosticDto(diagnostic.Kind, diagnostic.Field))],
-            MisalignmentKnown: framingClause is not null);
+            MisalignmentKnown: framingClause is not null,
+            UniverseAndStyleFrozen: ProjectSettingsEditor.IsFrozen(project));
     }
 
     public static StyleDto ToDto(this Style style) => new(style.Name, style.StyleClause, style.NegativeClause, style.Palette);
@@ -148,13 +153,11 @@ public static class ProjectMapping
         listing.ErrorCode);
 
     /// <summary>The project with its settings replaced. No rule: nothing is locked after creation (DEC-055).</summary>
-    public static Project Apply(this Project project, ProjectSettingsRequest settings) => project with
-    {
-        Name = settings.Name,
-        Universe = settings.Universe,
-        Geometry = settings.Geometry,
-        PaperFormatName = settings.PaperFormat,
-        Style = settings.Style.ToDomain(),
-        CalibrationOverrides = new CalibrationOverrides(settings.CalibrationOverrides.TabWidthMm, settings.CalibrationOverrides.TabHeightMm),
-    };
+    public static ProjectSettings ToDomain(this ProjectSettingsRequest settings) => new(
+        Name: settings.Name,
+        Universe: settings.Universe,
+        Geometry: settings.Geometry,
+        PaperFormatName: settings.PaperFormat,
+        Style: settings.Style.ToDomain(),
+        CalibrationOverrides: new CalibrationOverrides(settings.CalibrationOverrides.TabWidthMm, settings.CalibrationOverrides.TabHeightMm));
 }

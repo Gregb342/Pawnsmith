@@ -53,7 +53,8 @@ public static class ErrorStatus
             or "CATALOG_ENTRY_NOT_FOUND" or "STYLE_NOT_FOUND" => StatusCodes.Status404NotFound,
 
         "IMPORT_DESTINATION_EXISTS" or "JOB_ALREADY_FINISHED" or "CATALOG_ENTRY_DUPLICATE"
-            or "CATALOG_ENTRY_SHIPPED" or "STYLE_SHIPPED" => StatusCodes.Status409Conflict,
+            or "CATALOG_ENTRY_SHIPPED" or "STYLE_SHIPPED" or "UNIVERSE_FROZEN"
+            or "STYLE_FROZEN" => StatusCodes.Status409Conflict,
 
         "UPLOAD_TOO_LARGE" => StatusCodes.Status413PayloadTooLarge,
 
