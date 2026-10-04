@@ -104,6 +104,24 @@ public class SheetRoutesTests
         pdf.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    // --- §I.12 n° 18 : l'aperçu est le PDF, montré dans la page (DEC-113) -----------------
+
+    [Fact]
+    public async Task AnInlinePdfIsShownRatherThanDownloaded()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        (string folder, _, _) = await ReadyToPrintAsync(api);
+
+        using HttpResponseMessage inline = await api.Client.GetAsync($"/api/projects/{folder}/sheet.pdf?culture=fr&disposition=inline");
+        using HttpResponseMessage download = await api.Client.GetAsync($"/api/projects/{folder}/sheet.pdf?culture=fr");
+        using HttpResponseMessage odd = await api.Client.GetAsync($"/api/projects/{folder}/sheet.pdf?culture=fr&disposition=attachment");
+
+        inline.StatusCode.ShouldBe(HttpStatusCode.OK);
+        inline.Content.Headers.ContentDisposition!.DispositionType.ShouldBe("inline");
+        download.Content.Headers.ContentDisposition!.DispositionType.ShouldBe("attachment");
+        (await ApiHarness.ErrorOf(odd)).Code.ShouldBe("REQUEST_INVALID");
+    }
+
     [Fact]
     public async Task WithoutAWorkflowTheReportSaysTheMisalignmentIsUnknown()
     {
