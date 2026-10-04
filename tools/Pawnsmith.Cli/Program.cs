@@ -648,7 +648,8 @@ async Task<int> CandidateCutoutAsync(Arguments arguments)
 
     var repository = new FileSystemProjectRepository(
         new ProjectRepositoryOptions(Path.GetDirectoryName(directory) ?? directory));
-    var useCase = new CandidateCutout(repository, new UniformBackgroundRemover(new CutoutOptions()), new ProjectWriteGate());
+    var options = new CutoutOptions();
+    var useCase = new CandidateCutout(repository, new UniformBackgroundRemover(options), new ProjectWriteGate(), options.MaxImageBytes);
 
     Guid candidateId = ReadGuid(arguments, "--candidate");
     EditedProject edited = await useCase

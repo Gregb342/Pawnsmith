@@ -64,6 +64,17 @@ public class UniformBackgroundRemoverTests
     }
 
     [Fact]
+    public async Task APairedImageHeavierThanTheBoundIsRefusedBeforeDecoding()
+    {
+        var light = new UniformBackgroundRemover(new CutoutOptions { MaxImageBytes = 100 });
+
+        CutoutException error = await Should.ThrowAsync<CutoutException>(() =>
+            light.CutOutPairAsync(TestScene.PairPng(Red, Blue), CancellationToken.None));
+
+        error.WireCode.ShouldBe("CUTOUT_IMAGE_TOO_LARGE");
+    }
+
+    [Fact]
     public async Task AnImageTooNarrowToSplitIsRefused()
     {
         var sliver = RgbaImage.Blank(1, 50);

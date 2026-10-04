@@ -22,6 +22,14 @@ public sealed record CutoutOptions
     public int MaxImageDimensionPx { get; init; } = 8192;
 
     /// <summary>
+    /// Heaviest paired image cut out, in bytes: the generator's own bound
+    /// (§E.9). A paired image comes from the generator, so one heavier than
+    /// that did not; an imported archive could otherwise hand the cut-out a
+    /// file of gigabytes, read whole before its header is checked (MEN-005).
+    /// </summary>
+    public long MaxImageBytes { get; init; } = 64L * 1024 * 1024;
+
+    /// <summary>
     /// Distance under which a pixel looks like the background. Absorbs the
     /// noise of a generated "uniform" grey without eating a light garment.
     /// </summary>

@@ -21,6 +21,14 @@ public sealed class UniformBackgroundRemover(CutoutOptions options) : IBackgroun
     {
         ArgumentNullException.ThrowIfNull(pairedPng);
 
+        if (pairedPng.LongLength > options.MaxImageBytes)
+        {
+            throw new CutoutException(
+                CutoutErrorCode.ImageTooLarge,
+                string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                    $"The paired image weighs {pairedPng.LongLength} bytes, more than the {options.MaxImageBytes} the generator may send; it is refused before being decoded (MEN-005)."));
+        }
+
         RgbaImage pair = PngDecoder.Decode(pairedPng, options.MaxImageDimensionPx);
 
         if (!PairSplit.IsSplittable(pair.WidthPx, pair.HeightPx))

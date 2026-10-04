@@ -37,7 +37,7 @@ public class CandidateCutoutTests
     private Candidate Stored(Guid id) =>
         repository.Project.Blueprints.Single().Candidates.Single(candidate => candidate.Id == id);
 
-    private CandidateCutout OnDemand() => new(repository, remover, new ProjectWriteGate());
+    private CandidateCutout OnDemand(long maxPairedImageBytes = 1024) => new(repository, remover, new ProjectWriteGate(), maxPairedImageBytes);
 
     private Task<Job> Batch(params ulong[] seeds) =>
         new CandidateGeneration(generator, remover, repository, new GenerationOptions()).RunAsync(
@@ -174,6 +174,17 @@ public class CandidateCutoutTests
             Directory, CalibrationFixture.Calibration(), ProjectFixture.BlueprintId, Existing, CancellationToken.None));
 
         error.WireCode.ShouldBe("CANDIDATE_NO_PAIRED_IMAGE");
+    }
+
+    [Fact]
+    public async Task APairedImageHeavierThanTheBoundIsRefusedWhileItIsRead()
+    {
+        // Three bytes against a bound of two: refused before the cut-out sees them.
+        CutoutException error = await Should.ThrowAsync<CutoutException>(() => OnDemand(maxPairedImageBytes: 2).CutOutAsync(
+            Directory, CalibrationFixture.Calibration(), ProjectFixture.BlueprintId, Existing, CancellationToken.None));
+
+        error.WireCode.ShouldBe("CUTOUT_IMAGE_TOO_LARGE");
+        remover.Received.ShouldBeEmpty();
     }
 
     [Fact]

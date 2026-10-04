@@ -181,11 +181,13 @@ public static class ApiHost
 
         // T5: the cut-out of v1 uses no model (DEC-098); its values keep their
         // defaults, like the other bounds records (§G.2.1).
-        services.AddSingleton<IBackgroundRemover>(new UniformBackgroundRemover(new CutoutOptions()));
+        var cutoutOptions = new CutoutOptions();
+        services.AddSingleton<IBackgroundRemover>(new UniformBackgroundRemover(cutoutOptions));
         services.AddSingleton(provider => new CandidateCutout(
             provider.GetRequiredService<IProjectRepository>(),
             provider.GetRequiredService<IBackgroundRemover>(),
-            provider.GetRequiredService<ProjectWriteGate>()));
+            provider.GetRequiredService<ProjectWriteGate>(),
+            cutoutOptions.MaxImageBytes));
         services.AddSingleton(provider => new ProjectSheet(
             provider.GetRequiredService<IProjectRepository>(),
             provider.GetRequiredService<IImageSizeReader>(),

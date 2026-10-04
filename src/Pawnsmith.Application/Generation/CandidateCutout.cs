@@ -25,7 +25,12 @@ namespace Pawnsmith.Application.Generation;
 /// fields of the candidate change: not its status, not the election.
 /// </para>
 /// </remarks>
-public sealed class CandidateCutout(IProjectRepository repository, IBackgroundRemover remover, ProjectWriteGate gate)
+/// <param name="maxPairedImageBytes">
+/// Heaviest paired image read, checked while reading (MEN-005): the
+/// infrastructure's <c>CutoutOptions.MaxImageBytes</c>, passed in because
+/// Application cannot see it.
+/// </param>
+public sealed class CandidateCutout(IProjectRepository repository, IBackgroundRemover remover, ProjectWriteGate gate, long maxPairedImageBytes)
 {
     /// <exception cref="CutoutException">
     /// <c>CANDIDATE_NO_PAIRED_IMAGE</c> when there is nothing to cut out; any
@@ -78,10 +83,16 @@ public sealed class CandidateCutout(IProjectRepository repository, IBackgroundRe
 
     /// <summary>The bytes of the paired image, or <c>CANDIDATE_NO_PAIRED_IMAGE</c>.</summary>
     /// <remarks>
+    /// <para>
     /// A <c>Share</c> archive drops the paired image (DEC-050), and a file can
-    /// be missing on disk; both leave nothing to cut out. The size was bounded
-    /// when the image arrived — by the generator's bound, or an archive's
-    /// (C.9.3) — and the decoder bounds it again on its header.
+    /// be missing on disk; both leave nothing to cut out.
+    /// </para>
+    /// <para>
+    /// <b>Bounded while it is read.</b> The archive bounds of C.9.3 allow an
+    /// entry of gigabytes, and the decoder checks a header only once it holds
+    /// the whole file. The copy stops, and refuses, as soon as it passes the
+    /// bound — never after.
+    /// </para>
     /// </remarks>
     private async Task<byte[]> ReadPairedAsync(string projectDirectory, Candidate candidate, CancellationToken cancellationToken)
     {
@@ -99,7 +110,21 @@ public sealed class CandidateCutout(IProjectRepository repository, IBackgroundRe
         await using (stream)
         {
             using var copy = new MemoryStream();
-            await stream.CopyToAsync(copy, cancellationToken).ConfigureAwait(false);
+            byte[] buffer = new byte[81920];
+            int read;
+
+            while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                if (copy.Length + read > maxPairedImageBytes)
+                {
+                    throw new CutoutException(
+                        CutoutErrorCode.ImageTooLarge,
+                        $"The paired image of the candidate {candidate.Id} weighs more than the {maxPairedImageBytes} bytes a generator may send; it is not read further (MEN-005).");
+                }
+
+                copy.Write(buffer, 0, read);
+            }
+
             return copy.ToArray();
         }
     }
