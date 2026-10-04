@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.18 |
+| **Version du document** | 0.19 |
 | **Date** | 4 octobre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
@@ -11,6 +11,8 @@
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
  
+> **Changements depuis la v0.18** — Revue de la maquette du front par le porteur, et spécification de la seconde partie de T6 (`pawnsmith-cahier-des-charges-t6-front.md` v1.0). **DEC-105 à DEC-112, décidées par le porteur** : les libellés d'écran (Proposition, Retenue, Prompt modifié, ComfyUI connecté) ; le catalogue traduit, race et classe devenues des listes, la tête du template prenant leurs fragments ; le catalogue personnel, fait d'objets complets ; l'adresse du générateur réglée depuis l'interface (**supersède DEC-081** sur ce point) ; la clause sujet verrouillée par défaut ; la bibliothèque de styles copiés, la palette retirée de l'interface ; l'enregistrement automatique ; l'univers et le style figés à la première proposition, et la duplication (**supersède DEC-030 et DEC-055** pour ces deux champs). **DEC-113 et DEC-114** : l'aperçu de la planche est le PDF ; le front sans dépendance nouvelle, en `0.10.0`. Notes ajoutées aux §2, §12, §15.1, §15.5 et au chapitre 16, où la question E est fermée.
+
 > **Changements depuis la v0.17** — Spécification de la tranche T5 (`pawnsmith-cahier-des-charges-t5.md` v1.0). **DEC-098 et DEC-099, décidées par le porteur** : le détourage se fait **sans modèle**, par diffusion sur le fond uni que la clause de cadrage exige (**supersède DEC-008** sur le modèle ONNX : les poids disponibles portent la condition non commerciale de leurs données d'entraînement), et les PNG se lisent et s'écrivent à la main, sur le sous-ensemble qu'écrit ComfyUI. **DEC-100 à DEC-104** : l'algorithme et ses valeurs ; le détourage dans le lot, avant la sauvegarde, sans que son échec arrête le lot ; la signature du port (**supersède le chapitre 7**) ; cinq codes, qui **ferment la question G** ; T5 en `0.9.0` (**supersède DEC-058** sur ce point).
 
 > **Changements depuis la v0.16** — Spécification de la tranche T7 (`pawnsmith-cahier-des-charges-t7.md` v1.0), écrite sans arbitrage du porteur. **DEC-090 à DEC-097** : seuls les bords journalisent, Serilog derrière `ILogger<T>`, l'identifiant de job poussé au point d'appel du cas d'usage ; une ligne JSON par événement, rotation par jour et par taille, rétention par nombre de fichiers ; ni prompt ni corps de requête au journal (**précise le chapitre 8**) ; l'avertissement de MEN-004 et ce qu'un conteneur ne peut pas savoir ; le visualiseur par liste blanche d'énumération ; **MEN-005 étendu à la planche**, trou trouvé par la revue ; **MEN-011** — falsification de journal — entre au chapitre 9 ; et la revue elle-même, dont chaque ligne nomme son test ou son risque accepté.
@@ -119,6 +121,8 @@ Ce vocabulaire est contraignant en tant que **concept** : un terme désigne une 
 | **Planche** | Une page PDF, contenant les pions d'une seule taille, disposés en grille uniforme, avec les repères d'impression. |
 | **Catalogue** | Listes de valeurs proposées dans l'interface pour les paramètres d'un gabarit (armes, armures, etc.). Éditable par l'utilisateur. |
 | **Job** | Unité d'exécution asynchrone traçable (génération d'un lot, détourage, export). Porte un identifiant propagé dans toute la journalisation. |
+
+*Depuis DEC-105 :* trois concepts ont un **libellé d'écran** distinct de leur nom dans ce glossaire, parce que la revue de la maquette a montré que les mots ne passaient pas. Un *candidat* s'affiche « Proposition » (« Proposal »), un candidat *élu* « Retenue » (« Kept »), un candidat *désaligné* « Prompt modifié depuis » (« Prompt changed since »). Les concepts ne changent pas ; la table de DEC-105 fait foi pour les libellés.
  
 ---
  
@@ -478,7 +482,7 @@ Les menaces sont déduites de l'architecture, non d'une liste générique. Chaqu
 |---|---|---|---|
 | MEN-001 | **Zip Slip** | Archive importée contenant une entrée `../../` (conséquence directe de DEC-011) | Résoudre le chemin absolu de chaque entrée et vérifier qu'il est bien préfixé par le dossier de destination **avant** écriture. Rejet global de l'archive sinon. |
 | MEN-002 | **Traversée de chemin** | Visualiseur de journaux avec nom de fichier en paramètre | Liste blanche de noms. Jamais de concaténation de chemin depuis une entrée utilisateur. **Depuis DEC-094** : le dossier est énuméré, seuls les fichiers ordinaires au nom du motif sont retenus, et c'est le chemin de l'énumération qui est ouvert. |
-| MEN-003 | **SSRF** | L'URL du générateur est fournie par l'utilisateur et appelée par le serveur | **Depuis DEC-081** : l'adresse est un réglage de déploiement, jamais modifiable par l'API. Schémas `http` et `https` seulement, ni identifiants, ni requête, ni fragment ; redirections jamais suivies ; proxy jamais utilisé. Pas de liste blanche de ports, qui ne protégerait de rien. Hypothèse de déploiement en réseau de confiance documentée. |
+| MEN-003 | **SSRF** | L'URL du générateur est fournie par l'utilisateur et appelée par le serveur | **Depuis DEC-081** : l'adresse est un réglage de déploiement, jamais modifiable par l'API. Schémas `http` et `https` seulement, ni identifiants, ni requête, ni fragment ; redirections jamais suivies ; proxy jamais utilisé. Pas de liste blanche de ports, qui ne protégerait de rien. Hypothèse de déploiement en réseau de confiance documentée. **Depuis DEC-108** : l'interface règle l'adresse, sous les mêmes règles de forme ; l'écriture n'est acceptée que de la même origine et d'un `Host` local (MEN-010). |
 | MEN-004 | **Exposition réseau** | Application sans authentification publiée sur toutes les interfaces par Docker | Documenter `-p 127.0.0.1:8080:8080` comme forme canonique. Avertissement au démarrage si l'écoute n'est pas locale. **Risque accepté** (DEC-093) : un conteneur ne voit pas comment son port est publié ; l'avertissement y est toujours émis, et c'est à l'opérateur de vérifier. |
 | MEN-005 | **Entrée image non fiable** | Bombe de décompression, dimensions extrêmes, fichier malformé, décodés par le pipeline de détourage — **et par le rendu de la planche**, qui décode chaque élu (DEC-095) | Plafonds de taille et de dimensions vérifiés **avant** décodage. Échec propre du job, pas d'arrêt du processus. Sur la planche : 8 192 pixels de côté, lus sur l'en-tête. Au détourage (DEC-099) : même borne sur l'en-tête, CRC vérifié, taille décompressée exactement celle que l'en-tête annonce. |
 | MEN-006 | **Fuite de secret** | Clé d'API ou identifiants sérialisés dans `project.json` puis partagés | Secrets exclusivement en variables d'environnement. Aucun champ de secret dans le modèle de projet. Test automatisé vérifiant l'absence de secret dans l'export. |
@@ -1124,6 +1128,46 @@ Conséquence : la moitié détourage de la question G demandait les dimensions d
 Choix : la première modification de T5 passe la version à `0.9.0`.
 Conséquence : **supersède le tableau de DEC-058** sur ce point, qui réservait `0.6.0` à T5. Le dépôt est en `0.8.0` depuis T7, et un numéro de version ne recule pas ; `0.6.0` n'existera jamais. La règle de DEC-058 — une tranche livrée vaut un mineur — demeure.
 
+**DEC-105 — Les libellés d'écran : Proposition, Retenue, Prompt modifié, ComfyUI connecté.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : un candidat s'affiche « Proposition » / « Proposal » ; élu, « Retenue » / « Kept » ; élire, « Retenir pour l'impression » / « Keep for printing » ; désaligné, « Prompt modifié depuis » / « Prompt changed since » ; les clauses figées, « Ce qui a changé depuis cette image » / « What changed since this image » ; l'état du générateur, « ComfyUI connecté » / « ComfyUI connected ».
+Conséquence : précise le §15.1, qui rendait le vocabulaire du chapitre 2 contraignant jusque dans les libellés. Les concepts ne changent pas, ni les identifiants du code (DEC-037) ; la contrainte passe par cette table, un libellé par concept et par langue. La revue de la maquette a montré que « candidat », « élu » et « désaligné » n'étaient pas compris par le porteur lui-même : un mot juste que l'utilisateur ne comprend pas est un défaut d'interface.
+
+**DEC-106 — Le catalogue est traduit, et la race et la classe deviennent des listes.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : le catalogue passe en `versionSchema` 2. Chaque paramètre et chaque entrée porte un libellé par culture d'interface (`en`, `fr`) ; la valeur et le fragment restent anglais. Deux clés réservées, `race` et `characterClass`, portent les listes des champs obligatoires. La tête du template devient `{race} {characterClass}`, et chaque jeton reçoit le **fragment** de la valeur quand le catalogue la connaît (`orc` → `an orc`) ; une valeur inconnue est insérée telle qu'écrite et signalée.
+Conséquence : l'interface montre des listes dans la langue de l'utilisateur, et le prompt reste identique quelle que soit cette langue — sans traduction automatique, qui demanderait un modèle local lourd ou un service en ligne. L'article appartient à l'entrée : « a orc » disparaît. Les détails restent du texte libre anglais. Une clause sujet stockée ne bouge pas ; elle se recompose à la prochaine modification si elle n'a pas été éditée (DEC-067).
+
+**DEC-107 — Le catalogue personnel n'accepte que des objets complets.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : « Autre… » dans une liste ouvre un formulaire qui crée une entrée **complète** — clé existante, valeur unique, un libellé par culture, un fragment — dans `data/user/catalog.{univers}.json`. Le catalogue servi est la fusion du catalogue livré et du catalogue personnel ; chaque entrée dit son origine. Une entrée livrée ne se supprime pas ; une entrée personnelle oui, sans toucher aux gabarits.
+Conséquence : plus aucune valeur brute n'entre dans un gabarit par l'interface, donc plus d'alerte « hors catalogue » à la création ; la tolérance de DEC-056 reste pour les projets importés ou anciens. Limite connue : l'application exige que le fragment existe, elle ne peut pas vérifier qu'il décrit la pose (DEC-064). Le dossier utilisateur n'entre dans aucune archive (DEC-022).
+
+**DEC-108 — L'adresse du générateur se règle depuis l'interface.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : `PUT /api/generator` valide l'adresse par les règles de DEC-081 (http ou https, ni identifiants, ni requête, ni fragment), l'enregistre dans `data/user/generator.json` et reconstruit le générateur. Au démarrage, ce fichier l'emporte sur la configuration. Un lot en file garde le générateur avec lequel il a été accepté.
+Conséquence : **supersède DEC-081** sur « jamais par l'API ». Le vecteur que DEC-081 retirait — une page malveillante qui choisit l'adresse — est fermé depuis par MEN-010 : aucune écriture d'une autre origine, aucun `Host` non local. Ce qui reste de DEC-081 demeure : la forme de l'adresse, aucune redirection suivie, aucun proxy. Le prix que DEC-081 faisait payer — éditer une variable d'environnement et redémarrer un conteneur — était trop lourd pour un utilisateur qui n'est pas développeur.
+
+**DEC-109 — La clause sujet est verrouillée par défaut ; on en sort et on y revient.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : l'interface affiche la clause sujet en lecture seule. « Personnaliser le texte » la rend éditable et grise les options ; « Revenir au texte automatique » la recompose, par `DELETE …/subject-clause`. Chaque gabarit porte `subjectClauseEdited`, calculé.
+Conséquence : DEC-067 demeure — l'édition se déduit, rien n'est stocké. Ce que la fiche corrige est un piège d'interface : une fois la clause modifiée, les options continuaient de changer sans plus rien changer au prompt, et rien ne le montrait.
+
+**DEC-110 — Une bibliothèque de styles, copiés dans le projet.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : des styles livrés (`config/styles.{univers}.json`, un nom par culture) et des styles personnels (`data/user/styles.{univers}.json`). Choisir un style le **copie** dans le projet. La palette n'est plus exposée : le champ reste dans `project.json`, jamais envoyé au générateur, et une palette se dit dans la clause de style. La clause négative passe dans une section « Avancé ». La clause style n'apparaît jamais au niveau d'un gabarit.
+Conséquence : un lien vers la bibliothèque aurait fait basculer en silence les images de tous les projets au moindre changement, et une archive ne serait plus complète. Ferme l'écart trouvé sur la palette, que le glossaire disait « intégrée au style » et que le code stockait sans l'envoyer. Ferme la lecture du §15.5 : DEC-006 garde le style au niveau du projet, pas hors de l'interface. La clause négative n'a aucun effet à CFG 1,0 (DEC-077) ; l'afficher au premier plan promettait un effet qui n'existe pas.
+
+**DEC-111 — L'interface enregistre chaque champ quand on le quitte.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : pas de bouton Enregistrer. Un champ texte s'enregistre à la perte du focus, une liste ou un choix quand il change ; un indicateur dit l'état.
+Conséquence : changer d'écran ou de projet ne perd rien. C'est sans danger parce que le désalignement est calculé (DEC-030) : un retour en arrière refait passer les images au vert, et depuis DEC-112 le style ne bouge plus une fois des images produites.
+
+**DEC-112 — L'univers et le style se figent à la première proposition ; un projet se duplique.** *Décidée par le porteur, le 4 octobre 2026.*
+Choix : tant qu'aucun gabarit n'a de proposition, tout se modifie. Dès la première, l'univers et le style sont refusés au changement (`UNIVERSE_FROZEN`, `STYLE_FROZEN`) ; nom, géométrie, format et cotes d'onglet restent libres. `POST /api/projects/{folder}/duplicate` crée un projet neuf qui copie les gabarits sans leurs propositions, avec le style demandé. La règle est dans le cas d'usage des réglages, qui compare au projet chargé.
+Conséquence : **supersède DEC-030 et DEC-055** pour l'univers et le style ; la géométrie et le format restent régis par elles. Ce n'est pas le mécanisme de consentement que DEC-030 rejetait — aucun avertissement à valider : un projet est un ensemble cohérent d'images d'un même style, et un autre style est un autre projet, que la duplication fournit en un clic. « Prompt modifié » ne subsiste que pour un gabarit retouché après ses images, ou un cadrage changé dans le workflow. La signature de `SaveAsync` ne change pas.
+
+**DEC-113 — L'aperçu de la planche est le PDF lui-même.**
+Choix : l'écran Mise en page affiche le PDF de la planche dans la page (`sheet.pdf?disposition=inline`), à côté de l'indicateur de capacité tiré du rapport.
+Conséquence : le §15.2 exige que l'aperçu montre ce que le PDF contiendra, repères compris ; le seul aperçu qui le garantit est le PDF. Redessiner la planche dans le navigateur dupliquerait la mise en page du domaine en TypeScript, et le §15.5 interdit que l'interface décide de la planche. Ferme la question laissée ouverte par la maquette.
+
+**DEC-114 — Le front n'ajoute aucune dépendance ; la tranche porte la version `0.10.0`.**
+Choix : React, `react-i18next` et `i18next` suffisent. Le routage s'écrit sur le fragment d'URL, à la main. Aucun banc de test du navigateur dans cette tranche ; la parité des clés de traduction est vérifiée par un script sans dépendance. La version passe à `0.10.0`.
+Conséquence : une bibliothèque de routage ou de requêtes serait une dépendance pour une dizaine d'écrans. L'absence de tests automatisés du front est un trou connu, écrit au §I.12 du cahier : ce qui le compense est `tsc`, ESLint et un parcours éprouvé dans le conteneur.
+
 ---
  
 ## 12. Découpage en tranches
@@ -1196,7 +1240,7 @@ Runtime ONNX, fournisseur d'exécution configurable, plafonds d'entrée.
  
 Points de terminaison, front React, galerie de candidats, validation, export, localisation complète.
 
-Scindée en deux. La **première partie, l'API**, est spécifiée par le cahier des charges T6 (`pawnsmith-cahier-des-charges-t6.md`), dont le §G.12 fait foi pour elle. La seconde partie, le front, reste à spécifier.
+Scindée en deux. La **première partie, l'API**, est spécifiée par le cahier des charges T6 (`pawnsmith-cahier-des-charges-t6.md`), dont le §G.12 fait foi pour elle. La seconde partie, le front, est spécifiée par le cahier `pawnsmith-cahier-des-charges-t6-front.md`, dont le §I.11 fait foi pour elle.
  
 **Critères d'acceptation** : aucune chaîne en dur ; bascule français/anglais sans rechargement ; capacité de page affichée ; codes d'erreur correctement traduits ; les candidats désalignés sont visuellement distingués des candidats sains ; la structure du chapitre 15 est respectée, y compris la liste du §15.5.
  
@@ -1296,7 +1340,7 @@ Cinq étapes, dans l'ordre du pipeline du chapitre 4 :
 
 | Étape | Contenu | Tranche |
 |---|---|---|
-| **Projet** | Création, nom, univers, style, géométrie, format de papier. Les quatre derniers sont **modifiables après création** ; les modifier désaligne les candidats existants plutôt que d'être interdit ou précédé d'un avertissement (DEC-030, DEC-055). | T2 |
+| **Projet** | Création, nom, univers, style, géométrie, format de papier. Les quatre derniers sont **modifiables après création** ; les modifier désaligne les candidats existants plutôt que d'être interdit ou précédé d'un avertissement (DEC-030, DEC-055). *Depuis DEC-112 :* l'univers et le style se figent à la première proposition ; la géométrie et le format restent modifiables. | T2 |
 | **Gabarits** | Saisie des gabarits : paramètres, quantité, prompt résolu. | T3 |
 | **Génération** | Lancement des lots, galerie de candidats, validation du couple recto/verso. | T4, T5 |
 | **Mise en page** | Aperçu des planches calculées, capacité de page. | T6 |
@@ -1358,6 +1402,8 @@ Chacun de ces points découle d'une décision déjà prise. Ils sont listés ens
 | …n'offre aucune mise à l'échelle automatique | §B.6 du cahier des charges. Seul `scaleCorrectionFactor` agit, et il agit sur **tout**, trait de calibration compris (§B.5.5) |
 | …n'expose ni la clause style ni la clause cadrage | DEC-028, DEC-029 |
 
+*Depuis DEC-110 :* la clause style n'est jamais exposée **au niveau d'un gabarit** ; elle s'affiche et se choisit à l'étape Projet, où le §3.1 et le §15.1 la rendent modifiable. La clause cadrage n'apparaît nulle part.
+
 ### 15.6 Arbitrages rendus, et la question qui reste
 
 La maquette a soulevé deux questions qu'aucune décision antérieure ne couvrait. Elles sont tranchées, en **DEC-035** (marges uniformes) et **DEC-036** (le paysage est une entrée de configuration, pas une bascule). Aucune des deux n'est un sujet d'interface : la première touche la formule de capacité du §B.5.2, donc le cœur de T1.
@@ -1378,7 +1424,7 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 
 | Réf. | Sujet | À trancher avant |
 |---|---|---|
-| **E** | **Contrat d'API.** *Fermée pour sa partie serveur* par le cahier T6 (§G.3 à §G.10) : points de terminaison, verbes, charges utiles, codes et statuts. Reste ce que le front en fera — la forme exacte des écrans qui les consomment. | T6 (front) |
+| **E** | **Contrat d'API.** *Fermée pour sa partie serveur* par le cahier T6 (§G.3 à §G.10) : points de terminaison, verbes, charges utiles, codes et statuts. **Fermée pour le front** par le cahier T6 front (§I.10) : les écrans et les routes qu'ils consomment. | ~~T6 (front)~~ |
 | **G** | **Valeurs non fonctionnelles.** *Scindée par DEC-080* : la moitié génération — délai d'attente, plafond de candidats par lot, taille et dimensions d'une image reçue — est arbitrée au §E.9 du cahier T4. Reste la moitié détourage : dimensions maximales en entrée du modèle de segmentation, durée acceptable d'un détourage sur processeur. DEC-057 pose que ces bornes **s'arbitrent** et ne se mesurent pas. **Fermée par DEC-103** : sans modèle (DEC-098), il n'y a pas de dimension d'entrée de modèle ; la borne est celle du générateur, et la durée est celle d'une diffusion. | ~~T5~~ |
 | **H** | **Dépôt public ou privé.** *Visibilité toujours non confirmée.* Elle est citée par DEC-058, qui exclut la révision de source de la version pour ne pas publier d'identifiant de commit dans une archive — précaution qui vaut dans les deux cas, donc la question ne bloque rien. | Libre |
 | **I** | **Loi de progression des hauteurs.** DEC-032 pose la contrainte — plafond d'environ 112 mm sur US Letter — mais pas les valeurs. Se tranche en T0b, tapis sous les yeux, les cinq tailles montées côte à côte. | T0b |
@@ -1389,7 +1435,7 @@ Aucune de ces questions n'est bloquante aujourd'hui. Elles sont classées par **
 |---|---|
 | Éditabilité du prompt résolu | DEC-028 — seule la clause sujet est éditable |
 | Exposition de la clause de cadrage | DEC-029 — jamais dans l'interface ; point d'extension par fichier |
-| Verrouillage de `style`, `univers`, `geometrie`, `formatPapier` | DEC-030, confirmée par DEC-055 — plus aucun verrou, désalignement calculé |
+| Verrouillage de `style`, `univers`, `geometrie`, `formatPapier` | DEC-030, confirmée par DEC-055 — plus aucun verrou, désalignement calculé. *Rouverte et tranchée par DEC-112* : univers et style figés à la première proposition, géométrie et format libres |
 | Granularité de la géométrie (projet ou export) | DEC-030 — paramètre de rendu, modifiable librement |
 | Nommage et nombre de tailles | DEC-031 — cinq tailles nommées d'après les règles ; l'échelle S/M/L/XL/XXL est écartée |
 | Origine des emprises de grille | Chapitre 14 — table sourcée, valeurs définitives |
