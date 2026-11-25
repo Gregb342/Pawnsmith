@@ -12,16 +12,17 @@ using Pawnsmith.Domain.Units;
 namespace Pawnsmith.Api.Tests;
 
 /// <summary>
-/// The sheet routes. Covers tests 23 to 25 of G.13, and question C (DEC-082).
+/// The sheet routes. Covers tests 23 to 25 of G.13, question C (DEC-082),
+/// and tests 3 and 4 of I.15.6 (DEC-117).
 /// </summary>
 public class SheetRoutesTests
 {
-    private static object Settings(string styleClause, double? tabHeightMm = null) => new
+    private static object Settings(string styleClause, double? tabHeightMm = null, string paperFormat = "A4") => new
     {
         name = "Donjon",
         universe = "Fantasy",
         geometry = "TabAndSocket",
-        paperFormat = "A4",
+        paperFormat,
         style = new { name = "", styleClause, negativeClause = "", palette = "" },
         calibrationOverrides = new { tabWidthMm = (double?)null, tabHeightMm },
     };
@@ -230,4 +231,60 @@ public class SheetRoutesTests
 
         (await ApiHarness.ErrorOf(response)).ShouldBe((HttpStatusCode.UnprocessableEntity, "PAPER_FORMAT_UNKNOWN"));
     }
+
+    // --- I.15.6 n° 3 et 4 : les capacités, une ligne par taille (DEC-117) -------------------------
+
+    [Fact]
+    public async Task TheCapacitiesGiveOneLinePerSizeOnTheEffectiveCalibration()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        Calibration calibration = api.Services.GetRequiredService<Calibration>();
+
+        // Before any proposal exists: the indicator does not wait for one to be kept.
+        JsonArray capacities = (await api.GetJsonAsync($"/api/projects/{folder}/sheet/capacities")).AsArray();
+
+        capacities.Select(line => line!["size"]!.GetValue<string>()).ShouldBe(["Small", "Medium", "Large", "Huge", "Gargantuan"]);
+        CapacityOf(capacities, "Medium").ShouldBe(MediumCapacity(calibration));
+
+        // A taller tab, overridden on this project only, changes the capacity (DEC-040, DEC-053).
+        await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(styleClause: "", tabHeightMm: 40.0));
+        JsonArray overridden = (await api.GetJsonAsync($"/api/projects/{folder}/sheet/capacities")).AsArray();
+
+        CapacityOf(overridden, "Medium").ShouldBeLessThan(MediumCapacity(calibration));
+    }
+
+    [Fact]
+    public async Task ASizeThatDoesNotFitIsZeroRatherThanAnError()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+
+        // A 30 mm tab makes an unfolded Gargantuan 2 × (110 + 30) = 280 mm
+        // tall, against 297 − 2 × 10 − 14 = 263 mm of usable A4 height
+        // (§B.5.6). A Medium is 2 × (50 + 30) = 160 mm, and still fits.
+        await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(styleClause: "", tabHeightMm: 30.0));
+
+        using HttpResponseMessage response = await api.Client.GetAsync($"/api/projects/{folder}/sheet/capacities");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        JsonArray capacities = (await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync()))!.AsArray();
+        CapacityOf(capacities, "Gargantuan").ShouldBe(0);
+        CapacityOf(capacities, "Medium").ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task TheCapacitiesOfAnUnknownPaperFormatAreRefused()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(styleClause: "", paperFormat: "Tabloid"));
+
+        using HttpResponseMessage response = await api.Client.GetAsync($"/api/projects/{folder}/sheet/capacities");
+
+        (await ApiHarness.ErrorOf(response)).ShouldBe((HttpStatusCode.UnprocessableEntity, "PAPER_FORMAT_UNKNOWN"));
+    }
+
+    private static int CapacityOf(JsonArray capacities, string size) =>
+        capacities.Single(line => line!["size"]!.GetValue<string>() == size)!["capacity"]!.GetValue<int>();
 }

@@ -357,7 +357,8 @@
     "changeFormat": "Change the format or the geometry",
     "findings": "Before printing",
     "misaligned": "{{name}}: the kept proposal’s prompt changed since ({{clauses}}). It will be printed as it is.",
-    "widthLimited": "{{name}} ({{size}}): the image is held back by its width and fills only {{usage}}% of the height ({{printed}} mm of {{available}} mm)."
+    "widthLimited": "{{name}} ({{size}}): the image is held back by its width and fills only {{usage}}% of the height ({{printed}} mm of {{available}} mm).",
+    "doesNotFit": "A {{size}} pawn does not fit on a {{paper}} page in the “{{geometry}}” geometry: nothing of that size can be printed."
   },
   "print": {
     "title": "Print",

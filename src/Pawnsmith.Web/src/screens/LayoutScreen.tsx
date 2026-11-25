@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { api } from '../api/client';
-import type { ProjectDto, SheetReportDto } from '../api/types';
+import type { ProjectDto, SheetReportDto, Size } from '../api/types';
 import { useAppData } from '../app/AppData';
+import { sizesThatDoNotFit } from '../app/capacity';
 import { useProject } from '../app/ProjectData';
 import { codeOf, useSaveStatus } from '../app/SaveStatus';
 import { ErrorNotice } from '../components/ErrorNotice';
@@ -33,6 +34,34 @@ export function useSheetReport(project: ProjectDto): { report: SheetReportDto | 
   return state;
 }
 
+/**
+ * The sizes that do not fit, asked only when the report refuses for that
+ * reason (§15.4, DEC-117). Null while unknown: the plain error is shown then.
+ */
+function useSizesThatDoNotFit(project: ProjectDto, reportError: string | null): Size[] | null {
+  const [sizes, setSizes] = useState<Size[] | null>(null);
+  const { folder, modifiedAt, blueprints } = project;
+  const tooLarge = reportError === 'SHEET_CAPACITY_EXCEEDED';
+
+  useEffect(() => {
+    if (!tooLarge) {
+      return;
+    }
+
+    let alive = true;
+    api.sheetCapacities(folder).then(
+      (capacities) => alive && setSizes(sizesThatDoNotFit(capacities, blueprints)),
+      () => alive && setSizes(null),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [folder, modifiedAt, blueprints, tooLarge]);
+
+  // What an earlier refusal found is not shown once the report succeeds.
+  return tooLarge ? sizes : null;
+}
+
 /** The culture of the sheet: the interface's language when the sheet has it, else the first the API offers. */
 export function useDefaultCulture(): string {
   const { i18n } = useTranslation();
@@ -55,6 +84,7 @@ export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => 
   const valueLabel = useValueLabel(catalog);
   const culture = useDefaultCulture();
   const { report, error } = useSheetReport(project);
+  const tooLarge = useSizesThatDoNotFit(project, error);
   const [pageNumber, setPageNumber] = useState(1);
 
   const nameOf = (id: string) => {
@@ -85,7 +115,17 @@ export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => 
         </div>
       </div>
 
-      <ErrorNotice code={error} />
+      {tooLarge !== null && tooLarge.length > 0 ? (
+        // A zero capacity is named, with its format and geometry (§15.4),
+        // rather than shown as the bare code of the report.
+        tooLarge.map((size) => (
+          <div className="notice err" role="alert" key={size}>
+            {t('layout.doesNotFit', { size: t(`sizes.${size}`), paper: project.paperFormat, geometry: t(`geometries.${project.geometry}.name`) })}
+          </div>
+        ))
+      ) : (
+        <ErrorNotice code={error} />
+      )}
 
       <div className="three">
         <section className="panel">

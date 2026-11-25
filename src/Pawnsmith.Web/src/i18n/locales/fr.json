@@ -357,7 +357,8 @@
     "changeFormat": "Changer de format ou de géométrie",
     "findings": "Avant d’imprimer",
     "misaligned": "{{name}} : la proposition retenue a un prompt modifié depuis ({{clauses}}). Elle sera imprimée telle quelle.",
-    "widthLimited": "{{name}} ({{size}}) : l’image est limitée par sa largeur et n’occupe que {{usage}} % de la hauteur ({{printed}} mm sur {{available}} mm)."
+    "widthLimited": "{{name}} ({{size}}) : l’image est limitée par sa largeur et n’occupe que {{usage}} % de la hauteur ({{printed}} mm sur {{available}} mm).",
+    "doesNotFit": "Un pion de taille {{size}} ne tient pas sur une page {{paper}} en géométrie « {{geometry}} » : rien de cette taille ne peut s’imprimer."
   },
   "print": {
     "title": "Impression",

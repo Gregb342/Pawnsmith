@@ -115,6 +115,8 @@ export interface JobDto {
 }
 
 export interface PageDto { number: number; size: Size; capacity: number; used: number }
+/** SizeCapacityDto: cells per page for one size on this project; 0 when it does not fit (DEC-117). */
+export interface SizeCapacityDto { size: Size; capacity: number }
 export interface SkippedDto { blueprintId: string; reason: string }
 export interface MisalignedElectionDto { blueprintId: string; candidateId: string; clauses: ClauseKind[] }
 export interface WidthLimitedDto { name: string; size: Size; printedHeightMm: number; availableHeightMm: number; heightUsage: number }

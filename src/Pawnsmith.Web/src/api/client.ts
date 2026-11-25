@@ -14,6 +14,7 @@ import type {
   ProjectDto,
   ProjectListingDto,
   SheetReportDto,
+  SizeCapacityDto,
   Size,
   StyleDto,
   StylePresetDto,
@@ -170,6 +171,7 @@ export const api = {
   cancelJob: (id: string) => json<JobDto>('POST', `/api/jobs/${encode(id)}/cancel`),
 
   sheetReport: (folder: string) => json<SheetReportDto>('GET', `${projectPath(folder)}/sheet/report`),
+  sheetCapacities: (folder: string) => json<SizeCapacityDto[]>('GET', `${projectPath(folder)}/sheet/capacities`),
   sheetUrl: (folder: string, culture: string, inline: boolean) =>
     `${projectPath(folder)}/sheet.pdf?culture=${encode(culture)}${inline ? '&disposition=inline' : ''}`,
 

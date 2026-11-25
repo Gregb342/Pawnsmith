@@ -27,6 +27,9 @@ public sealed record MisalignedElectionDto(Guid BlueprintId, Guid CandidateId, I
 /// <param name="HeightUsage">Share of the available height actually printed, from 0 to 1.</param>
 public sealed record WidthLimitedDto(string Name, Size Size, double PrintedHeightMm, double AvailableHeightMm, double HeightUsage);
 
+/// <summary>How many pawns of one size a page of the project holds; zero when it does not fit (DEC-117).</summary>
+public sealed record SizeCapacityDto(Size Size, int Capacity);
+
 /// <summary>The manual mapping of the report (DEC-021).</summary>
 public static class SheetMapping
 {
@@ -38,4 +41,6 @@ public static class SheetMapping
         MisalignmentKnown: report.MisalignmentKnown,
         WidthLimited: [.. report.WidthLimited.Select(item =>
             new WidthLimitedDto(item.ItemName, item.Size, item.PrintedHeightMm, item.AvailableHeightMm, item.HeightUsage))]);
+
+    public static SizeCapacityDto ToDto(this SizeCapacity capacity) => new(capacity.Size, capacity.Capacity);
 }
