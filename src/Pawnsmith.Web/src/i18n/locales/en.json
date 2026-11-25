@@ -2,7 +2,9 @@
   "app": {
     "name": "Pawnsmith",
     "documentTitle": "Pawnsmith",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "reloadFailed": "The project could not be read again: {{reason}} The screen shows its last known state.",
+    "retry": "Try again"
   },
   "language": {
     "label": "Language",
@@ -187,6 +189,7 @@
     "universe": "Universe",
     "paper": "Paper format",
     "paperFormat": "{{name}} · {{width}} × {{height}} mm",
+    "paperFormatUnknown": "{{name}} · unknown on this machine",
     "geometry": "Geometry",
     "tabs": "Tab dimensions for this project",
     "tabsHint": "Empty: the calibration value applies.",
@@ -220,6 +223,13 @@
         "name": "Share",
         "hint": "Without paired images. To send to someone."
       }
+    },
+    "diagnosticsTitle": "This project does not quite match this machine",
+    "diagnosticsLead": "The project opens all the same: nothing is refused, every mismatch is said.",
+    "diagnostics": {
+      "MissingImageFile": "A referenced image is missing from the disk: the proposal that carries it cannot be printed.",
+      "UnknownPaperFormat": "This paper format is not declared by this machine’s calibration: the sheet cannot be computed until it is changed.",
+      "OverrideExceedsPawnWidth": "The tab is wider than a pawn of this project: the sheet cannot be computed."
     }
   },
   "blueprints": {
@@ -358,7 +368,10 @@
     "findings": "Before printing",
     "misaligned": "{{name}}: the kept proposal’s prompt changed since ({{clauses}}). It will be printed as it is.",
     "widthLimited": "{{name}} ({{size}}): the image is held back by its width and fills only {{usage}}% of the height ({{printed}} mm of {{available}} mm).",
-    "doesNotFit": "A {{size}} pawn does not fit on a {{paper}} page in the “{{geometry}}” geometry: nothing of that size can be printed."
+    "doesNotFit": "A {{size}} pawn does not fit on a {{paper}} page in the “{{geometry}}” geometry: nothing of that size can be printed.",
+    "dimension": "{{value}} mm",
+    "width": "Width of the format",
+    "height": "Height of the format"
   },
   "print": {
     "title": "Print",

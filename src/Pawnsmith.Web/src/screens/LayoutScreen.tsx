@@ -77,7 +77,7 @@ export function useDefaultCulture(): string {
  * right (§15.4) — counted in cells, never as a percentage.
  */
 export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { project, reload } = useProject();
   const { catalog, configuration } = useAppData();
   const { run } = useSaveStatus();
@@ -93,6 +93,8 @@ export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => 
   };
   const page = report?.pages.find((each) => each.number === pageNumber) ?? report?.pages[0] ?? null;
   const paper = configuration.paperFormats.find((format) => format.name === project.paperFormat);
+  // Numbers follow the interface's language, never a hard-coded format (chapter 10).
+  const millimetres = new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 });
   const skipped = new Set(report?.skipped.map((each) => each.blueprintId) ?? []);
 
   async function setQuantity(id: string, quantity: number) {
@@ -165,13 +167,18 @@ export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => 
                   </button>
                 ))}
               </div>
-              {/* The PDF itself (DEC-113): what it shows is what prints, marks included (§15.2). */}
-              <iframe
-                key={`${project.modifiedAt}-${page?.number ?? 1}`}
-                className="sheet"
-                title={t('layout.preview')}
-                src={`${api.sheetUrl(project.folder, culture, true)}#page=${page?.number ?? 1}`}
-              />
+              {/* The PDF itself (DEC-113): what it shows is what prints, marks included (§15.2).
+                  The format's dimensions border it, width above and height beside (§15.2, I.15.5). */}
+              <figure className="sheet-frame">
+                {paper ? <figcaption className="dim top" title={t('layout.width')}>{t('layout.dimension', { value: millimetres.format(paper.widthMm) })}</figcaption> : null}
+                <iframe
+                  key={`${project.modifiedAt}-${page?.number ?? 1}`}
+                  className="sheet"
+                  title={t('layout.preview')}
+                  src={`${api.sheetUrl(project.folder, culture, true)}#page=${page?.number ?? 1}`}
+                />
+                {paper ? <span className="dim side" title={t('layout.height')}>{t('layout.dimension', { value: millimetres.format(paper.heightMm) })}</span> : null}
+              </figure>
             </>
           ) : report !== null ? (
             <div className="panel">

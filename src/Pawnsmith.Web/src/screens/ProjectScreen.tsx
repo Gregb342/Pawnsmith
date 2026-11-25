@@ -65,6 +65,8 @@ export function ProjectScreen(props: { navigate: (route: Route) => void }) {
         </div>
       </div>
 
+      <Diagnostics project={project} />
+
       <div className="three">
         <section className="panel">
           <TextField key={`name-${project.name}`} label={t('project.name')} initial={project.name} onCommit={(name) => void save({ name })} />
@@ -79,6 +81,12 @@ export function ProjectScreen(props: { navigate: (route: Route) => void }) {
             <div className="field">
               <label htmlFor="paper">{t('project.paper')}</label>
               <select id="paper" value={project.paperFormat} onChange={(event) => void save({ paperFormat: event.target.value })}>
+                {/* A format this machine does not declare (DEC-056) is listed as it is, marked unknown.
+                    Without it, the list would show the first format as chosen, and picking that
+                    format would fire no change: the mismatch could not be corrected from here. */}
+                {configuration.paperFormats.some((format) => format.name === project.paperFormat) ? null : (
+                  <option value={project.paperFormat} disabled>{t('project.paperFormatUnknown', { name: project.paperFormat })}</option>
+                )}
                 {configuration.paperFormats.map((format) => (
                   <option key={format.name} value={format.name}>{t('project.paperFormat', { name: format.name, width: format.widthMm, height: format.heightMm })}</option>
                 ))}
@@ -340,6 +348,34 @@ function Archives(props: { folder: string }) {
             <span className="small muted">{t(`project.profiles.${profile}.hint`)}</span>
           </div>
           <button className="btn" onClick={() => void run(() => api.exportArchive(props.folder, profile))}>{t('project.export')}</button>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/**
+ * What the load said about this project without refusing it (DEC-056):
+ * an image missing from the disk, a paper format this machine does not
+ * declare, a tab wider than a pawn. Each is a kind and a field, never a
+ * message (DEC-084); the kind is said in words, the field is shown as is.
+ */
+function Diagnostics(props: { project: ProjectDto }) {
+  const { t } = useTranslation();
+  const { diagnostics } = props.project;
+
+  if (diagnostics.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="panel">
+      <h3>{t('project.diagnosticsTitle')}</h3>
+      <p className="small muted">{t('project.diagnosticsLead')}</p>
+      {diagnostics.map((diagnostic, index) => (
+        <div className="notice warn" key={`${diagnostic.kind}-${diagnostic.field}-${index}`}>
+          <span>{t(`project.diagnostics.${diagnostic.kind}`, { defaultValue: diagnostic.kind })}</span>
+          <span className="mono small muted">{diagnostic.field}</span>
         </div>
       ))}
     </section>

@@ -7,6 +7,7 @@ using Pawnsmith.Domain.Primitives;
 using Pawnsmith.Domain.Projects;
 using Pawnsmith.Domain.Prompts;
 using Pawnsmith.Domain.Sheets;
+using Pawnsmith.Infrastructure.Projects;
 
 namespace Pawnsmith.Api.Tests;
 
@@ -74,6 +75,9 @@ public class TranslationTests
             .. Enum.GetNames<SkipReason>().Select(name => $"layout.skip.{name}"),
             .. Enum.GetNames<ArchiveProfileKind>().Select(name => $"project.profiles.{name}.name"),
             .. Enum.GetNames<ArchiveProfileKind>().Select(name => $"project.profiles.{name}.hint"),
+
+            // What a load says about a project without refusing it (DEC-056), on the Project step.
+            .. Enum.GetNames<ProjectDiagnosticKind>().Select(name => $"project.diagnostics.{name}"),
 
             // The state of GET /api/generator: the live check, or why there is none.
             .. Enum.GetNames<GeneratorAvailability>().Select(name => $"generator.states.{name}"),

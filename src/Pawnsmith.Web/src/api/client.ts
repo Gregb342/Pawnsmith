@@ -88,6 +88,14 @@ export function fileNameOf(response: Response, fallback: string): string {
   return match?.[1] ? decodeURIComponent(match[1]) : fallback;
 }
 
+/**
+ * How long the address of a downloaded blob stays valid. The click only
+ * starts the download: a browser that has not begun reading the file when
+ * the address is revoked saves nothing, or an empty file. Forty seconds is
+ * the delay the FileSaver.js library settled on for the same reason.
+ */
+const blobAddressLifetimeMs = 40_000;
+
 /** Hands a blob to the browser as a download. */
 function saveBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
@@ -95,7 +103,7 @@ function saveBlob(blob: Blob, fileName: string): void {
   link.href = url;
   link.download = fileName;
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), blobAddressLifetimeMs);
 }
 
 const encode = encodeURIComponent;

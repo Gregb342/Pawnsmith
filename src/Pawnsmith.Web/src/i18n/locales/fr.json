@@ -2,7 +2,9 @@
   "app": {
     "name": "Pawnsmith",
     "documentTitle": "Pawnsmith",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "reloadFailed": "Le projet n’a pas pu être relu : {{reason}} L’écran montre son dernier état connu.",
+    "retry": "Réessayer"
   },
   "language": {
     "label": "Langue",
@@ -187,6 +189,7 @@
     "universe": "Univers",
     "paper": "Format de papier",
     "paperFormat": "{{name}} · {{width}} × {{height}} mm",
+    "paperFormatUnknown": "{{name}} · inconnu sur cette machine",
     "geometry": "Géométrie",
     "tabs": "Cotes d’onglet de ce projet",
     "tabsHint": "Vide : la valeur de la calibration s’applique.",
@@ -220,6 +223,13 @@
         "name": "Partage",
         "hint": "Sans les images jumelées. Pour envoyer à quelqu’un."
       }
+    },
+    "diagnosticsTitle": "Ce projet ne correspond pas tout à fait à cette machine",
+    "diagnosticsLead": "Le projet s’ouvre quand même : rien n’est refusé, chaque écart est dit.",
+    "diagnostics": {
+      "MissingImageFile": "Une image référencée est absente du disque : la proposition qui la porte ne pourra pas s’imprimer.",
+      "UnknownPaperFormat": "Ce format de papier n’est pas déclaré par la calibration de cette machine : la planche ne pourra pas se calculer tant qu’il n’est pas changé.",
+      "OverrideExceedsPawnWidth": "La largeur d’onglet dépasse la largeur d’un pion de ce projet : la planche ne pourra pas se calculer."
     }
   },
   "blueprints": {
@@ -358,7 +368,10 @@
     "findings": "Avant d’imprimer",
     "misaligned": "{{name}} : la proposition retenue a un prompt modifié depuis ({{clauses}}). Elle sera imprimée telle quelle.",
     "widthLimited": "{{name}} ({{size}}) : l’image est limitée par sa largeur et n’occupe que {{usage}} % de la hauteur ({{printed}} mm sur {{available}} mm).",
-    "doesNotFit": "Un pion de taille {{size}} ne tient pas sur une page {{paper}} en géométrie « {{geometry}} » : rien de cette taille ne peut s’imprimer."
+    "doesNotFit": "Un pion de taille {{size}} ne tient pas sur une page {{paper}} en géométrie « {{geometry}} » : rien de cette taille ne peut s’imprimer.",
+    "dimension": "{{value}} mm",
+    "width": "Largeur du format",
+    "height": "Hauteur du format"
   },
   "print": {
     "title": "Impression",

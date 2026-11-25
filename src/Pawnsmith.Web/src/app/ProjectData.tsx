@@ -14,6 +14,8 @@ interface ProjectData {
   project: ProjectDto;
   setProject: (project: ProjectDto) => void;
   reload: () => Promise<void>;
+  /** Why the last reload failed, while the project it could not replace stays shown; null otherwise. */
+  reloadError: string | null;
 }
 
 const Context = createContext<ProjectData | null>(null);
@@ -26,7 +28,10 @@ export function useProject(): ProjectData {
   return data;
 }
 
-type Loading = { state: 'loading' } | { state: 'failed'; code: string } | { state: 'ready'; project: ProjectDto };
+type Loading =
+  | { state: 'loading' }
+  | { state: 'failed'; code: string }
+  | { state: 'ready'; project: ProjectDto; reloadError: string | null };
 
 export function ProjectProvider(props: {
   folder: string;
@@ -41,11 +46,15 @@ export function ProjectProvider(props: {
   const reload = useCallback(async () => {
     try {
       const project = await api.project(folder);
-      setLoading({ state: 'ready', project });
+      setLoading({ state: 'ready', project, reloadError: null });
       onLoaded(project.name);
     } catch (error) {
-      setLoading({ state: 'failed', code: codeOf(error) });
-      onLoaded(null);
+      // A project already on screen stays there: a server stopped for a
+      // moment, or a network that drops, must not throw the user back to an
+      // error page and the list (I.15.5). Only a first load that fails has
+      // nothing to show but its error.
+      const code = codeOf(error);
+      setLoading((current) => (current.state === 'ready' ? { ...current, reloadError: code } : { state: 'failed', code }));
     }
   }, [folder, onLoaded]);
 
@@ -54,7 +63,7 @@ export function ProjectProvider(props: {
   useEffect(() => {
     api.project(folder).then(
       (project) => {
-        setLoading({ state: 'ready', project });
+        setLoading({ state: 'ready', project, reloadError: null });
         onLoaded(project.name);
       },
       (error: unknown) => {
@@ -75,10 +84,11 @@ export function ProjectProvider(props: {
   const value: ProjectData = {
     project: loading.project,
     setProject: (project) => {
-      setLoading({ state: 'ready', project });
+      setLoading({ state: 'ready', project, reloadError: null });
       onLoaded(project.name);
     },
     reload,
+    reloadError: loading.reloadError,
   };
 
   return <Context.Provider value={value}>{props.children}</Context.Provider>;

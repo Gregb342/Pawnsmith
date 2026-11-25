@@ -8,7 +8,7 @@
 | **Documents frères** | le cahier T6 (l'API), dont ce document est la suite |
 | **Portée** | Les neuf décisions de la revue de maquette (D1 à D9), ce qu'elles demandent à l'API, et le front React |
 
-> **Changements depuis la v1.1** — Ajout du §I.15, la suite écrite le 25 novembre 2026 sans arbitrage du porteur, sur la consigne « continue autant de dev que tu peux ». La revue du chapitre 9 pour le front, qui manquait : **MEN-012** (détournement de clic) et **MEN-013** (injection de contenu), tenues par des en-têtes posés sur toute réponse (DEC-116). Une capacité nulle nomme enfin sa taille (DEC-117). **Le front a des tests automatisés**, Vitest sur les modules purs (DEC-118), ce qui ferme le « trou connu » du §I.12. Un rechargement raté ne remplace plus l'écran ; les cotes du format bordent l'aperçu.
+> **Changements depuis la v1.1** — Ajout du §I.15, la suite écrite le 25 novembre 2026 sans arbitrage du porteur, sur la consigne « continue autant de dev que tu peux ». La revue du chapitre 9 pour le front, qui manquait : **MEN-012** (détournement de clic) et **MEN-013** (injection de contenu), tenues par des en-têtes posés sur toute réponse (DEC-116). Une capacité nulle nomme enfin sa taille (DEC-117). **Le front a des tests automatisés**, Vitest sur les modules purs (DEC-118), ce qui ferme le « trou connu » du §I.12. Un rechargement raté ne remplace plus l'écran ; les cotes du format bordent l'aperçu ; les diagnostics d'un projet s'affichent enfin.
 
 > **Changements depuis la v1.0** — Écriture de la tranche et sa relecture. Ajout du §I.10.5, ce que l'écriture a tranché : le code `GENERATOR_ADDRESS_INVALID`, les entrées personnelles écartées au démarrage, l'interrogation de la file, les libellés de statut, le pas de quantité de la Mise en page. Le §I.12 dit ce qui a été éprouvé dans le navigateur, et les trois défauts que la relecture du front a trouvés.
 
@@ -410,11 +410,12 @@ Précise **DEC-114**, qui ne visait que les dépendances de production : Vitest 
 
 Le script de parité vérifie que `fr.json` et `en.json` ont les mêmes clés. Il ne vérifie pas qu'un code ajouté côté C# **a** une clé : un `STYLE_FROZEN` sans traduction s'afficherait en majuscules. **Un test de `Pawnsmith.Api.Tests` lit les deux catalogues** et vérifie qu'ils traduisent chaque code connu (la liste même de G.13 n° 2), les codes de génération que porte un job en échec, les codes propres au front, et chaque valeur des énumérations que l'écran affiche par clé — tailles, géométries, univers, statuts, états de job et de générateur, clauses, raisons de saut, profils d'archive.
 
-### I.15.5 Trois reprises
+### I.15.5 Quatre reprises
 
 - **Un rechargement raté ne remplace plus l'écran.** Un projet affiché qui ne se relit pas — serveur arrêté, réseau coupé — reste affiché, avec un bandeau qui dit l'erreur et propose de réessayer. Seul le **premier** chargement d'un projet remplace l'écran par son erreur. C'était le cinquième point non couvert du §8 de `CLAUDE.md`.
 - **Le téléchargement d'une archive ne révoque plus son adresse dans la foulée** du clic : certains navigateurs n'ont pas encore commencé à lire le fichier. L'adresse est libérée un instant après.
 - **Les cotes du format bordent l'aperçu** (§15.2) : largeur au-dessus, hauteur à côté, en millimètres, lues de la configuration. DEC-113 les avait renvoyées au panneau Mesures, faute de mieux ; elles tiennent en deux libellés.
+- **Les diagnostics d'un projet s'affichent enfin.** L'API les rend depuis T2 (DEC-056) — image absente du disque, format de papier que la machine ne déclare pas, onglet plus large qu'un pion —, et aucun écran ne les montrait. L'étape Projet les dit, chacun traduit, avec le champ qu'il nomme. Et un **format inconnu reste visible** dans sa liste, marqué comme tel : la liste montrait jusqu'ici le premier format comme choisi, et choisir ce format ne déclenchait aucun changement — l'écart ne pouvait pas se corriger depuis l'écran.
 
 ### I.15.6 Tests attendus
 
@@ -424,7 +425,7 @@ Le script de parité vérifie que `fr.json` et `en.json` ont les mêmes clés. I
 | 2 | La politique refuse les cadres tiers et les scripts en ligne, directive par directive | .NET |
 | 3 | Les capacités rendent une ligne par taille, sur la calibration effective, avant tout candidat | .NET |
 | 4 | Une taille qui ne tient pas vaut `0`, sans erreur ; un format inconnu rend `PAPER_FORMAT_UNKNOWN` | .NET |
-| 5 | Chaque code et chaque valeur d'énumération affichée est traduit en `fr` et `en` | .NET |
+| 5 | Chaque code et chaque valeur d'énumération affichée — genres de diagnostic compris — est traduit en `fr` et `en` | .NET |
 | 6 | Le routage lit et écrit chaque route, dans les deux sens ; une adresse malformée ne lève pas | Vitest |
 | 7 | Une erreur `{ code }` devient une `ApiError` ; un corps illisible `HTTP_{status}` ; un rejet de `fetch` `NETWORK_ERROR` | Vitest |
 | 8 | Une écriture part en JSON, l'import brut en `application/zip` | Vitest |
@@ -443,5 +444,5 @@ Le script de parité vérifie que `fr.json` et `en.json` ont les mêmes clés. I
 | 18 | Capacités par taille ; la Mise en page nomme la taille qui ne tient pas |
 | 19 | Le test .NET des traductions |
 | 20 | Vitest, et les tests des modules purs ; la CI les lance |
-| 21 | Les trois reprises du §I.15.5 |
+| 21 | Les quatre reprises du §I.15.5 |
 | 22 | `CLAUDE.md`, README |

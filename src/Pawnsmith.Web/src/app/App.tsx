@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ErrorNotice } from '../components/ErrorNotice';
+import { useErrorText } from '../components/text';
 import { StepRail, TopBar } from '../components/Shell';
 import { BlueprintsScreen } from '../screens/BlueprintsScreen';
 import { CatalogScreen } from '../screens/CatalogScreen';
@@ -13,7 +14,7 @@ import { PrintScreen } from '../screens/PrintScreen';
 import { ProjectScreen } from '../screens/ProjectScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
 import { AppDataProvider } from './AppData';
-import { ProjectProvider } from './ProjectData';
+import { ProjectProvider, useProject } from './ProjectData';
 import { useRoute } from './router';
 import type { Route, Step } from './router';
 import { SaveStatusProvider } from './SaveStatus';
@@ -48,6 +49,7 @@ export function App() {
           <ProjectProvider key={route.folder} folder={route.folder} loading={loading} failed={failed} onLoaded={setProjectName}>
             <StepRail folder={route.folder} step={route.step} navigate={navigate} />
             <main className="work">
+              <ReloadNotice />
               <Screen route={route} navigate={navigate} />
             </main>
           </ProjectProvider>
@@ -58,6 +60,29 @@ export function App() {
         )}
       </SaveStatusProvider>
     </AppDataProvider>
+  );
+}
+
+/**
+ * A reload that failed while a project was on screen (I.15.5): the screen
+ * keeps the last state the API gave, and says it cannot read a newer one.
+ */
+function ReloadNotice() {
+  const { t } = useTranslation();
+  const text = useErrorText();
+  const { reloadError, reload } = useProject();
+
+  if (reloadError === null) {
+    return null;
+  }
+
+  return (
+    <div className="notice err" role="alert">
+      <span>{t('app.reloadFailed', { reason: text(reloadError) })}</span>
+      <div>
+        <button className="btn sm" onClick={() => void reload()}>{t('app.retry')}</button>
+      </div>
+    </div>
   );
 }
 
