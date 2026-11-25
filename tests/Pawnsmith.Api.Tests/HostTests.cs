@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json.Nodes;
 
 using Pawnsmith.Api.Errors;
+using Pawnsmith.Api.Hosting;
 using Pawnsmith.Api.Tests.Fixtures;
 using Pawnsmith.Application.Blueprints;
 using Pawnsmith.Application.Generation;
@@ -300,6 +301,44 @@ public class HostTests
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         File.Exists(Path.Combine(api.Root, "appsettings.json")).ShouldBeFalse();
+    }
+
+    // --- I.15.6 n° 1 et 2 : MEN-012 et MEN-013, les en-têtes sur toute réponse ---------------
+
+    /// <summary>A page, a JSON answer, an error, an unknown path: every response carries the headers.</summary>
+    [Theory]
+    [InlineData("GET", "/")]
+    [InlineData("GET", "/does/not/exist")]
+    [InlineData("GET", "/api/configuration")]
+    [InlineData("GET", "/api/does/not/exist")]
+    [InlineData("GET", "/api/projects/nope")]
+    [InlineData("POST", "/api/projects")]
+    public async Task EveryResponseCarriesTheSecurityHeaders(string method, string path)
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+
+        // The POST sends no body: a refused request is a response too, and the
+        // error middleware clears the response before writing its code.
+        using HttpResponseMessage response = await api.Client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path));
+
+        response.Headers.GetValues("Content-Security-Policy").Single().ShouldBe(SecurityHeaders.ContentSecurityPolicy);
+        response.Headers.GetValues("X-Frame-Options").Single().ShouldBe("SAMEORIGIN");
+        response.Headers.GetValues("X-Content-Type-Options").Single().ShouldBe("nosniff");
+        response.Headers.GetValues("Referrer-Policy").Single().ShouldBe("no-referrer");
+    }
+
+    [Fact]
+    public void ThePolicyRefusesForeignFramesAndInlineScripts()
+    {
+        // The directives each threat rests on, read one by one, so that a
+        // change to the policy has to say which threat it reopens.
+        string[] directives = [.. SecurityHeaders.ContentSecurityPolicy.Split(';').Select(directive => directive.Trim())];
+
+        directives.ShouldContain("frame-ancestors 'self'");   // MEN-012
+        directives.ShouldContain("script-src 'self'");        // MEN-013: no 'unsafe-inline'
+        directives.ShouldContain("base-uri 'none'");          // MEN-013
+        directives.ShouldContain("form-action 'self'");       // MEN-013
+        SecurityHeaders.ContentSecurityPolicy.ShouldNotContain("unsafe");
     }
 
     private static string RepositoryConfig()

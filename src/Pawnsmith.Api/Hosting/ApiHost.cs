@@ -253,7 +253,11 @@ public static class ApiHost
 
     private static void Configure(WebApplication app)
     {
-        // Outermost: everything below that throws is turned into a code.
+        // Outermost of all: every response leaves with the security headers,
+        // the error a middleware below writes included (DEC-116).
+        app.UseMiddleware<SecurityHeaders>();
+
+        // Everything below that throws is turned into a code.
         app.UseMiddleware<ErrorMiddleware>();
         app.UseMiddleware<OriginGuard>();
 
