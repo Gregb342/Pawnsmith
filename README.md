@@ -24,7 +24,7 @@ plutôt qu'interdite (DEC-105).
 > du générateur ComfyUI, lots de candidats — sont écrites, ainsi que la tranche
 > **T6** — l'API puis l'**interface** —, la tranche **T7** — journaux,
 > visualiseur, revue du modèle de menace — et la tranche **T5** — détourage
-> sans modèle, sur fond uni. **1 179 tests .NET et 36 tests du front, verts.**
+> sans modèle, sur fond uni. **1 181 tests .NET et 39 tests du front, verts.**
 >
 > L'**interface** est complète, en français et en anglais : projets, gabarits,
 > génération auprès d'un ComfyUI, détourage, mise en page avec l'aperçu du

@@ -647,6 +647,18 @@ La plus engageante d'abord.
 9. **Un rechargement raté garde le projet à l'écran**, avec « Réessayer ».
 10. **i18next passe de 25 à 26** pour un avis de sécurité ; les treize autres
     avis `npm` se règlent dans le lockfile.
+11. **Une revue de code de toute la branche** a suivi, et deux commits la
+    corrigent. Les trois défauts sérieux : une entrée du catalogue personnel
+    incomplète (un libellé manquant, un fichier retouché à la main)
+    **empêchait l'application de démarrer**, au lieu d'être écartée ; deux
+    écritures rapprochées **s'écrasaient** — saisir les détails puis choisir
+    une armure perdait les détails, deux clics sur « + » n'ajoutaient qu'un
+    exemplaire, reproduit dans Chromium avec 300 ms de latence puis corrigé
+    par une file d'écritures ; et un lot fini avant la première interrogation
+    **n'apparaissait pas** dans la galerie. Un seul point laissé : une
+    duplication qui échoue à mi-chemin laisse un projet vide, et le défaire
+    demanderait un port de suppression de projet — à toi de dire si tu le
+    veux.
 
 ### T2 — code terminé, 15 tâches sur 15
 
@@ -1264,7 +1276,7 @@ tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
 | 22 | Documentation | ✅ |
 
 **Les 18 tests serveur de §I.12 et les 13 de §I.15.6 sont couverts.** Le
-dépôt porte **1 179 tests .NET verts** et **36 tests Vitest**. Une dépendance
+dépôt porte **1 181 tests .NET verts** et **39 tests Vitest**. Une dépendance
 ajoutée côté .NET, pour relever une version (`System.Security.Cryptography.Pkcs`,
 DEC-115), et une de développement côté front (Vitest, DEC-118). Le code
 du front vit dans `src/Pawnsmith.Web/src/` : `api/` (client et miroir des
