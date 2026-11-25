@@ -81,8 +81,8 @@ async function json<T>(method: string, path: string, body?: unknown): Promise<T>
   return (await response.json()) as T;
 }
 
-/** The file name of an attachment, from Content-Disposition; the fallback otherwise. */
-function fileNameOf(response: Response, fallback: string): string {
+/** The file name of an attachment, from Content-Disposition; the fallback otherwise. Exported for its tests. */
+export function fileNameOf(response: Response, fallback: string): string {
   const header = response.headers.get('Content-Disposition') ?? '';
   const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header);
   return match?.[1] ? decodeURIComponent(match[1]) : fallback;

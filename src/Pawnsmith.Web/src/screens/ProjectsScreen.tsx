@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import type { Geometry, ProjectListingDto, Universe } from '../api/types';
 import { useAppData } from '../app/AppData';
+import { sharedProjectIds } from '../app/projects';
 import type { Route } from '../app/router';
 import { codeOf } from '../app/SaveStatus';
 import { ErrorNotice } from '../components/ErrorNotice';
@@ -32,12 +33,7 @@ export function ProjectsScreen(props: { navigate: (route: Route) => void }) {
 
   const open = (folder: string) => props.navigate({ name: 'project', folder, step: 'project' });
 
-  const copies = new Map<string, number>();
-  for (const listing of listings ?? []) {
-    if (listing.projectId !== null) {
-      copies.set(listing.projectId, (copies.get(listing.projectId) ?? 0) + 1);
-    }
-  }
+  const shared = sharedProjectIds(listings ?? []);
 
   const date = new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -77,7 +73,7 @@ export function ProjectsScreen(props: { navigate: (route: Route) => void }) {
                 <span className="small muted">{t('projects.modified', { date: date.format(new Date(listing.modifiedAt)) })}</span>
               ) : null}
             </div>
-            {listing.projectId !== null && (copies.get(listing.projectId) ?? 0) > 1 ? (
+            {listing.projectId !== null && shared.has(listing.projectId) ? (
               <p className="small muted">{t('projects.copy')}</p>
             ) : null}
             {listing.errorCode !== null ? <ErrorNotice code={listing.errorCode} /> : null}

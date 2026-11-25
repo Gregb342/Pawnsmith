@@ -75,6 +75,7 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 | [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) | 8.x | MIT | Analyseur syntaxique et règles ESLint typées pour TypeScript |
 | [eslint-plugin-react-hooks](https://github.com/facebook/react) | 7.x | MIT | Règles des hooks React — la seule classe de défaut qu'un vérificateur de types ne peut structurellement pas voir |
 | [globals](https://github.com/sindresorhus/globals) | 17.x | MIT | Liste des variables globales du navigateur, pour la configuration d'ESLint |
+| [vitest](https://github.com/vitest-dev/vitest) | 4.1.x | MIT | Tests des modules purs du front (DEC-118). Développement seulement : n'entre pas dans l'image. 4.1 plutôt que 5.x, sorti trop récemment, et que `npm` 10 n'arrive pas à installer |
 | [@types/react](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React |
 | [@types/react-dom](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React DOM |
 

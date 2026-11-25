@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -19,5 +20,14 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: false },
     },
+  },
+
+  // DEC-118 - Vitest reads this same file. Node, not a simulated browser:
+  // what is tested is the pure modules (routing, errors, requests, the
+  // project list, capacities), which need no DOM; the screens are tried in
+  // a real browser instead. Tests sit next to their module, as *.test.ts.
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
   },
 });
