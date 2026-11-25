@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.1 |
-| **Date** | 4 octobre 2026 |
-| **Document parent** | `pawnsmith-bible.md` v0.19 — chapitres 2, 10, 12 et 15 en particulier |
+| **Version** | 1.2 |
+| **Date** | 25 novembre 2026 |
+| **Document parent** | `pawnsmith-bible.md` v0.21 — chapitres 2, 10, 12 et 15 en particulier |
 | **Documents frères** | le cahier T6 (l'API), dont ce document est la suite |
 | **Portée** | Les neuf décisions de la revue de maquette (D1 à D9), ce qu'elles demandent à l'API, et le front React |
+
+> **Changements depuis la v1.1** — Ajout du §I.15, la suite écrite le 25 novembre 2026 sans arbitrage du porteur, sur la consigne « continue autant de dev que tu peux ». La revue du chapitre 9 pour le front, qui manquait : **MEN-012** (détournement de clic) et **MEN-013** (injection de contenu), tenues par des en-têtes posés sur toute réponse (DEC-116). Une capacité nulle nomme enfin sa taille (DEC-117). **Le front a des tests automatisés**, Vitest sur les modules purs (DEC-118), ce qui ferme le « trou connu » du §I.12. Un rechargement raté ne remplace plus l'écran ; les cotes du format bordent l'aperçu.
 
 > **Changements depuis la v1.0** — Écriture de la tranche et sa relecture. Ajout du §I.10.5, ce que l'écriture a tranché : le code `GENERATOR_ADDRESS_INVALID`, les entrées personnelles écartées au démarrage, l'interrogation de la file, les libellés de statut, le pas de quantité de la Mise en page. Le §I.12 dit ce qui a été éprouvé dans le navigateur, et les trois défauts que la relecture du front a trouvés.
 
@@ -335,6 +337,9 @@ La relecture du front a trouvé trois défauts, corrigés dans un commit à part
 | **DEC-112** | Univers et style figés à la première proposition ; duplication. **Supersède DEC-030 et DEC-055** pour l'univers et le style. *Décidée par le porteur.* | I.8 |
 | **DEC-113** | L'aperçu de la planche est le PDF | I.9 |
 | **DEC-114** | Le front sans dépendance nouvelle ; la tranche en `0.10.0` | I.0, I.14 |
+| **DEC-116** | MEN-012 et MEN-013 ; politique de contenu et en-têtes sur toute réponse ; `dangerouslySetInnerHTML` interdit | I.15.1 |
+| **DEC-117** | Une route de capacités par taille ; une capacité nulle y est une valeur, ce qui permet de la nommer | I.15.2 |
+| **DEC-118** | Vitest, dépendance de développement, sur les modules purs du front. **Précise DEC-114**, qui ne visait que la production | I.15.3 |
 
 ---
 
@@ -359,3 +364,84 @@ La relecture du front a trouvé trois défauts, corrigés dans un commit à part
 | 15 | Documentation : `CLAUDE.md`, README, ce cahier en v1.1 |
 
 **La version est `0.10.0`** : une tranche livrée vaut un mineur (DEC-058, DEC-104).
+
+---
+
+## I.15 La suite, du 25 novembre 2026
+
+> **Régime.** Écrite sans arbitrage du porteur, sur la consigne « continue autant de dev que tu peux », comme le reste de la tranche avant relecture. Rien n'est fusionné dans `main`. Une session antérieure du même jour avait commencé à réécrire ce front sans voir cette branche ; son travail est abandonné, et ce qu'il avait de juste est repris ici.
+
+Le front est écrit (I.14, tâches 1 à 15). Cette section fait ce qu'il restait d'ouvert, dans l'ordre de ce qui coûte le plus à laisser.
+
+### I.15.1 Ce que le front ouvre au chapitre 9 (DEC-116)
+
+Le chapitre 9 se rouvre à chaque tranche qui ouvre une surface (DEC-054, DEC-097), et DEC-097 nommait « le front de T6 ». La revue n'avait pas été faite. Le front ouvre **deux menaces** que l'API seule n'avait pas.
+
+**MEN-012 — le détournement de clic.** Une page tierce peut charger l'application dans un cadre invisible, sur `http://localhost:8080`, et placer ses propres boutons par-dessus ceux de Pawnsmith : l'utilisateur croit cliquer chez elle, il supprime un gabarit ou change l'adresse du générateur chez lui. Le contrôle d'`Origin` de MEN-010 ne voit rien : la requête part bien de la page de Pawnsmith. **Contre-mesure** : toute réponse porte `Content-Security-Policy: … frame-ancestors 'self'` et `X-Frame-Options: SAMEORIGIN` (le second pour les navigateurs qui ignorent le premier). `'self'` et non `'none'` : l'aperçu de la planche est un cadre de même origine (DEC-113).
+
+**MEN-013 — l'injection de contenu dans la page.** Le front affiche du **texte d'autrui** : un nom de projet, une clause, des détails, une entrée de catalogue, un nom de dossier — venus au besoin d'une archive importée. Rendu comme du HTML, il exécuterait du script dans l'origine de l'application, qui peut tout faire par l'API. **Contre-mesures**, en trois couches : React échappe tout texte inséré ; l'échappatoire `dangerouslySetInnerHTML` est **interdite par une règle ESLint**, donc par la CI ; et la politique de contenu n'admet que les scripts de l'origine, aucun en ligne, ni `<base>` réécrite, ni formulaire vers ailleurs.
+
+La politique, posée par un intergiciel de l'API **au moment où la réponse part** — l'intergiciel d'erreurs vide la réponse, en-têtes compris, avant d'écrire son code :
+
+```
+default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
+frame-ancestors 'self'; base-uri 'none'; form-action 'self'
+```
+
+plus `X-Content-Type-Options: nosniff` — une image servie n'est jamais lue comme un script, quels que soient ses octets — et `Referrer-Policy: no-referrer` — l'adresse d'un projet porte son nom, elle ne part pas vers un tiers.
+
+Le front compilé s'y plie sans changement : aucun script ni style en ligne dans `index.html`, aucune ressource extérieure, et les deux styles posés par React passent par le DOM, que `style-src` ne vise pas. **Éprouvé dans Chromium** : le tour complet des écrans sous la politique ne lève aucune violation.
+
+### I.15.2 Une capacité nulle nomme sa taille (DEC-117)
+
+Le §15.4 veut qu'une capacité nulle s'affiche **comme une erreur nommant la taille, le format et la géométrie**. Or le rapport de planche rend alors `SHEET_CAPACITY_EXCEEDED` et rien d'autre (DEC-084) : l'écran Mise en page affichait la traduction du code, sans dire quelle taille.
+
+**Décision : une route de plus, `GET /api/projects/{folder}/sheet/capacities`**, qui rend pour chaque taille de la calibration sa capacité en cellules sur ce projet — format, géométrie et calibration **effective** (DEC-053). **Une capacité nulle y est une valeur, pas une erreur.** Le cas d'usage est `ProjectSheet.CapacitiesAsync`, dans l'Application, à travers le moteur de T1 inchangé. Quand le rapport refuse pour capacité nulle, la Mise en page demande les capacités et nomme chaque taille imprimée qui ne tient pas, avec le format et la géométrie du projet. DEC-084 ne change pas.
+
+### I.15.3 Le front a des tests (DEC-118)
+
+Le §I.12 écrivait « pas de test automatisé du front », et le §8 de `CLAUDE.md` « c'est le trou principal de la tranche ». Le motif — une dépendance de développement doit se justifier par ce qu'elle protège — est juste ; ce qu'elle protège est maintenant nommé.
+
+**Décision : Vitest, en environnement Node, sur les modules purs.** Vitest est sous MIT, réutilise la configuration de Vite déjà présente, et ne demande rien d'autre. **Pas de bibliothèque de test de composants** (Testing Library, jsdom) : elle doublerait la chaîne de dépendances pour des composants qui, par I.0, ne portent pas de règle. Ce qui a de la logique est **extrait en fonction pure** et testé : le routage, la lecture des erreurs, le nom d'un fichier téléchargé, l'adresse d'une image, le tri et les doublons de la liste des projets, les capacités nulles. La CI lance `npm test` entre le lint et la construction.
+
+Précise **DEC-114**, qui ne visait que les dépendances de production : Vitest n'entre pas dans l'image.
+
+### I.15.4 Chaque code est traduit, et un test .NET le garantit
+
+Le script de parité vérifie que `fr.json` et `en.json` ont les mêmes clés. Il ne vérifie pas qu'un code ajouté côté C# **a** une clé : un `STYLE_FROZEN` sans traduction s'afficherait en majuscules. **Un test de `Pawnsmith.Api.Tests` lit les deux catalogues** et vérifie qu'ils traduisent chaque code connu (la liste même de G.13 n° 2), les codes de génération que porte un job en échec, les codes propres au front, et chaque valeur des énumérations que l'écran affiche par clé — tailles, géométries, univers, statuts, états de job et de générateur, clauses, raisons de saut, profils d'archive.
+
+### I.15.5 Trois reprises
+
+- **Un rechargement raté ne remplace plus l'écran.** Un projet affiché qui ne se relit pas — serveur arrêté, réseau coupé — reste affiché, avec un bandeau qui dit l'erreur et propose de réessayer. Seul le **premier** chargement d'un projet remplace l'écran par son erreur. C'était le cinquième point non couvert du §8 de `CLAUDE.md`.
+- **Le téléchargement d'une archive ne révoque plus son adresse dans la foulée** du clic : certains navigateurs n'ont pas encore commencé à lire le fichier. L'adresse est libérée un instant après.
+- **Les cotes du format bordent l'aperçu** (§15.2) : largeur au-dessus, hauteur à côté, en millimètres, lues de la configuration. DEC-113 les avait renvoyées au panneau Mesures, faute de mieux ; elles tiennent en deux libellés.
+
+### I.15.6 Tests attendus
+
+| # | Ce qu'il vérifie | Où |
+|---|---|---|
+| 1 | Toute réponse — page, API, erreur, chemin inconnu — porte la politique, `X-Frame-Options`, `nosniff` et `Referrer-Policy` | .NET |
+| 2 | La politique refuse les cadres tiers et les scripts en ligne, directive par directive | .NET |
+| 3 | Les capacités rendent une ligne par taille, sur la calibration effective, avant tout candidat | .NET |
+| 4 | Une taille qui ne tient pas vaut `0`, sans erreur ; un format inconnu rend `PAPER_FORMAT_UNKNOWN` | .NET |
+| 5 | Chaque code et chaque valeur d'énumération affichée est traduit en `fr` et `en` | .NET |
+| 6 | Le routage lit et écrit chaque route, dans les deux sens ; une adresse malformée ne lève pas | Vitest |
+| 7 | Une erreur `{ code }` devient une `ApiError` ; un corps illisible `HTTP_{status}` ; un rejet de `fetch` `NETWORK_ERROR` | Vitest |
+| 8 | Une écriture part en JSON, l'import brut en `application/zip` | Vitest |
+| 9 | Le nom d'un fichier se lit de `Content-Disposition`, encodé ou non ; à défaut, le nom de repli | Vitest |
+| 10 | L'adresse d'une image encode chaque segment du chemin stocké | Vitest |
+| 11 | Les doublons d'identifiant de la liste des projets sont trouvés | Vitest |
+| 12 | Les tailles imprimées de capacité nulle sont trouvées, et elles seules | Vitest |
+| 13 | ESLint refuse `dangerouslySetInnerHTML` | Configuration, éprouvée par mutation |
+
+### I.15.7 Découpage
+
+| # | Tâche |
+|---|---|
+| 16 | Documentation : ce §I.15, DEC-116 à DEC-118, MEN-012 et MEN-013, bible v0.21 |
+| 17 | En-têtes de sécurité ; ESLint interdit `dangerouslySetInnerHTML` |
+| 18 | Capacités par taille ; la Mise en page nomme la taille qui ne tient pas |
+| 19 | Le test .NET des traductions |
+| 20 | Vitest, et les tests des modules purs ; la CI les lance |
+| 21 | Les trois reprises du §I.15.5 |
+| 22 | `CLAUDE.md`, README |

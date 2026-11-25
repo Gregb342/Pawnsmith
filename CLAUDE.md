@@ -295,10 +295,10 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.20**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.21**, cahier des charges T1
 **v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
 **cahier des charges T4 v1.1**, **cahier des charges T5 v1.1**, **cahier des
-charges T6 v1.1** (l'API), **cahier des charges T6, le front, v1.1**,
+charges T6 v1.1** (l'API), **cahier des charges T6, le front, v1.2**,
 **cahier des charges T7 v1.1**, protocole T0 **v1.4**.
 
 ### Décisions prises sans toi, à relire en premier
