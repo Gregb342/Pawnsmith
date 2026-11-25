@@ -36,7 +36,13 @@ export function GenerationScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(project.blueprints[0]?.id ?? null);
   const [jobs, setJobs] = useState<JobDto[]>([]);
   const [jobsError, setJobsError] = useState<string | null>(null);
-  const signature = useRef('');
+  // Null until the first answer: the first queue seen is the baseline, and
+  // any change after it — the first job of an empty queue included — reloads.
+  const signature = useRef<string | null>(null);
+  // A cut-out is rewritten under the same name; the browser would show the old
+  // one. Kept here rather than in the gallery, which is rebuilt for each
+  // blueprint: going to another blueprint and back must not lose it.
+  const [versions, setVersions] = useState<Record<string, number>>({});
 
   const nameOf = (blueprint: BlueprintDto) => `${valueLabel('race', blueprint.race)} ${valueLabel('characterClass', blueprint.characterClass)}`;
   const selected = project.blueprints.find((blueprint) => blueprint.id === selectedId) ?? project.blueprints[0] ?? null;
@@ -55,7 +61,7 @@ export function GenerationScreen() {
           }
           const mine = all.filter((job) => job.folder === folder);
           const next = mine.map((job) => `${job.id}:${job.state}:${job.produced.length}:${job.cutoutFailures.length}`).join('|');
-          if (signature.current !== '' && next !== signature.current) {
+          if (signature.current !== null && next !== signature.current) {
             void reload();
           }
           signature.current = next;
@@ -104,7 +110,12 @@ export function GenerationScreen() {
               const blueprint = project.blueprints.find((each) => each.id === id);
               return blueprint ? nameOf(blueprint) : id;
             }} />
-            <Gallery key={selected.id} blueprint={selected} />
+            <Gallery
+              key={selected.id}
+              blueprint={selected}
+              versions={versions}
+              onCutOut={(candidateId) => setVersions((current) => ({ ...current, [candidateId]: Date.now() }))}
+            />
           </div>
         ) : null}
       </div>
@@ -216,13 +227,11 @@ function Queue(props: { jobs: JobDto[]; error: string | null; nameOf: (blueprint
   );
 }
 
-function Gallery(props: { blueprint: BlueprintDto }) {
+function Gallery(props: { blueprint: BlueprintDto; versions: Record<string, number>; onCutOut: (candidateId: string) => void }) {
   const { t } = useTranslation();
   const { project } = useProject();
-  const { blueprint } = props;
+  const { blueprint, versions } = props;
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // A cut-out is rewritten under the same name; the browser would show the old one.
-  const [versions, setVersions] = useState<Record<string, number>>({});
 
   // The newest first, by instant: never a culture-aware string comparison.
   const candidates = [...blueprint.candidates].sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
@@ -254,7 +263,7 @@ function Gallery(props: { blueprint: BlueprintDto }) {
           blueprint={blueprint}
           candidate={selected}
           version={versions[selected.id]}
-          onCutOut={() => setVersions((current) => ({ ...current, [selected.id]: Date.now() }))}
+          onCutOut={() => props.onCutOut(selected.id)}
         />
       ) : null}
     </section>

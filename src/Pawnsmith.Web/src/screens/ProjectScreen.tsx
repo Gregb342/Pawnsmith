@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,8 +47,20 @@ export function ProjectScreen(props: { navigate: (route: Route) => void }) {
   const { run } = useSaveStatus();
   const frozen = project.universeAndStyleFrozen;
 
+  // The project as the API last answered it; each write starts from it when
+  // its turn comes (the writes are queued, SaveStatus), never from the render
+  // that asked for it — the write before may have changed another field.
+  const latest = useRef(project);
+  useEffect(() => {
+    latest.current = project;
+  }, [project]);
+
   async function save(change: Partial<ProjectSettings>) {
-    const saved = await run(() => api.saveSettings(project.folder, { ...settingsOf(project), ...change }));
+    const saved = await run(async () => {
+      const answer = await api.saveSettings(project.folder, { ...settingsOf(latest.current), ...change });
+      latest.current = answer;
+      return answer;
+    });
     if (saved !== undefined) {
       setProject(saved);
     }

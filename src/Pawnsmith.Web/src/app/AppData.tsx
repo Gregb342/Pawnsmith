@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { api } from '../api/client';
 import type { CatalogDto, ConfigurationDto, GeneratorDto, StylePresetDto } from '../api/types';
+import { codeOf } from './SaveStatus';
 
 /**
  * What every screen reads and few change: the configuration, the catalogue,
@@ -19,6 +20,9 @@ export interface AppData {
   setGenerator: (generator: GeneratorDto) => void;
   refreshGenerator: () => Promise<void>;
 }
+
+/** How often the generator's state is checked again while the interface is open. */
+const GENERATOR_CHECK_MS = 30_000;
 
 const Context = createContext<AppData | null>(null);
 
@@ -55,7 +59,9 @@ export function AppDataProvider(props: { children: ReactNode; loading: ReactNode
         const [catalog, styles] = await Promise.all([api.catalog(universe), api.styles(universe)]);
         setLoading({ state: 'ready', configuration, catalog, styles });
       } catch (error) {
-        setLoading({ state: 'failed', code: error instanceof Error ? error.message : 'NETWORK_ERROR' });
+        // A code, never an exception's message: an answer that is not JSON
+        // would otherwise put an English parser message on the screen.
+        setLoading({ state: 'failed', code: codeOf(error) });
       }
     }
 
@@ -63,7 +69,14 @@ export function AppDataProvider(props: { children: ReactNode; loading: ReactNode
 
     // A promise callback rather than refreshGenerator: an effect does not set
     // state synchronously (react-hooks/set-state-in-effect).
-    api.generator().then(setGenerator, () => setGenerator(null));
+    const check = () => api.generator().then(setGenerator, () => setGenerator(null));
+    void check();
+
+    // Checked again now and then: ComfyUI started after the interface must
+    // not stay "unreachable" in the bar until a reload. Each check is one
+    // live call to the generator (§E.7.1), hence the slow pace.
+    const timer = window.setInterval(() => void check(), GENERATOR_CHECK_MS);
+    return () => window.clearInterval(timer);
   }, []);
 
   if (loading.state === 'loading') {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { api, withBlueprint } from '../api/client';
@@ -176,11 +176,24 @@ function Editor(props: { blueprint: BlueprintDto; onChanged: (blueprint: Bluepri
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [adding, setAdding] = useState<{ parameter: CatalogParameterDto; apply: (value: string) => void } | null>(null);
 
+  // The blueprint as the API last answered it. A write builds its body from
+  // this, at the moment it runs, not from the render that asked for it: the
+  // writes are queued (SaveStatus), and the one before may have changed
+  // another field since.
+  const latest = useRef(blueprint);
+  useEffect(() => {
+    latest.current = blueprint;
+  }, [blueprint]);
+
   // Edited by hand: the options no longer change the text, so they are greyed out (DEC-109).
   const editing = blueprint.subjectClauseEdited || unlocked;
 
   async function apply(write: () => Promise<{ blueprint: BlueprintDto; compositionDiagnostics: CompositionDiagnosticDto[] }>) {
-    const edited = await run(write);
+    const edited = await run(async () => {
+      const answer = await write();
+      latest.current = answer.blueprint;
+      return answer;
+    });
     if (edited !== undefined) {
       props.onChanged(edited.blueprint);
       setDiagnostics(edited.compositionDiagnostics);
@@ -188,11 +201,17 @@ function Editor(props: { blueprint: BlueprintDto; onChanged: (blueprint: Bluepri
   }
 
   const saveFields = (change: Partial<BlueprintFields>) =>
-    void apply(() => api.updateBlueprint(project.folder, blueprint.id, { ...fieldsOf(blueprint), ...change }));
+    void apply(() => api.updateBlueprint(project.folder, blueprint.id, { ...fieldsOf(latest.current), ...change }));
 
+  /** One option set or cleared, on the options as last saved. */
   function setOptional(key: string, value: string) {
-    const others = blueprint.optionalParameters.filter((parameter) => parameter.key !== key);
-    saveFields({ optionalParameters: value === '' ? others : [...others, { key, value }] });
+    void apply(() => {
+      const others = latest.current.optionalParameters.filter((parameter) => parameter.key !== key);
+      return api.updateBlueprint(project.folder, blueprint.id, {
+        ...fieldsOf(latest.current),
+        optionalParameters: value === '' ? others : [...others, { key, value }],
+      });
+    });
   }
 
   const race = catalog.parameters.find((parameter) => parameter.key === RACE);
@@ -222,7 +241,14 @@ function Editor(props: { blueprint: BlueprintDto; onChanged: (blueprint: Bluepri
             label={t('blueprints.quantity')}
             type="number"
             initial={blueprint.quantity.toString()}
-            onCommit={(text) => saveFields({ quantity: Math.max(1, Number.parseInt(text, 10) || 1) })}
+            // Sent as typed: a quantity below 1 is the API's to refuse, with its
+            // code (§I.0). Only what is not a number at all is not sent.
+            onCommit={(text) => {
+              const quantity = Number.parseInt(text, 10);
+              if (!Number.isNaN(quantity)) {
+                saveFields({ quantity });
+              }
+            }}
           />
         </div>
       </div>
@@ -334,7 +360,11 @@ function Editor(props: { blueprint: BlueprintDto; onChanged: (blueprint: Bluepri
               <button
                 className="btn danger"
                 onClick={() => {
-                  void run(() => api.removeBlueprint(project.folder, blueprint.id)).then(props.onRemoved);
+                  // Closed only once the deletion is done: a refused one leaves the editor as it was.
+                  void run(async () => {
+                    await api.removeBlueprint(project.folder, blueprint.id);
+                    return true;
+                  }).then((removed) => removed === true && props.onRemoved());
                 }}
               >
                 {t('common.delete')}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { api } from '../api/client';
@@ -97,13 +97,25 @@ export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => 
   const millimetres = new Intl.NumberFormat(i18n.resolvedLanguage, { maximumFractionDigits: 1 });
   const skipped = new Set(report?.skipped.map((each) => each.blueprintId) ?? []);
 
-  async function setQuantity(id: string, quantity: number) {
-    const blueprint = project.blueprints.find((each) => each.id === id);
-    if (blueprint === undefined || quantity < 1) {
-      return;
-    }
+  // The blueprints as the API last answered: two quick clicks on "+" queue two
+  // writes (SaveStatus), and the second must count from the first's answer.
+  const latest = useRef(project.blueprints);
+  useEffect(() => {
+    latest.current = project.blueprints;
+  }, [project.blueprints]);
+
+  async function changeQuantity(id: string, step: 1 | -1) {
+    const written = await run(async () => {
+      const blueprint = latest.current.find((each) => each.id === id);
+      if (blueprint === undefined) {
+        return undefined;
+      }
+      const edited = await api.updateBlueprint(project.folder, id, { ...fieldsOf(blueprint), quantity: blueprint.quantity + step });
+      latest.current = latest.current.map((each) => (each.id === id ? edited.blueprint : each));
+      return edited;
+    });
     // Reloaded rather than patched: the new modifiedAt is what asks for the report and the PDF again.
-    if ((await run(() => api.updateBlueprint(project.folder, id, { ...fieldsOf(blueprint), quantity }))) !== undefined) {
+    if (written !== undefined) {
       await reload();
     }
   }
@@ -145,9 +157,9 @@ export function LayoutScreen(props: { goTo: (step: 'project' | 'generation') => 
                   <span className="line">
                     <span className="small muted">{t('layout.copies')}</span>
                     <span className="seg" role="group" aria-label={t('blueprints.quantity')}>
-                      <button aria-label={t('layout.less')} disabled={blueprint.quantity <= 1} onClick={() => void setQuantity(blueprint.id, blueprint.quantity - 1)}>−</button>
+                      <button aria-label={t('layout.less')} disabled={blueprint.quantity <= 1} onClick={() => void changeQuantity(blueprint.id, -1)}>−</button>
                       <button aria-pressed="false" tabIndex={-1}>{blueprint.quantity}</button>
-                      <button aria-label={t('layout.more')} onClick={() => void setQuantity(blueprint.id, blueprint.quantity + 1)}>+</button>
+                      <button aria-label={t('layout.more')} onClick={() => void changeQuantity(blueprint.id, 1)}>+</button>
                     </span>
                   </span>
                 )}

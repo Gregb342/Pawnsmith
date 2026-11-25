@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type { ReactNode } from 'react';
 
 import { ApiError } from '../api/client';
+import { writeQueue } from './writeQueue';
 
 /**
  * The autosave indicator (DEC-111). Every write of the interface goes through
@@ -12,7 +13,7 @@ export type SaveState = { kind: 'idle' } | { kind: 'saving' } | { kind: 'saved' 
 
 interface SaveStatus {
   state: SaveState;
-  /** Runs one write and reports it; resolves to its result, or to undefined when it failed. */
+  /** Runs one write after the writes already asked for, and reports it; resolves to its result, or to undefined when it failed. */
   run: <T>(write: () => Promise<T>) => Promise<T | undefined>;
 }
 
@@ -33,17 +34,30 @@ export function codeOf(error: unknown): string {
 export function SaveStatusProvider(props: { children: ReactNode }) {
   const [state, setState] = useState<SaveState>({ kind: 'idle' });
 
-  const run = useCallback(async <T,>(write: () => Promise<T>): Promise<T | undefined> => {
-    setState({ kind: 'saving' });
-    try {
-      const result = await write();
-      setState({ kind: 'saved' });
-      return result;
-    } catch (error) {
-      setState({ kind: 'failed', code: codeOf(error) });
-      return undefined;
-    }
-  }, []);
+  // The writes run one after the other, never two at once (writeQueue): two
+  // in flight would both start from the same answer, and the second would
+  // undo the first — typing Details, then Tab and an arrow key on a list, is
+  // enough. One queue for the whole interface, made once.
+  const [enqueue] = useState(writeQueue);
+
+  const run = useCallback(
+    <T,>(write: () => Promise<T>): Promise<T | undefined> => {
+      setState({ kind: 'saving' });
+
+      return enqueue(async (): Promise<T | undefined> => {
+        try {
+          const result = await write();
+          setState({ kind: 'saved' });
+          return result;
+        } catch (error) {
+          // Reported, not thrown: the caller gets undefined.
+          setState({ kind: 'failed', code: codeOf(error) });
+          return undefined;
+        }
+      });
+    },
+    [enqueue],
+  );
 
   const value = useMemo(() => ({ state, run }), [state, run]);
 
