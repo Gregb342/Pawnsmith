@@ -3,14 +3,16 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.19 |
-| **Date** | 4 octobre 2026 |
+| **Version du document** | 0.20 |
+| **Date** | 25 novembre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
  
+> **Changements depuis la v0.19** — **DEC-115** : PDFsharp reste épinglé sur **6.2.4**, la dernière version sous MIT — à partir de 6.5.0 (14 octobre 2026), il est publié sous **AGPL-3.0-only**. Sa dépendance transitive `System.Security.Cryptography.Pkcs` 8.0.1, frappée de deux avis de sécurité qui cassaient la compilation, est relevée en 10.0.15 par une référence directe.
+
 > **Changements depuis la v0.18** — Revue de la maquette du front par le porteur, et spécification de la seconde partie de T6 (`pawnsmith-cahier-des-charges-t6-front.md` v1.0). **DEC-105 à DEC-112, décidées par le porteur** : les libellés d'écran (Proposition, Retenue, Prompt modifié, ComfyUI connecté) ; le catalogue traduit, race et classe devenues des listes, la tête du template prenant leurs fragments ; le catalogue personnel, fait d'objets complets ; l'adresse du générateur réglée depuis l'interface (**supersède DEC-081** sur ce point) ; la clause sujet verrouillée par défaut ; la bibliothèque de styles copiés, la palette retirée de l'interface ; l'enregistrement automatique ; l'univers et le style figés à la première proposition, et la duplication (**supersède DEC-030 et DEC-055** pour ces deux champs). **DEC-113 et DEC-114** : l'aperçu de la planche est le PDF ; le front sans dépendance nouvelle, en `0.10.0`. Notes ajoutées aux §2, §12, §15.1, §15.5 et au chapitre 16, où la question E est fermée.
 
 > **Changements depuis la v0.17** — Spécification de la tranche T5 (`pawnsmith-cahier-des-charges-t5.md` v1.0). **DEC-098 et DEC-099, décidées par le porteur** : le détourage se fait **sans modèle**, par diffusion sur le fond uni que la clause de cadrage exige (**supersède DEC-008** sur le modèle ONNX : les poids disponibles portent la condition non commerciale de leurs données d'entraînement), et les PNG se lisent et s'écrivent à la main, sur le sous-ensemble qu'écrit ComfyUI. **DEC-100 à DEC-104** : l'algorithme et ses valeurs ; le détourage dans le lot, avant la sauvegarde, sans que son échec arrête le lot ; la signature du port (**supersède le chapitre 7**) ; cinq codes, qui **ferment la question G** ; T5 en `0.9.0` (**supersède DEC-058** sur ce point).
@@ -1167,6 +1169,10 @@ Conséquence : le §15.2 exige que l'aperçu montre ce que le PDF contiendra, re
 **DEC-114 — Le front n'ajoute aucune dépendance ; la tranche porte la version `0.10.0`.**
 Choix : React, `react-i18next` et `i18next` suffisent. Le routage s'écrit sur le fragment d'URL, à la main. Aucun banc de test du navigateur dans cette tranche ; la parité des clés de traduction est vérifiée par un script sans dépendance. La version passe à `0.10.0`.
 Conséquence : une bibliothèque de routage ou de requêtes serait une dépendance pour une dizaine d'écrans. L'absence de tests automatisés du front est un trou connu, écrit au §I.12 du cahier : ce qui le compense est `tsc`, ESLint et un parcours éprouvé dans le conteneur.
+
+**DEC-115 — PDFsharp reste sur 6.2.4, dernière version MIT ; sa dépendance vulnérable est relevée à la main.** *Le 25 novembre 2026.*
+Choix : `PDFsharp` est épinglé sur **6.2.4** et ne monte plus. `System.Security.Cryptography.Pkcs`, que PDFsharp demande en 8.0.1, est référencé directement par `Pawnsmith.Infrastructure` en **10.0.15** ; le code du dépôt ne l'utilise pas.
+Conséquence : deux faits extérieurs, constatés le même jour. **PDFsharp 6.5.0, publié le 14 octobre 2026, passe sous AGPL-3.0-only**, comme la préversion 7.0.0-preview-2 ; jusqu'à 6.2.4 et 7.0.0-preview-1, il était sous MIT (licences lues dans le `.nuspec` publié de chaque version). L'AGPL impose de publier le code de toute application qui l'embarque et qu'on sert par le réseau : c'est exactement le changement de modèle que la politique A.2 existe pour refuser, et la raison même du choix de PDFsharp contre QuestPDF (DEC-019). Et deux avis publiés après la fin de T6, GHSA-846f-f764-76mx (élevé) et GHSA-2fmv-rv2c-59x7 (modéré), visent `Pkcs` 8.0.0 à 8.0.1 ; avec `TreatWarningsAsErrors`, ni `main` ni cette branche ne compilaient plus. Les versions corrigées sont 8.0.2, 9.0.21 et 10.0.13 et au-delà ; 10.0.15 plutôt que 8.0.2, parce que .NET 8 est sorti du support en novembre 2026 et que la ligne 10.0 est la LTS que vise la solution. PDFsharp ne demande qu'un minimum, la version plus haute le satisfait, et toute la suite passe. **Le prix** : une faille future de PDFsharp lui-même ne se corrigera plus par une montée de version. Si cela arrive, les voies sont une bifurcation de 6.2.4 ou une autre bibliothèque sous licence permissive — à décider ce jour-là, pas avant.
 
 ---
  

@@ -204,6 +204,7 @@ les référence pour de bon.**
 | **QuestPDF** | Licence commerciale « source-available », non approuvée OSI. Secteur public et sociétés cotées exclus quel que soit leur chiffre d'affaires. | **PDFsharp** (MIT), DEC-019 |
 | **FluentAssertions ≥ 8** | Passé sous licence propriétaire Xceed en janvier 2025 ; usage commercial payant. La 7.x reste libre, mais épingler une version majeure pour raison de licence est une dette gratuite sur un projet neuf. | **Shouldly** |
 | **AutoMapper** | Modèle commercial, et surtout mapping invisible en relecture — ce qui contredit frontalement DEC-021 et DEC-027. | Mapping manuel par méthodes d'extension `ToDto()` |
+| **PDFsharp ≥ 6.5** | Publié sous **AGPL-3.0-only** depuis 6.5.0 (14 octobre 2026) : toute application servie par le réseau qui l'embarque devrait publier son code. Même motif que QuestPDF, chez le paquet choisi pour l'éviter. | **PDFsharp 6.2.4**, dernière version MIT, épinglée (DEC-115). Une faille future ne se corrigera pas par une montée de version |
 | **Moq** | A embarqué en août 2023, **dans une version mineure**, un composant extrayant l'adresse e-mail du développeur depuis sa configuration Git pour l'envoyer à un service tiers — sans consentement ni mention dans les notes de version. Retiré depuis, mais le paquet a démontré qu'il pouvait embarquer de la collecte par surprise, jusque sur le poste des contributeurs. | **NSubstitute** (BSD) |
 
 > **Pourquoi Moq figure ici alors que le domaine se teste sans mock.** Le
@@ -294,7 +295,7 @@ format du §1. Une chaîne verte prouve que le code compile, pas qu'il est le bo
 Les **fondations (partie A) sont closes**, A.1 à A.8, dernier critère compris :
 l'intégration continue a tourné au vert sur `main`.
 
-Documents de référence en vigueur : bible **v0.19**, cahier des charges T1
+Documents de référence en vigueur : bible **v0.20**, cahier des charges T1
 **v1.7**, cahier des charges T2 **v1.1**, cahier des charges T3 **v1.1**,
 **cahier des charges T4 v1.1**, **cahier des charges T5 v1.1**, **cahier des
 charges T6 v1.1** (l'API), **cahier des charges T6, le front, v1.1**,

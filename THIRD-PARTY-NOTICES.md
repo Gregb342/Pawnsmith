@@ -23,10 +23,10 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 
 | Paquet | Version | Licence | Rôle |
 |---|---|---|---|
-| [PDFsharp](https://github.com/empira/PDFsharp) | 6.2.4 | MIT | Rendu PDF, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-019) |
+| [PDFsharp](https://github.com/empira/PDFsharp) | 6.2.4 | MIT | Rendu PDF, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-019). **Épinglé** : 6.5.0 et au-delà sont sous AGPL-3.0-only (DEC-115) |
 | Microsoft.Extensions.DependencyInjection.Abstractions | 8.0.2 | MIT | Dépendance transitive de PDFsharp |
 | Microsoft.Extensions.Logging.Abstractions | 8.0.3 | MIT | Dépendance transitive de PDFsharp |
-| System.Security.Cryptography.Pkcs | 8.0.1 | MIT | Dépendance transitive de PDFsharp (signature de PDF) |
+| [System.Security.Cryptography.Pkcs](https://github.com/dotnet/runtime) | 10.0.15 | MIT | Dépendance de PDFsharp (signature de PDF), qui demande 8.0.1. Référencée **directement** par `Pawnsmith.Infrastructure` pour relever cette version, frappée de deux avis de sécurité (DEC-115) ; le code du dépôt ne l'appelle pas |
 | [Serilog](https://github.com/serilog/serilog) | 4.4.0 | Apache-2.0 | Journalisation structurée, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-090) : le journal, l'enrichissement par contexte, le formateur JSON |
 | [Serilog.Sinks.File](https://github.com/serilog/serilog-sinks-file) | 7.0.0 | Apache-2.0 | Écriture des journaux en fichiers, rotation par jour et par taille, rétention par nombre (DEC-091), référencé par `Pawnsmith.Infrastructure` |
 | [Serilog.Extensions.Logging](https://github.com/serilog/serilog-extensions-logging) | 10.0.0 | Apache-2.0 | Pont entre `ILogger<T>` d'ASP.NET et Serilog, référencé par `Pawnsmith.Api` (DEC-090). Sa dépendance `Microsoft.Extensions.Logging` est fournie par le cadre ASP.NET et n'est pas distribuée en paquet |
