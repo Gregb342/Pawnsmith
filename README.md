@@ -24,7 +24,7 @@ plutôt qu'interdite (DEC-105).
 > du générateur ComfyUI, lots de candidats — sont écrites, ainsi que la tranche
 > **T6** — l'API puis l'**interface** —, la tranche **T7** — journaux,
 > visualiseur, revue du modèle de menace — et la tranche **T5** — détourage
-> sans modèle, sur fond uni. **1 073 tests verts.**
+> sans modèle, sur fond uni. **1 179 tests .NET et 36 tests du front, verts.**
 >
 > L'**interface** est complète, en français et en anglais : projets, gabarits,
 > génération auprès d'un ComfyUI, détourage, mise en page avec l'aperçu du
@@ -91,12 +91,24 @@ front compilé, comme en production — passer par le conteneur.
 dotnet test Pawnsmith.sln
 ```
 
-Le front n'a pas encore de tests — ils arrivent avec l'interface, en T6. Son
-analyse statique et sa compilation valent vérification :
+Le front a ses propres tests, Vitest, sur ses modules purs — routage, lecture
+des erreurs, requêtes, liste des projets, capacités (DEC-118). Les écrans, qui
+ne portent pas de règle, s'éprouvent dans un navigateur. L'analyse statique
+vérifie aussi que les deux catalogues de traduction ont les mêmes clés :
 
 ```bash
-cd src/Pawnsmith.Web && npm run lint && npm run build
+cd src/Pawnsmith.Web && npm run lint && npm test && npm run build
 ```
+
+Que **chaque code d'erreur de l'API ait sa traduction** est vérifié côté .NET,
+par `tests/Pawnsmith.Api.Tests/TranslationTests.cs`, là où la liste des codes
+existe.
+
+> **Ajouter un paquet au front.** `npm` 10.9, celui de Node 22, échoue sur les
+> dépendances pairs optionnelles de Vitest (`Cannot read properties of null
+> (reading 'edgesOut')`). Le lockfile s'écrit avec npm 11 :
+> `npx npm@11.6.4 install <paquet>`. `npm ci` en npm 10 l'installe ensuite
+> sans erreur.
 
 ---
 
@@ -306,6 +318,7 @@ curl -s -X POST $API/projects/donjon/blueprints/<id>/jobs -H 'Content-Type: appl
 curl -s $API/jobs
 curl -s -X POST $API/projects/donjon/blueprints/<id>/candidates/<candidateId>/cutout
 curl -s $API/projects/donjon/sheet/report
+curl -s $API/projects/donjon/sheet/capacities
 curl -s -o planche.pdf "$API/projects/donjon/sheet.pdf?culture=fr"
 ```
 
@@ -313,6 +326,11 @@ Une requête qui écrit, envoyée par une page d'une autre origine, est refusée
 et seuls les noms d'hôte locaux sont acceptés (MEN-010). Pour publier
 l'application sur son réseau, il faut ajouter son nom d'hôte à
 `AllowedHosts` — en connaissance de cause.
+
+Toute réponse porte une politique de contenu et trois en-têtes de sécurité
+(DEC-116) : aucun autre site ne peut encadrer l'application pour détourner un
+clic (MEN-012), et la page n'exécute que les scripts qu'elle sert elle-même
+(MEN-013).
 
 ---
 

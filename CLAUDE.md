@@ -281,7 +281,7 @@ autorise le commit.
 ```bash
 dotnet build Pawnsmith.sln
 dotnet test Pawnsmith.sln
-cd src/Pawnsmith.Web && npm run lint && npm run build
+cd src/Pawnsmith.Web && npm run lint && npm test && npm run build
 docker build -t pawnsmith .
 ```
 
@@ -598,6 +598,55 @@ T1 a livré **154 tests**, les 19 du §B.8 couverts. Une seule dépendance de
 production : PDFsharp 6.2.4 (MIT). La police embarquée est DejaVu Sans, sous
 licence libre autorisant l'incorporation dans un document — point important,
 puisqu'une police utilisée dans un PDF y est redistribuée.
+
+#### Pour la suite du front — même branche, 25 novembre 2026
+
+**Pas fusionnée non plus.** Sept commits de plus sur `claude/t6-front`, après
+la tâche 15, sur ta consigne « continue autant de dev que tu peux » ; ils se
+relisent avec `git log --oneline 38fd8f5..`. Les deux premiers réparent la
+compilation, les suivants sont les tâches 16 à 22 du §I.15 du cahier du front.
+La plus engageante d'abord.
+
+1. **PDFsharp est passé sous AGPL-3.0** à sa version 6.5.0, le 14 octobre
+   2026 (DEC-115). Le projet reste épinglé sur **6.2.4**, dernière version MIT,
+   et `PDFsharp ≥ 6.5` entre dans les interdits du §3. Le prix : une faille
+   future de PDFsharp ne se corrigera plus par une montée de version.
+2. **`main` ne compile plus**, et cette branche non plus avant le premier
+   commit : deux avis de sécurité visent `System.Security.Cryptography.Pkcs`
+   8.0.1, que PDFsharp demande, et `TreatWarningsAsErrors` en fait des
+   erreurs. La dépendance est relevée en **10.0.15** par une référence directe.
+   **`main` restera rouge tant que cette branche n'est pas fusionnée.**
+3. **Une branche `claude/fix-pkcs-advisory`, partie de `main`, porte le même
+   correctif numéroté DEC-105** : je l'ai créée avant de voir cette branche,
+   dont DEC-105 est déjà un de tes libellés. **Ne la fusionne pas** ; elle est
+   à supprimer. J'avais aussi commencé à réécrire le front de zéro, sans voir
+   ce travail ; rien n'en a été poussé, sauf ce qui est repris ici.
+4. **La revue du chapitre 9 pour le front n'avait pas été faite** (DEC-116) :
+   **MEN-012**, détournement de clic, et **MEN-013**, injection de contenu.
+   Une politique de contenu et trois en-têtes sur toute réponse, et ESLint
+   refuse `dangerouslySetInnerHTML`. Éprouvé : aucune violation sur le tour des
+   neuf écrans, et une page d'une autre origine qui encadre l'application est
+   bloquée. **À vérifier sur ton poste** : que l'aperçu PDF s'affiche toujours
+   sous cette politique — Chromium sans affichage n'a pas de lecteur PDF.
+5. **Une route de capacités par taille** (DEC-117) : la Mise en page nomme
+   enfin la taille qui ne tient pas, son format et sa géométrie (§15.4).
+6. **Le front a des tests** (DEC-118) : Vitest **4.1.12**, sur les modules
+   purs, 36 tests, lancés par la CI. Pas 5.x : la 5.1.2 est sortie le matin
+   même, et `npm` 10.9 — celui de la CI — n'arrive à résoudre les pairs
+   optionnels ni de la 4 ni de la 5. **Le lockfile a été écrit par npm
+   11.6.4** ; `npm ci` en npm 10.9 l'installe sans erreur, c'est ce que la CI
+   fait. Si tu ajoutes un paquet avec npm 10, tu retomberas sur l'erreur
+   `Cannot read properties of null (reading 'edgesOut')` : passe par
+   `npx npm@11.6.4 install …`.
+7. **Un test .NET vérifie que chaque code a sa traduction** : il lit
+   `fr.json` et `en.json` depuis `Pawnsmith.Api.Tests`, parce que c'est là
+   que la liste des codes existe.
+8. **Les diagnostics d'un projet n'étaient affichés nulle part** — l'API les
+   rend depuis T2. L'étape Projet les montre ; et un format de papier inconnu
+   reste visible dans sa liste, sans quoi il ne pouvait pas se corriger.
+9. **Un rechargement raté garde le projet à l'écran**, avec « Réessayer ».
+10. **i18next passe de 25 à 26** pour un avis de sécurité ; les treize autres
+    avis `npm` se règlent dans le lockfile.
 
 ### T2 — code terminé, 15 tâches sur 15
 
@@ -1180,13 +1229,13 @@ Le code vit dans `src/Pawnsmith.Infrastructure/Imaging/` (`RgbaImage`,
 - **Un détourage à la borne de 8 192 pixels** tient quelques centaines de
   mégaoctets le temps du calcul. Borné, et risque accepté (§F.13).
 
-### T6, seconde partie : le front — code terminé, 15 tâches sur 15
+### T6, seconde partie : le front — code terminé, 22 tâches sur 22
 
 **Le front est spécifié** par
 [`docs/pawnsmith-cahier-des-charges-t6-front.md`](docs/pawnsmith-cahier-des-charges-t6-front.md)
-v1.1 **et écrit**, sur la branche `claude/t6-front`. Les huit premières
+v1.2 **et écrit**, sur la branche `claude/t6-front`. Les huit premières
 tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
-écrans.
+écrans ; les tâches 16 à 22 (§I.15), la suite du 25 novembre.
 
 | # | Tâche | État |
 |---|---|---|
@@ -1205,14 +1254,24 @@ tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
 | 13 | Front : Mise en page et Impression | ✅ |
 | 14 | Front : Générateur et Journaux | ✅ |
 | 15 | Documentation | ✅ |
+| — | Compilation réparée (DEC-115) ; avis `npm` | ✅ |
+| 16 | Cahier §I.15, DEC-116 à DEC-118, bible v0.21 | ✅ |
+| 17 | En-têtes de sécurité ; `dangerouslySetInnerHTML` interdit | ✅ |
+| 18 | Capacités par taille ; la taille qui ne tient pas est nommée | ✅ |
+| 19 | Test .NET des traductions | ✅ |
+| 20 | Vitest et les tests du front | ✅ |
+| 21 | Rechargement raté, diagnostics, cotes de l'aperçu, téléchargement | ✅ |
+| 22 | Documentation | ✅ |
 
-**Les 18 tests serveur de §I.12 sont couverts.** Le dépôt porte **1 073
-tests verts**. Aucune dépendance ajoutée, ni côté .NET ni côté front. Le code
+**Les 18 tests serveur de §I.12 et les 13 de §I.15.6 sont couverts.** Le
+dépôt porte **1 179 tests .NET verts** et **36 tests Vitest**. Une dépendance
+ajoutée côté .NET, pour relever une version (`System.Security.Cryptography.Pkcs`,
+DEC-115), et une de développement côté front (Vitest, DEC-118). Le code
 du front vit dans `src/Pawnsmith.Web/src/` : `api/` (client et miroir des
 DTO), `app/` (routage, données partagées, enregistrement automatique),
 `components/`, `screens/` (un fichier par écran), `styles/global.css` (les
 jetons de couleur, pour que le passage par Claude Design — D8 — remplace un
-bloc), `i18n/locales/` (311 clés par langue).
+bloc), `i18n/locales/` (323 clés par langue).
 
 #### Ce que ma relecture du front a trouvé, et corrigé
 
@@ -1229,16 +1288,17 @@ bloc), `i18n/locales/` (311 clés par langue).
 
 #### Ce qui n'est pas couvert, à connaître
 
-- **Aucun test automatisé du front** — le point 3 ci-dessus.
+- **Les écrans eux-mêmes n'ont pas de test automatisé** : Vitest couvre les
+  modules purs (DEC-118), les écrans s'éprouvent dans un navigateur.
 - **L'aperçu PDF affiché n'a pas été regardé** : Chromium sans affichage
   n'a pas de lecteur PDF. L'en-tête `inline` et le contenu du fichier l'ont
-  été — planche rendue en image, deux pions, légendes en anglais.
+  été — planche rendue en image, deux pions, légendes en anglais. **Depuis
+  DEC-116, il passe aussi sous une politique de contenu** : à regarder chez
+  toi, dans Chrome et Firefox.
 - **Rien contre un vrai ComfyUI** : le faux rend des rectangles sur fond
   gris, que le détourage sait découper.
 - **Le design** est celui de la maquette, sobre ; le passage par Claude
   Design (D8) et le logo viennent après.
-- **Une erreur réseau pendant le rechargement d'un projet** remplace
-  l'écran par le message d'erreur : il faut revenir à la liste.
 - **Aucun écran ne supprime un projet**, comme l'API.
 
 ### Ce que le mode cloud ne peut pas tester — à faire sur ton poste
