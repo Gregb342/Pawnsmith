@@ -65,7 +65,7 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 |---|---|---|---|
 | [react](https://github.com/facebook/react) | 19.2.x | MIT | Bibliothèque d'interface (DEC-018) |
 | [react-dom](https://github.com/facebook/react) | 19.2.x | MIT | Rendu DOM de React |
-| [i18next](https://github.com/i18next/i18next) | 25.x | MIT | Moteur de localisation, socle de `react-i18next` |
+| [i18next](https://github.com/i18next/i18next) | 26.x | MIT | Moteur de localisation, socle de `react-i18next`. Passé de 25 à 26 pour l'avis GHSA-6jcc-5g8w-32mx, corrigé en 26.3.4 |
 | [react-i18next](https://github.com/i18next/react-i18next) | 16.x | MIT | Liaison React de i18next (A.5, chapitre 10 de la bible) |
 | [vite](https://github.com/vitejs/vite) | 7.x | MIT | Outillage de compilation du front (A.1) |
 | [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) | 5.x | MIT | Prise en charge de JSX et du rafraîchissement à chaud |
