@@ -147,6 +147,52 @@ public class CatalogBookTests
     }
 
     [Fact]
+    public async Task AtStartUpAnIncompleteEntryIsSetAsideRatherThanStoppingTheStart()
+    {
+        // A file edited by hand: an entry without its French label, one without
+        // a fragment. Catalog.Create would refuse either; the start-up sets
+        // them aside and goes on (§I.10.5).
+        CatalogEntry noFrench = PromptFixture.Entry("halberd", "holding a halberd") with
+        {
+            Labels = new Dictionary<string, string>(StringComparer.Ordinal) { ["en"] = "halberd" },
+        };
+        var store = new MemoryStore
+        {
+            Stored =
+            [
+                PromptFixture.Param("weapon", noFrench, PromptFixture.Entry("flail", "  "), PromptFixture.Entry("pike", "holding a pike")),
+            ],
+        };
+
+        CatalogBook book = await Book(store);
+
+        book.Current.TryGetFragment("weapon", "pike", out _).ShouldBeTrue();
+        book.Current.TryGetFragment("weapon", "halberd", out _).ShouldBeFalse();
+        book.Dropped.ShouldBe(["weapon: halberd", "weapon: flail"]);
+    }
+
+    [Fact]
+    public async Task AtStartUpAKeyWrittenTwiceBecomesOneBlockWithoutRepeats()
+    {
+        var store = new MemoryStore
+        {
+            Stored =
+            [
+                PromptFixture.Param("weapon", PromptFixture.Entry("halberd", "holding a halberd")),
+                PromptFixture.Param("weapon", PromptFixture.Entry("halberd", "a second halberd"), PromptFixture.Entry("pike", "holding a pike")),
+            ],
+        };
+
+        CatalogBook book = await Book(store);
+
+        book.Dropped.ShouldBe(["weapon: halberd"]);
+
+        // The next change keeps both entries: the two blocks were one.
+        await book.AddEntryAsync("weapon", "glaive", Both("glaive", "glaive"), "holding a glaive", CancellationToken.None);
+        store.Stored.ShouldHaveSingleItem().Entries.Select(entry => entry.Value).ShouldBe(["halberd", "pike", "glaive"]);
+    }
+
+    [Fact]
     public async Task TheComposerSeesAnEntryAddedAfterItWasBuilt()
     {
         CatalogBook book = await Book(new MemoryStore());

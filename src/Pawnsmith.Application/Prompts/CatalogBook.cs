@@ -69,33 +69,45 @@ public sealed class CatalogBook
 
         IReadOnlyList<CatalogParameter> stored = await store.ReadAsync(shipped.Universe, cancellationToken).ConfigureAwait(false);
 
-        List<CatalogParameter> kept = [];
+        // One list per key, in the order the keys first appear: a file that
+        // names a key twice (written by hand) becomes one block. Left as two,
+        // the next change would keep only the first block's entries.
+        List<CatalogParameter> blocks = [];
+        Dictionary<string, List<CatalogEntry>> entriesByKey = new(StringComparer.Ordinal);
         List<string> dropped = [];
 
         foreach (CatalogParameter parameter in stored)
         {
-            List<CatalogEntry> entries = [];
-
             foreach (CatalogEntry entry in parameter.Entries)
             {
                 bool known = shipped.KnowsKey(parameter.Key);
                 bool shadowed = known && shipped.TryGetFragment(parameter.Key, entry.Value, out _);
-                bool repeated = entries.Any(other => string.Equals(other.Value, entry.Value, StringComparison.Ordinal));
+                bool repeated = entriesByKey.TryGetValue(parameter.Key, out List<CatalogEntry>? sameKey)
+                    && sameKey.Any(other => string.Equals(other.Value, entry.Value, StringComparison.Ordinal));
 
-                if (!known || shadowed || repeated)
+                // Set aside, never a start-up failure (§I.10.5): an entry the
+                // catalogue would refuse - a label missing in one culture, an
+                // empty value or fragment - is as good as unknown. Without this
+                // check, Catalog.Create would throw and the application would
+                // not start over one line of a file the user owns.
+                if (!known || shadowed || repeated || !IsComplete(entry))
                 {
                     dropped.Add($"{parameter.Key}: {entry.Value}");
                     continue;
                 }
 
-                entries.Add(entry with { Origin = CatalogEntryOrigin.Personal });
-            }
+                if (sameKey is null)
+                {
+                    sameKey = [];
+                    entriesByKey[parameter.Key] = sameKey;
+                    blocks.Add(parameter);
+                }
 
-            if (entries.Count > 0)
-            {
-                kept.Add(parameter with { Entries = entries });
+                sameKey.Add(entry with { Origin = CatalogEntryOrigin.Personal });
             }
         }
+
+        List<CatalogParameter> kept = [.. blocks.Select(parameter => parameter with { Entries = entriesByKey[parameter.Key] })];
 
         return new CatalogBook(shipped, store, kept, dropped);
     }
@@ -195,6 +207,15 @@ public sealed class CatalogBook
     }
 
     /// <summary>The four conditions of a complete entry (§I.4.1), each refused by name.</summary>
+    /// <summary>Whether a stored entry has what <see cref="Complete"/> demands of a new one.</summary>
+    private static bool IsComplete(CatalogEntry entry) =>
+        !string.IsNullOrWhiteSpace(entry.Value)
+        && !string.IsNullOrWhiteSpace(entry.Fragment)
+        && InterfaceCulture.All.All(culture =>
+            entry.Labels is not null
+            && entry.Labels.TryGetValue(culture, out string? label)
+            && !string.IsNullOrWhiteSpace(label));
+
     private CatalogEntry Complete(string key, string value, IReadOnlyDictionary<string, string> labels, string fragment)
     {
         if (!shipped.KnowsKey(key))

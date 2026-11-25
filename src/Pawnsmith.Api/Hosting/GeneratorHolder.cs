@@ -61,8 +61,18 @@ public sealed class GeneratorHolder(GeneratorSetup initial, PawnsmithSettings se
                 : await GeneratorSetup.LoadAsync(trimmed, settings.WorkflowFile, cancellationToken).ConfigureAwait(false);
 
             // Saved before it is applied: an address in force that a restart
-            // would forget is worse than one refused.
-            await new GeneratorAddressFile(settings.UserDirectory).WriteAsync(trimmed, cancellationToken).ConfigureAwait(false);
+            // would forget is worse than one refused. A save that fails leaves
+            // the setup just built unused: its HTTP client is released here,
+            // since nobody else will ever hold it.
+            try
+            {
+                await new GeneratorAddressFile(settings.UserDirectory).WriteAsync(trimmed, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                next.Dispose();
+                throw;
+            }
 
             built.Add(next);
             Volatile.Write(ref current, next);
