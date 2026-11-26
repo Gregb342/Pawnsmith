@@ -17,6 +17,20 @@ personnage est produit en une seule génération. L'univers et le style se figen
 gabarit retouché, un workflow changé — est signalée « prompt modifié depuis »
 plutôt qu'interdite (DEC-105).
 
+## Essayer l'application
+
+**Le [guide du premier essai](docs/guide-premier-essai.md) mène pas à pas du
+lancement à la planche imprimée**, contre ton ComfyUI. En bref :
+
+```bash
+scripts/start.sh                                            # Linux, macOS
+powershell -ExecutionPolicy Bypass -File scripts\start.ps1  # Windows
+docker compose up --build                                   # ou en conteneur
+```
+
+puis <http://127.0.0.1:8080>, page **Générateur** : l'adresse de ComfyUI, et le
+fichier de son **Export (API)** — Pawnsmith le prépare lui-même (DEC-120).
+
 > **État d'avancement.** Les **fondations** (partie A), la tranche **T1**
 > — moteur de mise en page et rendu PDF —, la tranche **T2** — modèle de
 > projet, persistance, archives —, la tranche **T3** — composition de la
@@ -24,13 +38,14 @@ plutôt qu'interdite (DEC-105).
 > du générateur ComfyUI, lots de candidats — sont écrites, ainsi que la tranche
 > **T6** — l'API puis l'**interface** —, la tranche **T7** — journaux,
 > visualiseur, revue du modèle de menace — et la tranche **T5** — détourage
-> sans modèle, sur fond uni. **1 181 tests .NET et 39 tests du front, verts.**
+> sans modèle, sur fond uni. **1 223 tests .NET et 40 tests du front, verts.**
 >
 > L'**interface** est complète, en français et en anglais : projets, gabarits,
 > génération auprès d'un ComfyUI, détourage, mise en page avec l'aperçu du
-> PDF, impression, catalogue personnel, réglage du générateur, journaux. Elle
-> n'a **jamais été éprouvée contre un vrai ComfyUI** ni sur papier : les
-> sessions de développement n'en avaient pas. Le harnais en ligne de commande
+> PDF, impression, catalogue personnel, réglage du générateur et import de son
+> workflow, journaux. Le parcours entier a été éprouvé dans l'interface contre
+> un faux ComfyUI ; il n'a **jamais tourné contre un vrai ComfyUI** ni sur
+> papier : les sessions de développement n'en avaient pas. Le harnais en ligne de commande
 > de `tools/` reste là pour les mesures de T0b.
 > Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
 

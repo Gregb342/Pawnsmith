@@ -660,6 +660,41 @@ La plus engageante d'abord.
     demanderait un port de suppression de projet — à toi de dire si tu le
     veux.
 
+#### Pour la mise en service — même branche, 26 novembre 2026
+
+Sur ta consigne « avance jusqu'à une version utilisable que je puisse tester,
+sans me demander mon avis » : §I.16 du cahier du front, tâches 23 à 29,
+DEC-119 à DEC-122. **Le point d'entrée est
+[`docs/guide-premier-essai.md`](docs/guide-premier-essai.md).**
+
+1. **Le workflow s'importe depuis la page Générateur** (DEC-119), et
+   l'emporte sur celui de la configuration. En conteneur, la génération était
+   jusqu'ici **impossible** : le fichier, ignoré par git, n'est pas dans
+   l'image. **Cela précise DEC-029** : le cadrage n'est toujours montré nulle
+   part, mais un fichier qui le porte peut arriver par l'interface.
+2. **L'export brut de ComfyUI est préparé par l'application** (DEC-120) : elle
+   suit les liens du graphe pour placer la graine, le prompt positif et le
+   négatif, et trouver le `SaveImage`. L'ambigu est refusé, jamais deviné —
+   cinq codes `WORKFLOW_IMPORT_*`. **C'est la décision la plus engageante** :
+   elle n'a été éprouvée que sur des graphes écrits à la main, dont celui de
+   l'exemple du dépôt. Ton vrai export est le premier test.
+3. **La clause de cadrage d'un export brut** vient d'un nouveau fichier livré,
+   `config/framing-clause.json` — les lignes de T0a, les mêmes que l'exemple.
+4. **Deux scripts de lancement sans Docker et un `docker-compose.yml`**
+   (DEC-121). `scripts/start.sh` a tourné ici tel quel ; **`start.ps1` n'a pas
+   pu être exécuté** — PowerShell n'est pas installé dans l'environnement du
+   cloud, et l'installer m'a été refusé. Il suit `start.sh` ligne à ligne.
+5. **Sous `dotnet run`, le dossier utilisateur allait dans
+   `src/Pawnsmith.Api/data/user`** : `appsettings.Development.json` ne le
+   nommait pas. Il va désormais dans `data/user`, à côté des projets.
+6. **Le parcours entier a été éprouvé par l'interface seule**, lancée par
+   `scripts/start.sh`, contre un faux ComfyUI : import du workflow brut,
+   projet, gabarit, quatre propositions, une retenue, mise en page, PDF
+   téléchargé puis rendu en image. Et en conteneur, par `docker compose`,
+   contre un faux ComfyUI de l'hôte joint par `host.docker.internal`.
+7. **La branche est fusionnée dans `main`** (tâche 29), ce qui répare aussi sa
+   compilation (DEC-115).
+
 ### T2 — code terminé, 15 tâches sur 15
 
 **La tranche T2 (modèle de projet et persistance) est spécifiée** par
@@ -1241,7 +1276,7 @@ Le code vit dans `src/Pawnsmith.Infrastructure/Imaging/` (`RgbaImage`,
 - **Un détourage à la borne de 8 192 pixels** tient quelques centaines de
   mégaoctets le temps du calcul. Borné, et risque accepté (§F.13).
 
-### T6, seconde partie : le front — code terminé, 22 tâches sur 22
+### T6, seconde partie : le front — code terminé, 29 tâches sur 29
 
 **Le front est spécifié** par
 [`docs/pawnsmith-cahier-des-charges-t6-front.md`](docs/pawnsmith-cahier-des-charges-t6-front.md)
@@ -1274,9 +1309,16 @@ tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
 | 20 | Vitest et les tests du front | ✅ |
 | 21 | Rechargement raté, diagnostics, cotes de l'aperçu, téléchargement | ✅ |
 | 22 | Documentation | ✅ |
+| 23 | Cahier §I.16, DEC-119 à DEC-122, bible v0.22 | ✅ |
+| 24 | Préparation de l'export brut ; `config/framing-clause.json` | ✅ |
+| 25 | Import du workflow par l'API | ✅ |
+| 26 | La page Générateur importe le workflow | ✅ |
+| 27 | Scripts de lancement, `docker-compose.yml` | ✅ |
+| 28 | Guide du premier essai ; documentation | ✅ |
+| 29 | Fusion dans `main` | ✅ |
 
 **Les 18 tests serveur de §I.12 et les 13 de §I.15.6 sont couverts.** Le
-dépôt porte **1 181 tests .NET verts** et **39 tests Vitest**. Une dépendance
+dépôt porte **1 223 tests .NET verts** et **40 tests Vitest**. Une dépendance
 ajoutée côté .NET, pour relever une version (`System.Security.Cryptography.Pkcs`,
 DEC-115), et une de développement côté front (Vitest, DEC-118). Le code
 du front vit dans `src/Pawnsmith.Web/src/` : `api/` (client et miroir des
@@ -1388,8 +1430,10 @@ $CLI candidate cutout --path ./data/projects/donjon --id <guid> --candidate <gui
 $CLI cutout           --pair ./paire.png --out ./detourage
 ```
 
-**Lancer l'application** — l'interface est complète, sur
-<http://127.0.0.1:8080>. Trois volumes : projets, journaux, et le dossier
+**Lancer l'application pour l'essayer** — suivre
+[`docs/guide-premier-essai.md`](docs/guide-premier-essai.md) :
+`scripts/start.ps1` (Windows), `scripts/start.sh`, ou `docker compose up
+--build`. L'interface est sur <http://127.0.0.1:8080>. Trois volumes : projets, journaux, et le dossier
 utilisateur (catalogue personnel, styles personnels, adresse du générateur).
 
 ```bash
