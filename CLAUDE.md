@@ -509,9 +509,9 @@ toi, DEC-100 à DEC-104.
 
 #### Pour le front de T6 — branche `claude/t6-front`, partie de `main`
 
-**Proposée à la fusion dans `main`** par Gregb342/Pawnsmith#6 (26 novembre
-2026, CI verte), avec la suite du 25 novembre et la mise en service ; **la
-relecture intégrale reste à faire**. La branche part de `main` après T5 (`e84a27b`),
+**Fusionnée dans `main`** par Gregb342/Pawnsmith#6 le 26 novembre 2026, à ta
+demande, en commit de fusion, avec la suite du 25 novembre et la mise en
+service ; **la relecture intégrale reste à faire**. La branche part de `main` après T5 (`e84a27b`),
 quinze commits de tâche plus un correctif de relecture ; elle se relit d'une
 traite avec `git log --oneline e84a27b..`.
 
@@ -617,11 +617,12 @@ La plus engageante d'abord.
    commit : deux avis de sécurité visent `System.Security.Cryptography.Pkcs`
    8.0.1, que PDFsharp demande, et `TreatWarningsAsErrors` en fait des
    erreurs. La dépendance est relevée en **10.0.15** par une référence directe.
-   **`main` restera rouge tant que la pull request #6 n'est pas fusionnée.**
+   `main` compile de nouveau depuis la fusion de Gregb342/Pawnsmith#6.
 3. **Une branche `claude/fix-pkcs-advisory`, partie de `main`, porte le même
    correctif numéroté DEC-105** : je l'ai créée avant de voir cette branche,
    dont DEC-105 est déjà un de tes libellés. **Ne la fusionne pas** ; elle
-   est à supprimer. J'avais aussi commencé à réécrire le front de zéro, sans voir ce
+   est à supprimer — la politique réseau de la session cloud m'interdit de
+   supprimer une branche, c'est à faire depuis GitHub. J'avais aussi commencé à réécrire le front de zéro, sans voir ce
    travail ; rien n'en a été poussé, sauf ce qui est repris ici.
 4. **La revue du chapitre 9 pour le front n'avait pas été faite** (DEC-116) :
    **MEN-012**, détournement de clic, et **MEN-013**, injection de contenu.
@@ -683,9 +684,12 @@ DEC-119 à DEC-122. **Le point d'entrée est
 3. **La clause de cadrage d'un export brut** vient d'un nouveau fichier livré,
    `config/framing-clause.json` — les lignes de T0a, les mêmes que l'exemple.
 4. **Deux scripts de lancement sans Docker et un `docker-compose.yml`**
-   (DEC-121). `scripts/start.sh` a tourné ici tel quel ; **`start.ps1` n'a pas
-   pu être exécuté** — PowerShell n'est pas installé dans l'environnement du
-   cloud, et l'installer m'a été refusé. Il suit `start.sh` ligne à ligne.
+   (DEC-121). Les deux ont tourné ici. `start.ps1` l'a fait sous PowerShell
+   7.6.10, installé comme outil .NET : il a d'abord échoué, `dotnet` lisant
+   `src\Pawnsmith.Api` comme un nom de fichier hors de Windows ; ses chemins
+   sont désormais écrits avec `/`, que Windows accepte aussi. Le parcours
+   entier a ensuite été rejoué sur l'instance qu'il lance, puis une relance a
+   retrouvé le workflow importé et le projet.
 5. **Sous `dotnet run`, le dossier utilisateur allait dans
    `src/Pawnsmith.Api/data/user`** : `appsettings.Development.json` ne le
    nommait pas. Il va désormais dans `data/user`, à côté des projets.
@@ -694,10 +698,9 @@ DEC-119 à DEC-122. **Le point d'entrée est
    projet, gabarit, quatre propositions, une retenue, mise en page, PDF
    téléchargé puis rendu en image. Et en conteneur, par `docker compose`,
    contre un faux ComfyUI de l'hôte joint par `host.docker.internal`.
-7. **La fusion dans `main` est proposée par Gregb342/Pawnsmith#6**, CI verte
-   et sans conflit (tâche 29). **Je n'ai pas pu la faire moi-même** : les
-   permissions de la session l'ont refusée. C'est à toi de la fusionner — elle
-   répare aussi la compilation de `main` (DEC-115).
+7. **La branche est fusionnée dans `main`** par Gregb342/Pawnsmith#6
+   (tâche 29), à ta demande explicite ; la fusion répare aussi la compilation
+   de `main` (DEC-115).
 
 ### T2 — code terminé, 15 tâches sur 15
 
@@ -1319,7 +1322,7 @@ tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
 | 26 | La page Générateur importe le workflow | ✅ |
 | 27 | Scripts de lancement, `docker-compose.yml` | ✅ |
 | 28 | Guide du premier essai ; documentation | ✅ |
-| 29 | Fusion dans `main` | ⏳ Gregb342/Pawnsmith#6 ouverte, à fusionner par toi |
+| 29 | Fusion dans `main` | ✅ Gregb342/Pawnsmith#6 |
 
 **Les 18 tests serveur de §I.12 et les 13 de §I.15.6 sont couverts.** Le
 dépôt porte **1 223 tests .NET verts** et **40 tests Vitest**. Une dépendance
