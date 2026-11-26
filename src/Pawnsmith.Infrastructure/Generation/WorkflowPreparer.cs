@@ -61,10 +61,14 @@ public static class WorkflowPreparer
 
     /// <summary>Prepares <paramref name="json"/>, or refuses it with a code.</summary>
     /// <param name="json">The file the user chose.</param>
-    /// <param name="framingLines">The framing clause given to a raw export (DEC-120); a prepared file keeps its own.</param>
+    /// <param name="framingLines">
+    /// Gives the framing clause for a raw export (DEC-120); a prepared file
+    /// keeps its own. A function, called only for a raw export: a deployment
+    /// without the shipped clause file still imports prepared files.
+    /// </param>
     /// <returns>The template document, ready to be saved, already checked by <see cref="WorkflowTemplate.Create"/>.</returns>
     /// <exception cref="WorkflowImportException">The file cannot be prepared.</exception>
-    public static JsonObject Prepare(string json, IReadOnlyList<string> framingLines)
+    public static JsonObject Prepare(string json, Func<IReadOnlyList<string>> framingLines)
     {
         ArgumentNullException.ThrowIfNull(json);
         ArgumentNullException.ThrowIfNull(framingLines);
@@ -101,7 +105,7 @@ public static class WorkflowPreparer
         var document = new JsonObject
         {
             ["versionSchema"] = WorkflowTemplateReader.SupportedVersionSchema,
-            ["framingClause"] = new JsonArray([.. framingLines.Select(line => (JsonNode?)JsonValue.Create(line))]),
+            ["framingClause"] = new JsonArray([.. framingLines().Select(line => (JsonNode?)JsonValue.Create(line))]),
             ["outputNodeId"] = output,
             ["workflow"] = root,
         };

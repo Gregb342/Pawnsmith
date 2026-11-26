@@ -1,3 +1,7 @@
+using System.Text;
+
+using Microsoft.Net.Http.Headers;
+
 using Pawnsmith.Api.Contracts;
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Api.Hosting;
@@ -88,18 +92,8 @@ public static class ReferenceEndpoints
             return (await styles.RemoveAsync(id, cancellationToken)).ToDto();
         });
 
-        routes.MapGet("/api/generator", async (GeneratorHolder generators, CancellationToken cancellationToken) =>
-        {
-            GeneratorSetup setup = generators.Current;
-
-            // A live check when there is something to check: an absent
-            // generator is a state, never an exception (§E.7.1).
-            GeneratorAvailability? availability = setup.Generator is null
-                ? null
-                : await setup.Generator.CheckAsync(cancellationToken);
-
-            return setup.ToDto(availability);
-        });
+        routes.MapGet("/api/generator", (GeneratorHolder generators, CancellationToken cancellationToken) =>
+            StateOf(generators.Current, generators, cancellationToken));
 
         // DEC-108 - the address is set from the interface. Validated, saved,
         // then applied; the answer is the new state, checked live.
@@ -107,12 +101,50 @@ public static class ReferenceEndpoints
         {
             GeneratorSetup setup = await generators.ReplaceAsync(request.Address, cancellationToken);
 
-            GeneratorAvailability? availability = setup.Generator is null
-                ? null
-                : await setup.Generator.CheckAsync(cancellationToken);
-
-            return setup.ToDto(availability);
+            return await StateOf(setup, generators, cancellationToken);
         });
+
+        // DEC-119, DEC-120 - the workflow is imported from the interface: a
+        // raw ComfyUI export, prepared here, or a file already prepared. The
+        // body is the file itself, as JSON - no form, no envelope - bounded
+        // like every request body (Pawnsmith:MaxRequestBytes).
+        routes.MapPut("/api/generator/workflow", async (HttpContext context, GeneratorHolder generators, CancellationToken cancellationToken) =>
+        {
+            // JSON only: a type no HTML form can send, so a forged form from
+            // another site cannot reach here (§G.11.1).
+            if (!MediaTypeHeaderValue.TryParse(context.Request.ContentType, out MediaTypeHeaderValue? type)
+                || !string.Equals(type.MediaType.Value, "application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ApiException(ApiCodes.RequestInvalid);
+            }
+
+            using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
+            string json = await reader.ReadToEndAsync(cancellationToken);
+
+            GeneratorSetup setup = await generators.ImportWorkflowAsync(json, cancellationToken);
+
+            return await StateOf(setup, generators, cancellationToken);
+        });
+
+        routes.MapDelete("/api/generator/workflow", async (GeneratorHolder generators, CancellationToken cancellationToken) =>
+        {
+            GeneratorSetup setup = await generators.RemoveImportedWorkflowAsync(cancellationToken);
+
+            return await StateOf(setup, generators, cancellationToken);
+        });
+    }
+
+    /// <summary>
+    /// The state of a setup, checked live when there is something to check:
+    /// an absent generator is a state, never an exception (§E.7.1).
+    /// </summary>
+    private static async Task<GeneratorDto> StateOf(GeneratorSetup setup, GeneratorHolder generators, CancellationToken cancellationToken)
+    {
+        GeneratorAvailability? availability = setup.Generator is null
+            ? null
+            : await setup.Generator.CheckAsync(cancellationToken);
+
+        return setup.ToDto(availability, generators.WorkflowSource);
     }
 
     // Matched against the member names, exactly: Enum.TryParse would also

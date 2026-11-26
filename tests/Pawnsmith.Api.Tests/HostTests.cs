@@ -68,6 +68,7 @@ public class HostTests
             .. Enum.GetValues<CatalogRuleCode>().Select(code => code.ToWireCode()),
             .. Enum.GetValues<StyleRuleCode>().Select(code => code.ToWireCode()),
             .. Enum.GetValues<ProjectRuleCode>().Select(code => code.ToWireCode()),
+            .. Enum.GetValues<WorkflowImportErrorCode>().Select(code => code.ToWireCode()),
             .. typeof(ApiCodes).GetFields().Select(field => (string)field.GetValue(null)!),
         ];
 

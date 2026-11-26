@@ -40,7 +40,8 @@ public sealed record CatalogEntryRequest(string Key, string Value, IReadOnlyDict
 
 public sealed record GeneratorAddressRequest(string? Address);
 
-public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause);
+/// <param name="WorkflowSource">Where the workflow in force comes from: <c>Imported</c>, <c>Configuration</c> or <c>None</c> (DEC-119).</param>
+public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause, string WorkflowSource);
 
 /// <summary>The manual mappings of these DTOs (DEC-021): one method per type, nothing inferred.</summary>
 public static class ReferenceMapping
@@ -83,7 +84,7 @@ public static class ReferenceMapping
         new(labels.ToDictionary(label => label.Key, label => label.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
     /// <summary>The generator's state: from the start-up setup, and from a live check when it is configured.</summary>
-    public static GeneratorDto ToDto(this GeneratorSetup setup, GeneratorAvailability? availability) => new(
+    public static GeneratorDto ToDto(this GeneratorSetup setup, GeneratorAvailability? availability, string workflowSource) => new(
         State: setup.Configuration switch
         {
             GeneratorConfiguration.Configured => availability!.Value.ToString(),
@@ -93,5 +94,6 @@ public static class ReferenceMapping
         },
         Code: setup.ErrorCode,
         Address: setup.Address,
-        FramingClause: setup.FramingClause);
+        FramingClause: setup.FramingClause,
+        WorkflowSource: workflowSource);
 }

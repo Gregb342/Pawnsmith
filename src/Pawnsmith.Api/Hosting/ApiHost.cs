@@ -144,10 +144,14 @@ public static class ApiHost
         // The address chosen in the interface wins over the configuration;
         // without that file, the configuration applies (DEC-108).
         (bool saved, string? savedAddress) = await new GeneratorAddressFile(settings.UserDirectory).ReadAsync(CancellationToken.None);
-        GeneratorSetup generator = await GeneratorSetup.LoadAsync(
-            saved ? savedAddress : settings.GeneratorUrl, settings.WorkflowFile, CancellationToken.None);
+        string? generatorAddress = saved ? savedAddress : settings.GeneratorUrl;
 
-        Register(builder.Services, settings, calibration, catalog, styles, template, generator);
+        // Likewise, a workflow imported in the interface wins over the
+        // configuration's file (DEC-119).
+        GeneratorSetup generator = await GeneratorSetup.LoadAsync(
+            generatorAddress, new WorkflowLocation(settings).Current, CancellationToken.None);
+
+        Register(builder.Services, settings, calibration, catalog, styles, template, generator, generatorAddress);
         replaceServices?.Invoke(builder.Services);
 
         // Every body is bounded by the server while it arrives, not after it
@@ -188,7 +192,8 @@ public static class ApiHost
         CatalogBook catalog,
         StyleBook styles,
         PromptTemplate template,
-        GeneratorSetup generator)
+        GeneratorSetup generator,
+        string? generatorAddress)
     {
         services.AddSingleton(settings);
         services.AddSingleton(calibration);
@@ -205,7 +210,7 @@ public static class ApiHost
 
         // Built from the setup in the container, so that a test which swapped
         // the setup gets a holder of its fake.
-        services.AddSingleton(provider => new GeneratorHolder(provider.GetRequiredService<GeneratorSetup>(), settings));
+        services.AddSingleton(provider => new GeneratorHolder(provider.GetRequiredService<GeneratorSetup>(), settings, generatorAddress));
 
         services.AddSingleton<IProjectRepository>(new FileSystemProjectRepository(new ProjectRepositoryOptions(settings.ProjectsRoot)));
         services.AddSingleton(new ProjectWriteGate());

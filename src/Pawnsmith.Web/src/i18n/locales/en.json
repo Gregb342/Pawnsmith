@@ -157,7 +157,12 @@
     "SHEET_CAPACITY_EXCEEDED": "A size does not fit on this paper format.",
     "SHEET_EMPTY": "Nothing to print: no blueprint has a kept proposal.",
     "SHEET_INPUT_INVALID": "A kept image is unreadable or too large.",
-    "INTERNAL_ERROR": "Internal server error: see the logs."
+    "INTERNAL_ERROR": "Internal server error: see the logs.",
+    "WORKFLOW_IMPORT_INVALID": "This file is not a usable workflow. In ComfyUI, export it with “Export (API)”, not with the ordinary export.",
+    "WORKFLOW_IMPORT_NO_OUTPUT": "This workflow has no “Save Image” node: nothing says which image to bring back.",
+    "WORKFLOW_IMPORT_NO_SEED": "This workflow has no seed (“seed” or “noise_seed”) written as a number.",
+    "WORKFLOW_IMPORT_NO_PROMPT": "The positive prompt of this workflow leads to no text.",
+    "WORKFLOW_IMPORT_AMBIGUOUS": "This workflow is ambiguous (several outputs, several seeds, or an encoder with two texts). Prepare it by hand: see the first-try guide."
   },
   "common": {
     "cancel": "Cancel",

@@ -157,7 +157,12 @@
     "SHEET_CAPACITY_EXCEEDED": "Une taille ne tient pas sur ce format de papier.",
     "SHEET_EMPTY": "Rien à imprimer : aucun gabarit n’a de proposition retenue.",
     "SHEET_INPUT_INVALID": "Une image retenue est illisible ou trop grande.",
-    "INTERNAL_ERROR": "Erreur interne du serveur : voir les journaux."
+    "INTERNAL_ERROR": "Erreur interne du serveur : voir les journaux.",
+    "WORKFLOW_IMPORT_INVALID": "Ce fichier n’est pas un workflow utilisable. Dans ComfyUI, exportez-le avec « Export (API) », pas avec l’export ordinaire.",
+    "WORKFLOW_IMPORT_NO_OUTPUT": "Ce workflow n’a aucun nœud « Save Image » : on ne sait pas quelle image rapatrier.",
+    "WORKFLOW_IMPORT_NO_SEED": "Ce workflow n’a aucune graine (« seed » ou « noise_seed ») écrite comme un nombre.",
+    "WORKFLOW_IMPORT_NO_PROMPT": "Le prompt positif de ce workflow ne mène à aucun texte.",
+    "WORKFLOW_IMPORT_AMBIGUOUS": "Ce workflow est ambigu (plusieurs sorties, plusieurs graines ou un encodeur à deux textes). Préparez-le à la main : voir le guide du premier essai."
   },
   "common": {
     "cancel": "Annuler",

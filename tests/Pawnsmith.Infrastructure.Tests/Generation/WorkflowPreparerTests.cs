@@ -14,7 +14,7 @@ public class WorkflowPreparerTests
 {
     private static readonly IReadOnlyList<string> Framing = ["front view on the left, back view on the right,", "plain grey background"];
 
-    private static JsonObject Prepare(string json) => WorkflowPreparer.Prepare(json, Framing);
+    private static JsonObject Prepare(string json) => WorkflowPreparer.Prepare(json, () => Framing);
 
     private static WorkflowImportException Refused(string json) => Should.Throw<WorkflowImportException>(() => Prepare(json));
 
@@ -231,6 +231,16 @@ public class WorkflowPreparerTests
         document["framingClause"]!.AsArray().Select(line => line!.GetValue<string>())
             .ShouldBe([WorkflowFixture.FramingFirstLine, WorkflowFixture.FramingSecondLine]);
         Input(document, "4", "text")!.GetValue<string>().ShouldBe(WorkflowTemplate.PositiveToken);
+    }
+
+    [Fact]
+    public void APreparedFileNeverAsksForTheShippedFramingClause()
+    {
+        // The shipped clause file may be absent from a deployment's config/:
+        // a prepared file carries its own, and must import all the same.
+        JsonObject document = WorkflowPreparer.Prepare(WorkflowFixture.File(), () => throw new InvalidOperationException("not asked"));
+
+        document["outputNodeId"]!.GetValue<string>().ShouldBe("9");
     }
 
     [Fact]
