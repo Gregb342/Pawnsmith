@@ -67,8 +67,10 @@ COPY --from=front   /src/web/dist ./wwwroot/
 COPY config/ ./config/
 
 # DEC-022 — projects and logs are two distinct volumes: a shared project archive
-# must never carry prompts, absolute paths or the generator URL.
-VOLUME ["/app/data/projects", "/app/data/logs"]
+# must never carry prompts, absolute paths or the generator URL. The third holds
+# the user's own files - personal catalogue and styles, generator address - which
+# no archive carries either (§I.4.2 of the T6 front spec).
+VOLUME ["/app/data/projects", "/app/data/logs", "/app/data/user"]
 
 # MEN-004 — the application has no authentication. The canonical run form binds
 # the published port to the loopback interface only:

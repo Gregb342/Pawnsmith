@@ -121,11 +121,23 @@ public class ProjectRoutesTests
         (await ApiHarness.ErrorOf(response)).ShouldBe((HttpStatusCode.UnprocessableEntity, "PROJECT_INVALID"));
     }
 
-    // --- G.13 n° 9 : modifier le style désaligne, et la réponse le montre ------------------
+    // --- G.13 n° 9, revu par DEC-112 : le sujet désaligne, le style se fige ------------------
+
+    private static object Settings(string styleClause = "", string universe = "Fantasy", string geometry = "TabAndSocket") => new
+    {
+        name = "Donjon",
+        universe,
+        geometry,
+        paperFormat = "A4",
+        style = new { name = "", styleClause, negativeClause = "", palette = "" },
+        calibrationOverrides = new { tabWidthMm = (double?)null, tabHeightMm = (double?)null },
+    };
 
     [Fact]
-    public async Task ChangingTheStyleMisalignsTheCandidatesAndTheAnswerShowsIt()
+    public async Task EditingTheSubjectMisalignsTheCandidatesAndTheAnswerShowsIt()
     {
+        // G.13 n° 9 changed the style; DEC-112 freezes it once a proposal
+        // exists, so the subject is now the clause that moves.
         var generator = new FakeGenerator();
         await using ApiHarness api = await ApiHarness.StartAsync(generator.Setup());
         string folder = await ProjectSeed.CreateAsync(api);
@@ -136,20 +148,74 @@ public class ProjectRoutesTests
         before["misalignmentKnown"]!.GetValue<bool>().ShouldBeTrue();
         Candidates(before).Single()!["misalignedClauses"]!.AsArray().ShouldBeEmpty();
 
-        JsonNode after = await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", new
+        await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/blueprints/{blueprint}/subject-clause", new { clause = "a scarred goblin" });
+
+        JsonNode after = await api.GetJsonAsync($"/api/projects/{folder}");
+        Candidates(after).Single()!["misalignedClauses"]!.AsArray().Select(clause => clause!.GetValue<string>())
+            .ShouldBe(["Subject"]);
+    }
+
+    // --- §I.12 n° 15 et 16 : univers et style figés à la première proposition (DEC-112) ----
+
+    [Fact]
+    public async Task WithoutProposalsTheStyleChangesAndTheProjectSaysItIsNotFrozen()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        await ProjectSeed.AddBlueprintDirectlyAsync(api, folder);
+
+        JsonNode after = await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(styleClause: "oil painting"));
+
+        after["style"]!["styleClause"]!.GetValue<string>().ShouldBe("oil painting");
+        after["universeAndStyleFrozen"]!.GetValue<bool>().ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task WithAProposalTheStyleIsFrozenAndTheGeometryIsNot()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        Guid blueprint = await ProjectSeed.AddBlueprintDirectlyAsync(api, folder);
+        await ProjectSeed.AddCandidateAsync(api, folder, blueprint, cutOut: false, FakeGenerator.Framing);
+
+        (await api.GetJsonAsync($"/api/projects/{folder}"))["universeAndStyleFrozen"]!.GetValue<bool>().ShouldBeTrue();
+
+        using HttpResponseMessage refused = await api.SendAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(styleClause: "oil painting"));
+        (await ApiHarness.ErrorOf(refused)).ShouldBe((HttpStatusCode.Conflict, "STYLE_FROZEN"));
+
+        JsonNode moved = await api.SendJsonAsync(HttpMethod.Put, $"/api/projects/{folder}/settings", Settings(geometry: "FoldedTent"));
+        moved["geometry"]!.GetValue<string>().ShouldBe("FoldedTent");
+    }
+
+    // --- §I.12 n° 17 : la duplication ----------------------------------------------------
+
+    [Fact]
+    public async Task ADuplicateCopiesTheBlueprintsWithoutTheirProposalsInTheStyleAsked()
+    {
+        await using ApiHarness api = await ApiHarness.StartAsync();
+        string folder = await ProjectSeed.CreateAsync(api);
+        Guid blueprint = await ProjectSeed.AddBlueprintDirectlyAsync(api, folder);
+        await ProjectSeed.AddCandidateAsync(api, folder, blueprint, cutOut: true, FakeGenerator.Framing, elect: true);
+        JsonNode source = await api.GetJsonAsync($"/api/projects/{folder}");
+
+        using HttpResponseMessage response = await api.SendAsync(HttpMethod.Post, $"/api/projects/{folder}/duplicate", new
         {
-            name = "Donjon",
-            universe = "Fantasy",
-            geometry = "FoldedTent",
-            paperFormat = "A4",
-            style = new { name = "Oil", styleClause = "oil painting, heavy impasto", negativeClause = "", palette = "" },
-            calibrationOverrides = new { tabWidthMm = (double?)null, tabHeightMm = (double?)null },
+            name = "Donjon à l'encre",
+            style = new { name = "Ink", styleClause = "black ink drawing", negativeClause = "", palette = "" },
         });
 
-        Candidates(after).Single()!["misalignedClauses"]!.AsArray().Select(clause => clause!.GetValue<string>())
-            .ShouldBe(["Style"]);
-        after["geometry"]!.GetValue<string>().ShouldBe("FoldedTent");
-        after["blueprints"]![0]!["resolvedPrompt"]!.GetValue<string>().ShouldEndWith("oil painting, heavy impasto");
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        JsonNode copy = JsonNode.Parse(await response.Content.ReadAsStringAsync())!;
+        copy["folder"]!.GetValue<string>().ShouldNotBe(folder);
+        copy["projectId"]!.GetValue<Guid>().ShouldNotBe(source["projectId"]!.GetValue<Guid>());
+        copy["style"]!["styleClause"]!.GetValue<string>().ShouldBe("black ink drawing");
+        copy["universeAndStyleFrozen"]!.GetValue<bool>().ShouldBeFalse();
+
+        JsonNode copied = copy["blueprints"]!.AsArray().Single()!;
+        copied["subjectClause"]!.GetValue<string>().ShouldBe(source["blueprints"]![0]!["subjectClause"]!.GetValue<string>());
+        copied["candidates"]!.AsArray().ShouldBeEmpty();
+        copied["electedCandidateId"].ShouldBeNull();
+        Directory.EnumerateFiles(Path.Combine(api.ProjectsRoot, copy["folder"]!.GetValue<string>()), "*.png", SearchOption.AllDirectories).ShouldBeEmpty();
     }
 
     [Fact]

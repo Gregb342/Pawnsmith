@@ -105,8 +105,8 @@ public static class SubjectClause
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(catalog);
 
-        List<string> fragments = [Head(race, characterClass, template)];
         List<CompositionDiagnostic> diagnostics = [];
+        List<string> fragments = [Head(race, characterClass, template, catalog, diagnostics)];
 
         foreach (string key in OrderedKeys(optionalParameters, template))
         {
@@ -134,15 +134,53 @@ public static class SubjectClause
         return new ComposedSubject(ResolvedPrompt.Normalize(clause), diagnostics);
     }
 
-    private static string Head(string race, string characterClass, PromptTemplate template)
+    /// <summary>The head: the template's sentence, its two tokens filled in.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Each token receives the fragment of its value</b> when the catalogue
+    /// has a list for it (DEC-106): <c>orc</c> becomes "an orc", so the article
+    /// belongs to the entry and never to the template — which is what used to
+    /// write "a orc".
+    /// </para>
+    /// <para>
+    /// A catalogue <b>without</b> a <c>race</c> or <c>characterClass</c> key
+    /// offers no list for that field: the value is inserted as written, and
+    /// nothing is said, since there was nothing to look it up in. A catalogue
+    /// <b>with</b> the key but not the value says so, like an optional value.
+    /// </para>
+    /// </remarks>
+    private static string Head(
+        string race,
+        string characterClass,
+        PromptTemplate template,
+        Catalog catalog,
+        List<CompositionDiagnostic> diagnostics)
     {
         return TemplateToken.Substitute(
             template.SubjectHead,
             new Dictionary<string, string>
             {
-                [TemplateToken.Race] = race.Trim(),
-                [TemplateToken.CharacterClass] = characterClass.Trim(),
+                [TemplateToken.Race] = HeadValue(TemplateToken.Race, race.Trim(), catalog, diagnostics),
+                [TemplateToken.CharacterClass] = HeadValue(TemplateToken.CharacterClass, characterClass.Trim(), catalog, diagnostics),
             });
+    }
+
+    private static string HeadValue(string key, string value, Catalog catalog, List<CompositionDiagnostic> diagnostics)
+    {
+        if (catalog.TryGetFragment(key, value, out string fragment))
+        {
+            return fragment;
+        }
+
+        if (catalog.KnowsKey(key) && value.Length > 0)
+        {
+            diagnostics.Add(new CompositionDiagnostic(
+                key,
+                value,
+                $"The catalogue knows the key '{key}' but not the value '{value}'; the value was inserted as written."));
+        }
+
+        return value;
     }
 
     /// <summary>

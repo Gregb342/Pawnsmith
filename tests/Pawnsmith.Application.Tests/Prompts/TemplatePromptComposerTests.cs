@@ -39,7 +39,7 @@ public class TemplatePromptComposerTests
         Catalog catalog = PromptFixture.Catalog();
 
         Should.NotThrow(() => new TemplatePromptComposer(template, catalog));
-        Should.Throw<ArgumentNullException>(() => new TemplatePromptComposer(template, null!));
+        Should.Throw<ArgumentNullException>(() => new TemplatePromptComposer(template, (Catalog)null!));
     }
 
     [Fact]

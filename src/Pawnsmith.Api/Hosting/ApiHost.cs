@@ -124,15 +124,34 @@ public static class ApiHost
         // One universe in v1 (DEC-025); TemplatePromptComposer holds one.
         string universeFile = Universe.Fantasy.ToString().ToLowerInvariant();
 
-        Catalog catalog = await CatalogReader.ReadAsync(
+        Catalog shipped = await CatalogReader.ReadAsync(
             Path.Combine(settings.ConfigDirectory, $"catalog.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
+
+        // The shipped catalogue followed by the user's own entries (DEC-107).
+        // A personal file that cannot be read stops the start-up, like the
+        // calibration: silently serving without it would hide the user's data.
+        CatalogBook catalog = await CatalogBook.LoadAsync(shipped, new PersonalCatalogFile(settings.UserDirectory), CancellationToken.None);
+
+        // The style library: shipped styles, then the user's (DEC-110).
+        var styleFiles = new StyleLibraryFile(settings.UserDirectory);
+        IReadOnlyList<StylePreset> shippedStyles = await StyleLibraryFile.ReadShippedAsync(
+            Path.Combine(settings.ConfigDirectory, $"styles.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
+        StyleBook styles = await StyleBook.LoadAsync(Universe.Fantasy, shippedStyles, styleFiles, CancellationToken.None);
 
         PromptTemplate template = await PromptTemplateReader.ReadAsync(
             Path.Combine(settings.ConfigDirectory, $"prompt-template.{universeFile}.json"), Universe.Fantasy, CancellationToken.None);
 
-        GeneratorSetup generator = await GeneratorSetup.LoadAsync(settings, CancellationToken.None);
+        // The address chosen in the interface wins over the configuration;
+        // without that file, the configuration applies (DEC-108).
+        (bool saved, string? savedAddress) = await new GeneratorAddressFile(settings.UserDirectory).ReadAsync(CancellationToken.None);
+        string? generatorAddress = saved ? savedAddress : settings.GeneratorUrl;
 
-        Register(builder.Services, settings, calibration, catalog, template, generator);
+        // Likewise, a workflow imported in the interface wins over the
+        // configuration's file (DEC-119).
+        GeneratorSetup generator = await GeneratorSetup.LoadAsync(
+            generatorAddress, new WorkflowLocation(settings).Current, CancellationToken.None);
+
+        Register(builder.Services, settings, calibration, catalog, styles, template, generator, generatorAddress);
         replaceServices?.Invoke(builder.Services);
 
         // Every body is bounded by the server while it arrives, not after it
@@ -144,13 +163,22 @@ public static class ApiHost
         WebApplication app = builder.Build();
         Configure(app);
 
+        // Personal entries set aside because an upgrade now ships the same
+        // value, or dropped the key: said once, at start-up (§I.4.2).
+        if (catalog.Dropped.Count > 0)
+        {
+            app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(CatalogBook).FullName!).LogWarning(
+                "Personal catalogue entries set aside, the shipped catalogue now has them or no longer has their key: {Entries}",
+                string.Join(", ", catalog.Dropped));
+        }
+
         // Once the server listens, and not before: only then are its
         // addresses known (§H.5). The generator is read back from the
         // container, so that a test which swapped it is reported as it runs.
         app.Lifetime.ApplicationStarted.Register(() => StartupReport.Write(
             app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(StartupReport).FullName!),
             settings,
-            app.Services.GetRequiredService<GeneratorSetup>(),
+            app.Services.GetRequiredService<GeneratorHolder>().Current,
             app.Urls,
             inContainer: string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase)));
 
@@ -161,18 +189,28 @@ public static class ApiHost
         IServiceCollection services,
         PawnsmithSettings settings,
         Calibration calibration,
-        Catalog catalog,
+        CatalogBook catalog,
+        StyleBook styles,
         PromptTemplate template,
-        GeneratorSetup generator)
+        GeneratorSetup generator,
+        string? generatorAddress)
     {
         services.AddSingleton(settings);
         services.AddSingleton(calibration);
         services.AddSingleton(catalog);
-        services.AddSingleton<IPromptComposer>(new TemplatePromptComposer(template, catalog));
+        services.AddSingleton(styles);
+
+        // Reads the catalogue at each composition, so that a personal entry
+        // added a second ago composes like a shipped one.
+        services.AddSingleton<IPromptComposer>(new TemplatePromptComposer(template, () => catalog.Current));
 
         // A factory rather than the instance, so that the container disposes
         // the HTTP client of the generator when the application stops.
         services.AddSingleton(_ => generator);
+
+        // Built from the setup in the container, so that a test which swapped
+        // the setup gets a holder of its fake.
+        services.AddSingleton(provider => new GeneratorHolder(provider.GetRequiredService<GeneratorSetup>(), settings, generatorAddress));
 
         services.AddSingleton<IProjectRepository>(new FileSystemProjectRepository(new ProjectRepositoryOptions(settings.ProjectsRoot)));
         services.AddSingleton(new ProjectWriteGate());
@@ -220,7 +258,11 @@ public static class ApiHost
 
     private static void Configure(WebApplication app)
     {
-        // Outermost: everything below that throws is turned into a code.
+        // Outermost of all: every response leaves with the security headers,
+        // the error a middleware below writes included (DEC-116).
+        app.UseMiddleware<SecurityHeaders>();
+
+        // Everything below that throws is turned into a code.
         app.UseMiddleware<ErrorMiddleware>();
         app.UseMiddleware<OriginGuard>();
 

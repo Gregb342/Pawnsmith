@@ -6,12 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "lint": "eslint .",
+    "lint": "eslint . && node scripts/check-i18n.mjs",
+    "test": "vitest run",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "i18next": "^25.6.1",
+    "i18next": "^26.7.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-i18next": "^16.2.4"
@@ -26,6 +27,7 @@
     "globals": "^17.12.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0",
-    "vite": "^7.1.12"
+    "vite": "^7.1.12",
+    "vitest": "^4.1.12"
   }
 }

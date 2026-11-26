@@ -11,26 +11,42 @@ avec les repères d'impression nécessaires à une découpe correcte.
 
 Sa propriété centrale est la **cohérence visuelle** : toutes les figurines d'un
 même projet partagent le style du projet, et le couple recto/verso d'un même
-personnage est produit en une seule génération. Le style reste modifiable ; les
-figurines produites sous l'ancien sont alors signalées comme **désalignées**,
-plutôt que d'être interdites de changement (DEC-030).
+personnage est produit en une seule génération. L'univers et le style se figent
+à la première proposition ; pour un autre style, on duplique le projet
+(DEC-112). Une proposition dont le prompt a bougé depuis sa création — un
+gabarit retouché, un workflow changé — est signalée « prompt modifié depuis »
+plutôt qu'interdite (DEC-105).
+
+## Essayer l'application
+
+**Le [guide du premier essai](docs/guide-premier-essai.md) mène pas à pas du
+lancement à la planche imprimée**, contre ton ComfyUI. En bref :
+
+```bash
+scripts/start.sh                                            # Linux, macOS
+powershell -ExecutionPolicy Bypass -File scripts\start.ps1  # Windows
+docker compose up --build                                   # ou en conteneur
+```
+
+puis <http://127.0.0.1:8080>, page **Générateur** : l'adresse de ComfyUI, et le
+fichier de son **Export (API)** — Pawnsmith le prépare lui-même (DEC-120).
 
 > **État d'avancement.** Les **fondations** (partie A), la tranche **T1**
 > — moteur de mise en page et rendu PDF —, la tranche **T2** — modèle de
 > projet, persistance, archives —, la tranche **T3** — composition de la
 > clause sujet, catalogue, règles de gestion — et la tranche **T4** — client
-> du générateur ComfyUI, lots de candidats — sont écrites, ainsi que l'**API
-> de T6** (sans son front), la tranche **T7** — journaux, visualiseur côté
-> API, revue du modèle de menace — et la tranche **T5** — détourage sans
-> modèle, sur fond uni. **999 tests verts.**
+> du générateur ComfyUI, lots de candidats — sont écrites, ainsi que la tranche
+> **T6** — l'API puis l'**interface** —, la tranche **T7** — journaux,
+> visualiseur, revue du modèle de menace — et la tranche **T5** — détourage
+> sans modèle, sur fond uni. **1 223 tests .NET et 40 tests du front, verts.**
 >
-> Il n'y a **pas encore d'interface** : son front est la seconde partie de
-> T6. Ce qui tourne aujourd'hui se pilote par l'**API HTTP** du conteneur, ou
-> par le harnais en ligne de commande de `tools/` : produire une planche PDF, créer un projet, y ajouter des gabarits
-> dont la clause sujet est composée depuis un catalogue, générer des candidats
-> auprès d'un ComfyUI, les détourer, élire un candidat,
-> tirer la planche du projet, l'exporter en archive, la réimporter. Le
-> conteneur, lui, ne sert qu'une coquille de front sans fonctionnalité.
+> L'**interface** est complète, en français et en anglais : projets, gabarits,
+> génération auprès d'un ComfyUI, détourage, mise en page avec l'aperçu du
+> PDF, impression, catalogue personnel, réglage du générateur et import de son
+> workflow, journaux. Le parcours entier a été éprouvé dans l'interface contre
+> un faux ComfyUI ; il n'a **jamais tourné contre un vrai ComfyUI** ni sur
+> papier : les sessions de développement n'en avaient pas. Le harnais en ligne de commande
+> de `tools/` reste là pour les mesures de T0b.
 > Le détail tranche par tranche est dans le §8 de [`CLAUDE.md`](CLAUDE.md).
 
 Voir [`docs/pawnsmith-bible.md`](docs/pawnsmith-bible.md) pour la vision, le
@@ -40,7 +56,8 @@ des charges [T1](docs/pawnsmith-cahier-des-charges-t1.md),
 [T3](docs/pawnsmith-cahier-des-charges-t3.md),
 [T4](docs/pawnsmith-cahier-des-charges-t4.md),
 [T5](docs/pawnsmith-cahier-des-charges-t5.md),
-[T6](docs/pawnsmith-cahier-des-charges-t6.md) et
+[T6](docs/pawnsmith-cahier-des-charges-t6.md) (l'API),
+[T6, le front](docs/pawnsmith-cahier-des-charges-t6-front.md) et
 [T7](docs/pawnsmith-cahier-des-charges-t7.md) pour les spécifications
 détaillées.
 
@@ -77,7 +94,8 @@ dotnet run --project src/Pawnsmith.Api
 En développement, `appsettings.Development.json` fait lire à l'API les dossiers
 du dépôt : `config/` pour la calibration, `data/projects/` pour les projets
 (ignoré par git). Hors conteneur, l'API sert son propre `wwwroot`, qui est
-vide : c'est le serveur Vite qui affiche le front. Pour vérifier l'assemblage réel — l'API servant le
+vide : c'est le serveur Vite qui affiche le front, sur `http://localhost:5173`,
+et qui passe les appels `/api` à l'API, sur le port 8080. Pour vérifier l'assemblage réel — l'API servant le
 front compilé, comme en production — passer par le conteneur.
 
 ---
@@ -88,12 +106,24 @@ front compilé, comme en production — passer par le conteneur.
 dotnet test Pawnsmith.sln
 ```
 
-Le front n'a pas encore de tests — ils arrivent avec l'interface, en T6. Son
-analyse statique et sa compilation valent vérification :
+Le front a ses propres tests, Vitest, sur ses modules purs — routage, lecture
+des erreurs, requêtes, liste des projets, capacités (DEC-118). Les écrans, qui
+ne portent pas de règle, s'éprouvent dans un navigateur. L'analyse statique
+vérifie aussi que les deux catalogues de traduction ont les mêmes clés :
 
 ```bash
-cd src/Pawnsmith.Web && npm run lint && npm run build
+cd src/Pawnsmith.Web && npm run lint && npm test && npm run build
 ```
+
+Que **chaque code d'erreur de l'API ait sa traduction** est vérifié côté .NET,
+par `tests/Pawnsmith.Api.Tests/TranslationTests.cs`, là où la liste des codes
+existe.
+
+> **Ajouter un paquet au front.** `npm` 10.9, celui de Node 22, échoue sur les
+> dépendances pairs optionnelles de Vitest (`Cannot read properties of null
+> (reading 'edgesOut')`). Le lockfile s'écrit avec npm 11 :
+> `npx npm@11.6.4 install <paquet>`. `npm ci` en npm 10 l'installe ensuite
+> sans erreur.
 
 ---
 
@@ -194,10 +224,25 @@ docker build -t pawnsmith .
 Forme canonique de lancement :
 
 ```bash
-docker run --rm -p 127.0.0.1:8080:8080 -v pawnsmith-projects:/app/data/projects -v pawnsmith-logs:/app/data/logs pawnsmith
+docker run --rm -p 127.0.0.1:8080:8080 -v pawnsmith-projects:/app/data/projects -v pawnsmith-logs:/app/data/logs -v pawnsmith-user:/app/data/user pawnsmith
 ```
 
 L'application est alors sur <http://127.0.0.1:8080>.
+
+Le parcours suit les cinq étapes en haut de l'écran, dans l'ordre du
+pipeline, sans être un assistant : on revient à une étape sans rien perdre,
+et chaque champ s'enregistre quand on le quitte (DEC-111).
+
+1. **Projet** — nom, géométrie, format de papier, style (une bibliothèque
+   pour démarrer).
+2. **Gabarits** — race, classe, taille, quantité, équipement, choisis dans le
+   catalogue ; « Autre… » ajoute un objet complet au catalogue personnel.
+3. **Génération** — un lot de propositions par gabarit, détourées dans la
+   foulée ; on en retient une par gabarit.
+4. **Mise en page** — l'aperçu est le PDF lui-même ; la capacité se compte en
+   cellules.
+5. **Impression** — la langue des légendes, les vérifications avant
+   découpe, le téléchargement.
 
 > ### ⚠️ Pawnsmith n'a aucune authentification
 >
@@ -212,10 +257,13 @@ L'application est alors sur <http://127.0.0.1:8080>.
 > l'instance. Pour un accès distant, passez par un tunnel SSH ou un
 > reverse proxy assurant lui-même l'authentification. (MEN-004)
 
-Les deux volumes sont distincts et le restent : les journaux contiennent des
+Les trois volumes sont distincts et le restent : les journaux contiennent des
 chemins absolus, l'URL du générateur et des messages d'erreur qui nomment vos
 projets, et ne doivent jamais repartir dans l'archive d'un projet partagé
-(DEC-022).
+(DEC-022). Le dossier utilisateur, `/app/data/user`, garde ce que vous
+réglez une fois pour tous vos projets : le catalogue personnel, les styles
+personnels et l'adresse du générateur (DEC-107, DEC-108, DEC-110). Aucune
+archive ne l'emporte.
 
 En conteneur, Pawnsmith écrit à chaque démarrage un **avertissement** sur
 son adresse d'écoute : un conteneur écoute forcément sur toutes ses
@@ -236,7 +284,7 @@ gardés (DEC-091). Aucun prompt n'y est écrit exprès (DEC-092).
 | `Pawnsmith__Logs__FileSizeLimitBytes` | `52428800` | Taille d'un fichier avant le suivant |
 | `Logging__LogLevel__Default` | `Information` | Niveau, pour la console comme pour les fichiers |
 
-Le visualiseur de l'interface viendra avec le front ; l'API le sert déjà :
+La page **Journaux** de l'interface les lit ; l'API les sert aussi :
 
 ```bash
 curl -s http://127.0.0.1:8080/api/logs
@@ -245,24 +293,32 @@ curl -s "http://127.0.0.1:8080/api/logs/pawnsmith-20261003.ndjson?lines=50"
 
 ### Brancher le générateur
 
-Par variables d'environnement, au mécanisme standard d'ASP.NET (DEC-087) :
+**Depuis l'interface**, page Générateur : l'adresse s'y saisit, se teste, et
+s'enregistre dans le dossier utilisateur (DEC-108). Le **workflow**, lui, reste
+un fichier : l'export « Export (API) » de votre ComfyUI, monté dans
+`/app/config/` (voir [`config/README.md`](config/README.md)).
+
+Ou par variables d'environnement, au mécanisme standard d'ASP.NET (DEC-087) :
 
 ```bash
 docker run --rm -p 127.0.0.1:8080:8080 \
   -e Pawnsmith__Generator__Url=http://192.168.1.20:8188 \
   -v "$PWD/config/workflow.comfyui.json:/app/config/workflow.comfyui.json:ro" \
-  -v pawnsmith-projects:/app/data/projects -v pawnsmith-logs:/app/data/logs pawnsmith
+  -v pawnsmith-projects:/app/data/projects -v pawnsmith-logs:/app/data/logs -v pawnsmith-user:/app/data/user pawnsmith
 ```
 
 Sans adresse, la génération n'est pas configurée et tout le reste fonctionne ;
 une adresse ou un workflow refusés laissent l'application démarrer, et
-`GET /api/generator` dit pourquoi. **L'API ne modifie jamais l'adresse du
-générateur** (DEC-081).
+`GET /api/generator` dit pourquoi. **Une adresse enregistrée depuis
+l'interface l'emporte sur la variable d'environnement** au démarrage suivant :
+c'est le dernier choix explicite. Une adresse avec identifiants, requête ou
+fragment est refusée (`GENERATOR_ADDRESS_INVALID`).
 
 ### L'API
 
-Le front n'existe pas encore ; l'API, si (T6, première partie). Toutes les
-routes sont sous `/api` et décrites au §G.6 du cahier T6. Une erreur rend
+L'interface n'utilise que l'API, qui s'essaie aussi en `curl`. Toutes les
+routes sont sous `/api`, décrites au §G.6 du cahier T6 et, pour celles qu'a
+ajoutées le front, aux §I.4 à I.9 de son cahier. Une erreur rend
 `{ "code": "…" }` et rien d'autre (DEC-084).
 
 ```bash
@@ -277,6 +333,7 @@ curl -s -X POST $API/projects/donjon/blueprints/<id>/jobs -H 'Content-Type: appl
 curl -s $API/jobs
 curl -s -X POST $API/projects/donjon/blueprints/<id>/candidates/<candidateId>/cutout
 curl -s $API/projects/donjon/sheet/report
+curl -s $API/projects/donjon/sheet/capacities
 curl -s -o planche.pdf "$API/projects/donjon/sheet.pdf?culture=fr"
 ```
 
@@ -284,6 +341,11 @@ Une requête qui écrit, envoyée par une page d'une autre origine, est refusée
 et seuls les noms d'hôte locaux sont acceptés (MEN-010). Pour publier
 l'application sur son réseau, il faut ajouter son nom d'hôte à
 `AllowedHosts` — en connaissance de cause.
+
+Toute réponse porte une politique de contenu et trois en-têtes de sécurité
+(DEC-116) : aucun autre site ne peut encadrer l'application pour détourner un
+clic (MEN-012), et la page n'exécute que les scripts qu'elle sert elle-même
+(MEN-013).
 
 ---
 

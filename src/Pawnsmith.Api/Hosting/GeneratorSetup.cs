@@ -82,11 +82,23 @@ public sealed class GeneratorSetup : IDisposable
         new(GeneratorConfiguration.NotConfigured, generator: null, framingClause: null, address: null, errorCode: null);
 
     /// <summary>Reads the workflow and checks the address, once.</summary>
-    public static async Task<GeneratorSetup> LoadAsync(PawnsmithSettings settings, CancellationToken cancellationToken)
+    public static Task<GeneratorSetup> LoadAsync(PawnsmithSettings settings, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        if (settings.GeneratorUrl is null)
+        return LoadAsync(settings.GeneratorUrl, settings.WorkflowFile, cancellationToken);
+    }
+
+    /// <summary>The setup for this address and workflow file; no address means not configured.</summary>
+    /// <remarks>
+    /// The address may come from the configuration or from the user directory
+    /// (DEC-108); this method does not care which.
+    /// </remarks>
+    public static async Task<GeneratorSetup> LoadAsync(string? url, string workflowFile, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(workflowFile);
+
+        if (url is null)
         {
             return NotConfigured();
         }
@@ -95,20 +107,20 @@ public sealed class GeneratorSetup : IDisposable
 
         try
         {
-            workflow = await WorkflowTemplateReader.ReadAsync(settings.WorkflowFile, cancellationToken).ConfigureAwait(false);
+            workflow = await WorkflowTemplateReader.ReadAsync(workflowFile, cancellationToken).ConfigureAwait(false);
         }
         catch (GeneratorConfigException error)
         {
             // The address was never checked on this path: it is shown, and
             // logged, only if it would itself be accepted. One refused for
             // carrying credentials must not be repeated (DEC-081).
-            return new GeneratorSetup(GeneratorConfiguration.Misconfigured, null, null, ShownAddress(settings.GeneratorUrl), error.WireCode, error.Message);
+            return new GeneratorSetup(GeneratorConfiguration.Misconfigured, null, null, ShownAddress(url), error.WireCode, error.Message);
         }
 
         try
         {
-            var generator = new ComfyUiImageGenerator(new ComfyUiOptions(settings.GeneratorUrl), workflow);
-            return Configured(generator, workflow.FramingClause, settings.GeneratorUrl);
+            var generator = new ComfyUiImageGenerator(new ComfyUiOptions(url), workflow);
+            return Configured(generator, workflow.FramingClause, url);
         }
         catch (GeneratorConfigException error)
         {

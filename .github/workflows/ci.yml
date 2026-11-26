@@ -39,6 +39,12 @@ jobs:
         # rejected anyway.
         run: npm run lint
 
+      - name: Test front
+        working-directory: src/Pawnsmith.Web
+        # DEC-118 - after the lint, before the build: the pure modules of the
+        # front (routing, errors, requests, project list, capacities).
+        run: npm test
+
       - name: Build front
         working-directory: src/Pawnsmith.Web
         run: npm run build

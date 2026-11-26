@@ -18,6 +18,9 @@ namespace Pawnsmith.Infrastructure.Prompts;
 /// </remarks>
 public static class PromptTemplateReader
 {
+    /// <summary>Schema version this reader understands.</summary>
+    public const int SupportedVersionSchema = 1;
+
     private const string What = "prompt template file";
 
     /// <summary>Reads and validates a template file for the given universe.</summary>
@@ -31,7 +34,7 @@ public static class PromptTemplateReader
             .ConfigureAwait(false);
 
         PromptDataFile.RequireSchema(
-            document.VersionSchema, What, path,
+            document.VersionSchema, SupportedVersionSchema, What, path,
             PromptFileErrorCode.TemplateSchemaTooRecent, PromptFileErrorCode.TemplateInvalid);
 
         Universe universe = PromptDataFile.RequireUniverse(

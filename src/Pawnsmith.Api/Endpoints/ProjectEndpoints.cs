@@ -26,7 +26,8 @@ public static class ProjectEndpoints
             CreateProjectRequest request,
             IProjectRepository repository,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
+            IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             CreatedProjectResult created = await repository.CreateAsync(
@@ -39,7 +40,7 @@ public static class ProjectEndpoints
             // format, for instance (DEC-056).
             LoadedProjectResult loaded = await repository.LoadAsync(created.Directory, calibration, cancellationToken);
 
-            return Results.Created($"/api/projects/{folder}", loaded.ToDto(folder, generator.FramingClause));
+            return Results.Created($"/api/projects/{folder}", loaded.ToDto(folder, new MappingContext(generator.Current.FramingClause, composer)));
         });
 
         routes.MapGet("/api/projects/{folder}", async (
@@ -47,13 +48,14 @@ public static class ProjectEndpoints
             PawnsmithSettings settings,
             IProjectRepository repository,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
+            IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
             LoadedProjectResult loaded = await repository.LoadAsync(directory, calibration, cancellationToken);
 
-            return loaded.ToDto(folder, generator.FramingClause);
+            return loaded.ToDto(folder, new MappingContext(generator.Current.FramingClause, composer));
         });
 
         routes.MapPut("/api/projects/{folder}/settings", async (
@@ -63,7 +65,8 @@ public static class ProjectEndpoints
             IProjectRepository repository,
             ProjectWriteGate gate,
             Calibration calibration,
-            GeneratorSetup generator,
+            GeneratorHolder generator,
+            IPromptComposer composer,
             CancellationToken cancellationToken) =>
         {
             string directory = ProjectAccess.Directory(settings, folder);
@@ -74,12 +77,36 @@ public static class ProjectEndpoints
             LoadedProjectResult saved = await gate.RunAsync(directory, async () =>
             {
                 LoadedProjectResult loaded = await repository.LoadAsync(directory, calibration, cancellationToken);
-                await repository.SaveAsync(directory, loaded.Project.Apply(request), cancellationToken);
+                // DEC-112: the use case compares with the project it loaded, in
+                // the gate; the save still never sees the previous state.
+                await repository.SaveAsync(directory, ProjectSettingsEditor.Apply(loaded.Project, request.ToDomain()), cancellationToken);
 
                 return await repository.LoadAsync(directory, calibration, cancellationToken);
             }, cancellationToken);
 
-            return saved.ToDto(folder, generator.FramingClause);
+            return saved.ToDto(folder, new MappingContext(generator.Current.FramingClause, composer));
+        });
+
+        // §I.8.2 - a new project, the blueprints without their proposals.
+        routes.MapPost("/api/projects/{folder}/duplicate", async (
+            string folder,
+            DuplicateProjectRequest request,
+            PawnsmithSettings settings,
+            IProjectRepository repository,
+            Calibration calibration,
+            GeneratorHolder generator,
+            IPromptComposer composer,
+            CancellationToken cancellationToken) =>
+        {
+            string directory = ProjectAccess.Directory(settings, folder);
+
+            CreatedProjectResult created = await new ProjectDuplication(repository)
+                .DuplicateAsync(directory, calibration, request.Name, request.Style?.ToDomain(), cancellationToken);
+
+            string copy = Path.GetFileName(created.Directory);
+            LoadedProjectResult loaded = await repository.LoadAsync(created.Directory, calibration, cancellationToken);
+
+            return Results.Created($"/api/projects/{copy}", loaded.ToDto(copy, new MappingContext(generator.Current.FramingClause, composer)));
         });
     }
 }

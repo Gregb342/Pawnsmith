@@ -35,7 +35,6 @@ namespace Pawnsmith.Api.Jobs;
 /// </remarks>
 public sealed class GenerationWorker(
     JobRegistry registry,
-    GeneratorSetup setup,
     IProjectRepository repository,
     IBackgroundRemover remover,
     GenerationOptions options,
@@ -44,15 +43,6 @@ public sealed class GenerationWorker(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Nothing to run when generation is not set up: the start route refuses
-        // every job before it is queued (§G.7.1).
-        if (setup.Generator is not IImageGenerator generator)
-        {
-            return;
-        }
-
-        var generation = new CandidateGeneration(generator, remover, repository, options, TimeProvider.System, gate);
-
         await foreach (Guid id in registry.Queue.ReadAllAsync(stoppingToken))
         {
             // Forgotten already, or cancelled while it waited: nothing to run.
@@ -60,6 +50,10 @@ public sealed class GenerationWorker(
             {
                 continue;
             }
+
+            // Built per job, with the generator the job was accepted with: the
+            // address may have changed since (§I.5.2, DEC-108).
+            var generation = new CandidateGeneration(entry.Generator, remover, repository, options, TimeProvider.System, gate);
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(entry.Cancellation.Token, stoppingToken);
             using IDisposable jobScope = LogContext.PushProperty("JobId", id);

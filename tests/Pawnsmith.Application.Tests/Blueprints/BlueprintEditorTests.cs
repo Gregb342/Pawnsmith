@@ -175,4 +175,20 @@ public class BlueprintEditorTests
         error.Code.ShouldBe(BlueprintRuleCode.BlueprintNotFound);
         error.WireCode.ShouldBe("BLUEPRINT_NOT_FOUND");
     }
+
+    // --- DEC-109 : revenir au texte automatique ------------------------------
+
+    [Fact]
+    public void ResettingRecomposesAnEditedClauseAndItFollowsTheFieldsAgain()
+    {
+        Project project = ProjectFixture.Project(blueprints: [ProjectFixture.Blueprint()]);
+        EditedProject edited = BlueprintEditor.EditSubjectClause(project, ProjectFixture.BlueprintId, "a scarred goblin");
+        BlueprintEditor.IsSubjectClauseEdited(edited.Blueprint, project.Universe, Composer).ShouldBeTrue();
+
+        EditedProject reset = BlueprintEditor.ResetSubjectClause(edited.Project, ProjectFixture.BlueprintId, Composer);
+
+        reset.Blueprint.SubjectClause.ShouldBe(Composer.ComposeSubject(reset.Blueprint, project.Universe).Clause);
+        BlueprintEditor.IsSubjectClauseEdited(reset.Blueprint, project.Universe, Composer).ShouldBeFalse();
+    }
 }
+

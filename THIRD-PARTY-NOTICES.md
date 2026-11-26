@@ -23,10 +23,10 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 
 | Paquet | Version | Licence | Rôle |
 |---|---|---|---|
-| [PDFsharp](https://github.com/empira/PDFsharp) | 6.2.4 | MIT | Rendu PDF, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-019) |
+| [PDFsharp](https://github.com/empira/PDFsharp) | 6.2.4 | MIT | Rendu PDF, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-019). **Épinglé** : 6.5.0 et au-delà sont sous AGPL-3.0-only (DEC-115) |
 | Microsoft.Extensions.DependencyInjection.Abstractions | 8.0.2 | MIT | Dépendance transitive de PDFsharp |
 | Microsoft.Extensions.Logging.Abstractions | 8.0.3 | MIT | Dépendance transitive de PDFsharp |
-| System.Security.Cryptography.Pkcs | 8.0.1 | MIT | Dépendance transitive de PDFsharp (signature de PDF) |
+| [System.Security.Cryptography.Pkcs](https://github.com/dotnet/runtime) | 10.0.15 | MIT | Dépendance de PDFsharp (signature de PDF), qui demande 8.0.1. Référencée **directement** par `Pawnsmith.Infrastructure` pour relever cette version, frappée de deux avis de sécurité (DEC-115) ; le code du dépôt ne l'appelle pas |
 | [Serilog](https://github.com/serilog/serilog) | 4.4.0 | Apache-2.0 | Journalisation structurée, référencé par `Pawnsmith.Infrastructure` (A.1, DEC-090) : le journal, l'enrichissement par contexte, le formateur JSON |
 | [Serilog.Sinks.File](https://github.com/serilog/serilog-sinks-file) | 7.0.0 | Apache-2.0 | Écriture des journaux en fichiers, rotation par jour et par taille, rétention par nombre (DEC-091), référencé par `Pawnsmith.Infrastructure` |
 | [Serilog.Extensions.Logging](https://github.com/serilog/serilog-extensions-logging) | 10.0.0 | Apache-2.0 | Pont entre `ILogger<T>` d'ASP.NET et Serilog, référencé par `Pawnsmith.Api` (DEC-090). Sa dépendance `Microsoft.Extensions.Logging` est fournie par le cadre ASP.NET et n'est pas distribuée en paquet |
@@ -65,7 +65,7 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 |---|---|---|---|
 | [react](https://github.com/facebook/react) | 19.2.x | MIT | Bibliothèque d'interface (DEC-018) |
 | [react-dom](https://github.com/facebook/react) | 19.2.x | MIT | Rendu DOM de React |
-| [i18next](https://github.com/i18next/i18next) | 25.x | MIT | Moteur de localisation, socle de `react-i18next` |
+| [i18next](https://github.com/i18next/i18next) | 26.x | MIT | Moteur de localisation, socle de `react-i18next`. Passé de 25 à 26 pour l'avis GHSA-6jcc-5g8w-32mx, corrigé en 26.3.4 |
 | [react-i18next](https://github.com/i18next/react-i18next) | 16.x | MIT | Liaison React de i18next (A.5, chapitre 10 de la bible) |
 | [vite](https://github.com/vitejs/vite) | 7.x | MIT | Outillage de compilation du front (A.1) |
 | [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) | 5.x | MIT | Prise en charge de JSX et du rafraîchissement à chaud |
@@ -75,6 +75,7 @@ l'envoyer à un service tiers ; utiliser **NSubstitute**).
 | [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) | 8.x | MIT | Analyseur syntaxique et règles ESLint typées pour TypeScript |
 | [eslint-plugin-react-hooks](https://github.com/facebook/react) | 7.x | MIT | Règles des hooks React — la seule classe de défaut qu'un vérificateur de types ne peut structurellement pas voir |
 | [globals](https://github.com/sindresorhus/globals) | 17.x | MIT | Liste des variables globales du navigateur, pour la configuration d'ESLint |
+| [vitest](https://github.com/vitest-dev/vitest) | 4.1.x | MIT | Tests des modules purs du front (DEC-118). Développement seulement : n'entre pas dans l'image. 4.1 plutôt que 5.x, sorti trop récemment, et que `npm` 10 n'arrive pas à installer |
 | [@types/react](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React |
 | [@types/react-dom](https://github.com/DefinitelyTyped/DefinitelyTyped) | 19.2.x | MIT | Définitions de types pour React DOM |
 

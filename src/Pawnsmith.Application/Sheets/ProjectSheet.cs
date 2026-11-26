@@ -41,6 +41,11 @@ public sealed record SheetReport(
     bool MisalignmentKnown,
     IReadOnlyList<WidthLimitedItem> WidthLimited);
 
+/// <summary>How many pawns of one size a page of a project holds.</summary>
+/// <param name="Size">The size.</param>
+/// <param name="Capacity">Cells per page, on the project's format, geometry and effective calibration. Zero when the size does not fit at all.</param>
+public sealed record SizeCapacity(Size Size, int Capacity);
+
 /// <summary>The PDF of a project's sheet, and its report.</summary>
 public sealed record ProjectSheetPdf(byte[] Pdf, SheetReport Report);
 
@@ -160,6 +165,71 @@ public sealed class ProjectSheet
         return new ProjectSheetPdf(rendered.Pdf, prepared.ReportOf(rendered.Layout));
     }
 
+    /// <summary>The capacity of a page for every size of the calibration, on this project (DEC-117).</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A zero capacity is a value here, not an error.</b> The report refuses
+    /// a sheet whose size does not fit with <c>SHEET_CAPACITY_EXCEEDED</c> and
+    /// nothing else (DEC-084), so an interface reading it cannot say which size.
+    /// §15.4 wants that size named, with the format and the geometry; this
+    /// answer gives it, for every size, before a single proposal is kept.
+    /// </para>
+    /// <para>
+    /// Computed through the engine of T1 unchanged, on the effective
+    /// calibration (DEC-053) — the same unit and grid the layout uses.
+    /// </para>
+    /// </remarks>
+    /// <returns>One line per size the calibration declares, Small to Gargantuan.</returns>
+    /// <exception cref="SheetRuleException"><c>PAPER_FORMAT_UNKNOWN</c>.</exception>
+    public async Task<IReadOnlyList<SizeCapacity>> CapacitiesAsync(
+        string projectDirectory,
+        Calibration calibration,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
+        ArgumentNullException.ThrowIfNull(calibration);
+
+        LoadedProjectResult loaded = await repository
+            .LoadAsync(projectDirectory, calibration, cancellationToken)
+            .ConfigureAwait(false);
+
+        Project project = loaded.Project;
+        Calibration effective = EffectiveCalibration.Resolve(calibration, project);
+        PaperFormat paperFormat = PaperFormatOf(effective, project);
+
+        return [.. Enum.GetValues<Size>()
+            .Where(effective.Sizes.ContainsKey)
+            .Select(size => new SizeCapacity(size, CapacityOf(size, paperFormat, project.Geometry, effective)))];
+    }
+
+    private static int CapacityOf(Size size, PaperFormat paperFormat, Geometry geometry, Calibration effective)
+    {
+        var unit = UnfoldedUnit.Create(size, effective.Sizes[size], geometry, effective.Geometry);
+
+        try
+        {
+            return PageGrid.Create(paperFormat, unit, effective.Layout).Capacity;
+        }
+        catch (PageCapacityException)
+        {
+            // The engine reports "nothing fits" by throwing (B.5.2); for this
+            // question, nothing fitting is the answer.
+            return 0;
+        }
+    }
+
+    /// <summary>The project's paper format, from the effective calibration.</summary>
+    /// <exception cref="SheetRuleException"><c>PAPER_FORMAT_UNKNOWN</c>.</exception>
+    private static PaperFormat PaperFormatOf(Calibration effective, Project project) =>
+        effective.PaperFormats.TryGetValue(project.PaperFormatName, out PaperFormat? paperFormat)
+            ? paperFormat
+
+            // A diagnostic when the project loads (DEC-056); an error only
+            // here, where somebody asks for a sheet.
+            : throw new SheetRuleException(
+                SheetRuleCode.PaperFormatUnknown,
+                $"The project asks for the paper format '{project.PaperFormatName}', which the calibration does not declare.");
+
     private async Task<Prepared> PrepareAsync(
         string projectDirectory,
         Calibration calibration,
@@ -179,14 +249,7 @@ public sealed class ProjectSheet
         // the cell height (DEC-040, DEC-053).
         Calibration effective = EffectiveCalibration.Resolve(calibration, project);
 
-        if (!effective.PaperFormats.TryGetValue(project.PaperFormatName, out PaperFormat? paperFormat))
-        {
-            // A diagnostic when the project loads (DEC-056); an error only
-            // here, where somebody asks for a sheet.
-            throw new SheetRuleException(
-                SheetRuleCode.PaperFormatUnknown,
-                $"The project asks for the paper format '{project.PaperFormatName}', which the calibration does not declare.");
-        }
+        PaperFormat paperFormat = PaperFormatOf(effective, project);
 
         ProjectSheetRequest built = ProjectSheetRequestBuilder.From(project, paperFormat);
 

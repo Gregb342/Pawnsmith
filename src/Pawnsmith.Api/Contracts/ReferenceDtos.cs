@@ -23,22 +23,31 @@ public sealed record SizeDto(Size Size, double GridFootprintMm, double PawnWidth
 /// <summary>The catalogue of a universe, in the order of its file (§D.4.5).</summary>
 public sealed record CatalogDto(Universe Universe, IReadOnlyList<CatalogParameterDto> Parameters);
 
-public sealed record CatalogParameterDto(string Key, IReadOnlyList<CatalogEntryDto> Entries);
+public sealed record CatalogParameterDto(string Key, IReadOnlyDictionary<string, string> Labels, IReadOnlyList<CatalogEntryDto> Entries);
 
-public sealed record CatalogEntryDto(string Value, string Fragment);
+public sealed record CatalogEntryDto(string Value, string Fragment, IReadOnlyDictionary<string, string> Labels, CatalogEntryOrigin Origin);
 
 /// <summary>The state of the generator, as shown — never changed — by the API (DEC-081).</summary>
 /// <param name="State"><c>Available</c>, <c>Unreachable</c>, <c>Unhealthy</c>, <c>NotConfigured</c> or <c>Misconfigured</c>.</param>
 /// <param name="Code">Why it is misconfigured.</param>
 /// <param name="Address">The configured address.</param>
 /// <param name="FramingClause">The framing clause of the workflow, read-only (DEC-029).</param>
-public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause);
+public sealed record StylePresetDto(string Id, IReadOnlyDictionary<string, string> Names, string StyleClause, string NegativeClause, StyleOrigin Origin);
+
+public sealed record StylePresetRequest(string Name, string StyleClause, string NegativeClause);
+
+public sealed record CatalogEntryRequest(string Key, string Value, IReadOnlyDictionary<string, string> Labels, string Fragment);
+
+public sealed record GeneratorAddressRequest(string? Address);
+
+/// <param name="WorkflowSource">Where the workflow in force comes from: <c>Imported</c>, <c>Configuration</c> or <c>None</c> (DEC-119).</param>
+public sealed record GeneratorDto(string State, string? Code, string? Address, string? FramingClause, string WorkflowSource);
 
 /// <summary>The manual mappings of these DTOs (DEC-021): one method per type, nothing inferred.</summary>
 public static class ReferenceMapping
 {
     /// <summary>The cultures a sheet can be printed in (chapter 10).</summary>
-    public static readonly IReadOnlyList<string> Cultures = ["en", "fr"];
+    public static readonly IReadOnlyList<string> Cultures = InterfaceCulture.All;
 
     public static ConfigurationDto ToDto(this Calibration calibration) => new(
         // Sorted by name, ordinal: a dictionary has no order of its own, and
@@ -63,10 +72,19 @@ public static class ReferenceMapping
         catalog.Universe,
         [.. catalog.Parameters.Select(parameter => new CatalogParameterDto(
             parameter.Key,
-            [.. parameter.Entries.Select(entry => new CatalogEntryDto(entry.Value, entry.Fragment))]))]);
+            SortedLabels(parameter.Labels),
+            [.. parameter.Entries.Select(entry => new CatalogEntryDto(entry.Value, entry.Fragment, SortedLabels(entry.Labels), entry.Origin))]))]);
+
+    public static List<StylePresetDto> ToDto(this IReadOnlyList<StylePreset> presets) =>
+        [.. presets.Select(preset => new StylePresetDto(preset.Id, SortedLabels(preset.Names), preset.StyleClause, preset.NegativeClause, preset.Origin))];
+
+    // A dictionary has no order of its own; two identical calls must give
+    // identical bodies (§G.4).
+    private static SortedDictionary<string, string> SortedLabels(IReadOnlyDictionary<string, string> labels) =>
+        new(labels.ToDictionary(label => label.Key, label => label.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
     /// <summary>The generator's state: from the start-up setup, and from a live check when it is configured.</summary>
-    public static GeneratorDto ToDto(this GeneratorSetup setup, GeneratorAvailability? availability) => new(
+    public static GeneratorDto ToDto(this GeneratorSetup setup, GeneratorAvailability? availability, string workflowSource) => new(
         State: setup.Configuration switch
         {
             GeneratorConfiguration.Configured => availability!.Value.ToString(),
@@ -76,5 +94,6 @@ public static class ReferenceMapping
         },
         Code: setup.ErrorCode,
         Address: setup.Address,
-        FramingClause: setup.FramingClause);
+        FramingClause: setup.FramingClause,
+        WorkflowSource: workflowSource);
 }

@@ -43,13 +43,30 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+
+      // MEN-013 (DEC-116): the front shows other people's text — a project
+      // name, a clause, a catalogue entry, possibly from an imported archive.
+      // React escapes every string it inserts; this prop is the one way to
+      // skip that escaping and insert raw HTML, so it is refused outright.
+      // A core ESLint rule, matched on the JSX syntax tree: no plugin needed.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'Raw HTML is forbidden (MEN-013, DEC-116): render text and let React escape it.',
+        },
+      ],
     },
   },
 
   {
-    // This file configures the tooling and is not part of the application, so
-    // it sits outside the type-aware programme.
-    files: ['eslint.config.js'],
+    // These files configure or check the tooling and are not part of the
+    // application, so they sit outside the type-aware programme. The scripts
+    // run under Node, whose globals (process, console) they use.
+    files: ['eslint.config.js', 'scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 );

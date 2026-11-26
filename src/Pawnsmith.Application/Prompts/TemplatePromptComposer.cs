@@ -21,22 +21,39 @@ namespace Pawnsmith.Application.Prompts;
 /// arrives, whoever wires the composer decides whether to hold two instances
 /// or to grow this one — with the case in front of them.
 /// </para>
+/// <para>
+/// <b>The catalogue is read at each composition</b>, through a function, since
+/// T6's front: personal entries change it while the application runs
+/// (DEC-107), and a composer holding the catalogue of its start-up would
+/// compose without them. The constructor taking a <see cref="Catalog"/> keeps
+/// the fixed case — tests, the CLI — as simple as it was.
+/// </para>
 /// </remarks>
 public sealed class TemplatePromptComposer : IPromptComposer
 {
     private readonly PromptTemplate template;
-    private readonly Catalog catalog;
+    private readonly Func<Catalog> catalog;
 
     /// <exception cref="ArgumentException">The template and the catalogue are not for the same universe.</exception>
     public TemplatePromptComposer(PromptTemplate template, Catalog catalog)
+        : this(template, Fixed(catalog))
+    {
+    }
+
+    /// <param name="template">The universe's sentence structure.</param>
+    /// <param name="catalog">Gives the catalogue as it is at the moment of each composition.</param>
+    /// <exception cref="ArgumentException">The template and the catalogue are not for the same universe.</exception>
+    public TemplatePromptComposer(PromptTemplate template, Func<Catalog> catalog)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(catalog);
 
-        if (template.Universe != catalog.Universe)
+        Catalog first = catalog();
+
+        if (template.Universe != first.Universe)
         {
             throw new ArgumentException(
-                $"The template is for the universe {template.Universe} and the catalogue for {catalog.Universe}; " +
+                $"The template is for the universe {template.Universe} and the catalogue for {first.Universe}; " +
                 "a composer needs both for the same universe.",
                 nameof(catalog));
         }
@@ -65,6 +82,13 @@ public sealed class TemplatePromptComposer : IPromptComposer
                 $"and was asked to compose for {universe}.");
         }
 
-        return SubjectClause.Compose(blueprint, template, catalog);
+        return SubjectClause.Compose(blueprint, template, catalog());
+    }
+
+    private static Func<Catalog> Fixed(Catalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+
+        return () => catalog;
     }
 }

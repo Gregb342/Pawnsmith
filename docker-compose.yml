@@ -1,0 +1,33 @@
+# Pawnsmith in a container (DEC-121):  docker compose up --build
+# then open http://127.0.0.1:8080
+#
+# - The port is published on the loopback interface only: the application
+#   has no authentication (MEN-004).
+# - Three named volumes keep projects, logs and the user directory
+#   (personal catalogue and styles, generator address, imported workflow)
+#   across restarts and rebuilds.
+# - ComfyUI runs on the host. From inside the container the host is
+#   host.docker.internal, and ComfyUI must listen beyond its loopback
+#   interface for the container to reach it (start it with --listen).
+#   The address can be changed from the Generator page, which then wins.
+services:
+  pawnsmith:
+    build: .
+    image: pawnsmith
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - pawnsmith-projects:/app/data/projects
+      - pawnsmith-logs:/app/data/logs
+      - pawnsmith-user:/app/data/user
+    environment:
+      Pawnsmith__Generator__Url: "http://host.docker.internal:8188"
+    extra_hosts:
+      # Docker Desktop (Windows, macOS) defines host.docker.internal itself;
+      # this line gives it to Docker on Linux too.
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pawnsmith-projects:
+  pawnsmith-logs:
+  pawnsmith-user:

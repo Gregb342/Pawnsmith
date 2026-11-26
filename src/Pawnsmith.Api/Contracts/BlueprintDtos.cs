@@ -56,7 +56,7 @@ public static class BlueprintMapping
             request.Quantity);
     }
 
-    public static EditedBlueprintDto ToDto(this EditedProject edited, Style style, string? framingClause) => new(
-        edited.Blueprint.ToDto(style, framingClause),
+    public static EditedBlueprintDto ToDto(this EditedProject edited, MappingContext context) => new(
+        edited.Blueprint.ToDto(edited.Project.Universe, edited.Project.Style, context),
         [.. edited.Diagnostics.Select(diagnostic => new CompositionDiagnosticDto(diagnostic.Key, diagnostic.Value))]);
 }

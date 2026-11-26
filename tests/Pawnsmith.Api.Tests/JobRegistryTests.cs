@@ -1,5 +1,6 @@
 using Pawnsmith.Api.Errors;
 using Pawnsmith.Api.Jobs;
+using Pawnsmith.Api.Tests.Fixtures;
 using Pawnsmith.Application.Generation;
 using Pawnsmith.Domain.Jobs;
 using Pawnsmith.Domain.PhysicalValues;
@@ -21,7 +22,7 @@ public class JobRegistryTests
 
         foreach (Job job in jobs)
         {
-            registry.Enqueue(job, Batch, "a");
+            registry.Enqueue(job, Batch, "a", new FakeGenerator());
             registry.Cancel(job.Id);
         }
 
@@ -42,7 +43,7 @@ public class JobRegistryTests
 
         foreach (Job job in jobs)
         {
-            registry.Enqueue(job, Batch, "a");
+            registry.Enqueue(job, Batch, "a", new FakeGenerator());
             registry.Cancel(job.Id);
         }
 
@@ -55,7 +56,7 @@ public class JobRegistryTests
     {
         var registry = new JobRegistry();
         Job queued = Queued();
-        registry.Enqueue(queued, Batch, "a");
+        registry.Enqueue(queued, Batch, "a", new FakeGenerator());
         registry.Cancel(queued.Id);
 
         // A late report from a worker that picked the job up at the same time.
@@ -70,8 +71,8 @@ public class JobRegistryTests
         var registry = new JobRegistry();
         Job first = Queued();
         Job second = Queued();
-        registry.Enqueue(first, Batch, "a");
-        registry.Enqueue(second, Batch, "a");
+        registry.Enqueue(first, Batch, "a", new FakeGenerator());
+        registry.Enqueue(second, Batch, "a", new FakeGenerator());
 
         registry.List().Select(entry => entry.Current.Id).ShouldBe([second.Id, first.Id]);
     }

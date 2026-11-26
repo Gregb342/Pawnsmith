@@ -44,7 +44,7 @@ public static class JobEndpoints
             Guid id,
             StartJobRequest request,
             PawnsmithSettings settings,
-            GeneratorSetup setup,
+            GeneratorHolder generators,
             IProjectRepository repository,
             GenerationOptions options,
             IBackgroundRemover remover,
@@ -56,6 +56,7 @@ public static class JobEndpoints
             // Refused before the queue, so that no job exists for a request
             // that cannot run (DEC-085): the generator first, then the folder,
             // then the batch itself through the use case.
+            GeneratorSetup setup = generators.Current;
             IImageGenerator generator = setup.Generator
                 ?? throw new ApiException(setup.ErrorCode ?? ApiCodes.GeneratorNotConfigured);
 
@@ -65,7 +66,9 @@ public static class JobEndpoints
             var generation = new CandidateGeneration(generator, remover, repository, options, TimeProvider.System, gate);
             Job queued = await generation.QueueAsync(batch, cancellationToken);
 
-            registry.Enqueue(queued, batch, folder);
+            // The job keeps this generator, whatever the address becomes
+            // before it runs (§I.5.2).
+            registry.Enqueue(queued, batch, folder, generator);
 
             return Results.Accepted($"/api/jobs/{queued.Id}", ToDto(registry.Get(queued.Id)));
         });

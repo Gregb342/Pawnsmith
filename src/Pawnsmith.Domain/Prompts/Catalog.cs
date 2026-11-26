@@ -1,3 +1,4 @@
+using Pawnsmith.Domain.Primitives;
 using Pawnsmith.Domain.Projects;
 
 namespace Pawnsmith.Domain.Prompts;
@@ -19,20 +20,47 @@ namespace Pawnsmith.Domain.Prompts;
 /// </para>
 /// <para>
 /// In English, like everything that enters a prompt (DEC-037). What the user
-/// sees on screen is a translation key, never this text.
+/// sees on screen is one of the <paramref name="Labels"/>, never this text
+/// (DEC-106).
 /// </para>
 /// </remarks>
-/// <param name="Value">The value as written in a blueprint's <c>optionalParameters</c>.</param>
+/// <param name="Value">The value as written in a blueprint — in <c>optionalParameters</c>, or as its race or class.</param>
 /// <param name="Fragment">The words inserted into the subject clause, verbatim.</param>
-public sealed record CatalogEntry(string Value, string Fragment);
+/// <param name="Labels">What the interface shows, by culture name: one non-empty label per <see cref="InterfaceCulture"/>.</param>
+/// <param name="Origin">Shipped with the application, or added by the user (DEC-107).</param>
+public sealed record CatalogEntry(
+    string Value,
+    string Fragment,
+    IReadOnlyDictionary<string, string> Labels,
+    CatalogEntryOrigin Origin = CatalogEntryOrigin.Shipped);
+
+/// <summary>Where a catalogue entry comes from (DEC-107).</summary>
+public enum CatalogEntryOrigin
+{
+    /// <summary>The application's own file, under <c>config/</c>. Read-only from the interface.</summary>
+    Shipped,
+
+    /// <summary>The user's file, under the user directory. Added and removed from the interface.</summary>
+    Personal,
+}
 
 /// <summary>
-/// One key of a blueprint's <c>optionalParameters</c>, with the values the
-/// catalogue knows for it.
+/// One parameter of a blueprint, with the values the catalogue knows for it.
 /// </summary>
-/// <param name="Key">The key, as written in a blueprint. <c>weapon</c>, <c>armour</c>…</param>
+/// <remarks>
+/// Two keys are reserved and name the required fields rather than optional
+/// ones: <see cref="TemplateToken.Race"/> and
+/// <see cref="TemplateToken.CharacterClass"/> — the very names of the tokens of
+/// the subject head, whose values they translate (DEC-106). Every other key is
+/// an optional parameter.
+/// </remarks>
+/// <param name="Key">The key, as written in a blueprint. <c>race</c>, <c>weapon</c>, <c>armour</c>…</param>
+/// <param name="Labels">The parameter's name on screen, by culture.</param>
 /// <param name="Entries">The known values, in file order.</param>
-public sealed record CatalogParameter(string Key, IReadOnlyList<CatalogEntry> Entries);
+public sealed record CatalogParameter(
+    string Key,
+    IReadOnlyDictionary<string, string> Labels,
+    IReadOnlyList<CatalogEntry> Entries);
 
 /// <summary>
 /// The vocabulary of one universe: which optional parameters exist, which
@@ -97,7 +125,8 @@ public sealed class Catalog
     /// </remarks>
     /// <exception cref="CatalogException">
     /// A key is empty or repeated, a value is empty or repeated within its key,
-    /// or a fragment is empty. The message names the offender.
+    /// a fragment is empty, or a label is missing or empty for one of the
+    /// interface cultures. The message names the offender.
     /// </exception>
     public static Catalog Create(Universe universe, IReadOnlyList<CatalogParameter> parameters)
     {
@@ -118,6 +147,8 @@ public sealed class Catalog
             {
                 throw new CatalogException($"The catalogue declares the key '{parameter.Key}' more than once.");
             }
+
+            RequireLabels(parameter.Labels, $"key '{parameter.Key}'");
 
             HashSet<string> values = new(StringComparer.Ordinal);
 
@@ -141,6 +172,8 @@ public sealed class Catalog
                     throw new CatalogException(
                         $"The catalogue entry '{parameter.Key}: {entry.Value}' has an empty fragment.");
                 }
+
+                RequireLabels(entry.Labels, $"entry '{parameter.Key}: {entry.Value}'");
             }
         }
 
@@ -180,6 +213,73 @@ public sealed class Catalog
         return fragments.ContainsKey(key);
     }
 
+    /// <summary>The parameter of this key, or <c>null</c>.</summary>
+    public CatalogParameter? Find(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        return Parameters.FirstOrDefault(parameter => string.Equals(parameter.Key, key, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The catalogue the interface serves: this one, followed key by key by the
+    /// user's personal entries (DEC-107).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A personal entry joins an existing key, never a new one.</b> A key is
+    /// a parameter of the blueprint and of the template's order; inventing one
+    /// from the interface would add a field nothing else knows about.
+    /// </para>
+    /// <para>
+    /// The result goes through <see cref="Create"/>, so a personal value that
+    /// repeats a shipped one is refused by the same rule that refuses a
+    /// repetition inside one file. Every personal entry is marked
+    /// <see cref="CatalogEntryOrigin.Personal"/>, whatever it said.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="CatalogException">A personal key the catalogue does not declare, or any rule of <see cref="Create"/>.</exception>
+    public Catalog WithPersonal(IReadOnlyList<CatalogParameter> personal)
+    {
+        ArgumentNullException.ThrowIfNull(personal);
+
+        foreach (CatalogParameter parameter in personal)
+        {
+            if (!KnowsKey(parameter.Key))
+            {
+                throw new CatalogException(
+                    $"The personal catalogue adds to the key '{parameter.Key}', which the catalogue does not declare.");
+            }
+        }
+
+        List<CatalogParameter> merged = [];
+
+        foreach (CatalogParameter parameter in Parameters)
+        {
+            IEnumerable<CatalogEntry> added = personal
+                .Where(extra => string.Equals(extra.Key, parameter.Key, StringComparison.Ordinal))
+                .SelectMany(extra => extra.Entries)
+                .Select(entry => entry with { Origin = CatalogEntryOrigin.Personal });
+
+            merged.Add(parameter with { Entries = [.. parameter.Entries, .. added] });
+        }
+
+        return Create(Universe, merged);
+    }
+
+    private static void RequireLabels(IReadOnlyDictionary<string, string>? labels, string what)
+    {
+        // One label per interface culture, none empty: a list the interface
+        // shows in French must have a French word for every line (DEC-106).
+        foreach (string culture in InterfaceCulture.All)
+        {
+            if (labels is null || !labels.TryGetValue(culture, out string? label) || string.IsNullOrWhiteSpace(label))
+            {
+                throw new CatalogException($"The catalogue {what} has no '{culture}' label.");
+            }
+        }
+    }
+
     private static Dictionary<string, Dictionary<string, string>> IndexFragments(
         IReadOnlyList<CatalogParameter> parameters)
     {
@@ -203,7 +303,7 @@ public sealed class Catalog
     }
 }
 
-/// <summary>A catalogue that contradicts itself: an empty or repeated key, value or fragment.</summary>
+/// <summary>A catalogue that contradicts itself: an empty or repeated key, value or fragment, or a missing label.</summary>
 /// <remarks>
 /// A domain exception rather than an <see cref="ArgumentException"/>, so the
 /// file reader can map exactly this and nothing else to <c>CATALOG_INVALID</c>

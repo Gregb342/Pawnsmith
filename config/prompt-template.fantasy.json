@@ -1,7 +1,7 @@
 {
   "versionSchema": 1,
   "universe": "Fantasy",
-  "subjectHead": "a {race} {characterClass}",
+  "subjectHead": "{race} {characterClass}",
   "optionalOrder": ["weapon", "shield", "armour", "clothing", "headgear", "cloak"],
   "unknownValueFragment": "{value}"
 }

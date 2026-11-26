@@ -13,15 +13,15 @@ public class CatalogReaderTests
 {
     private const string Valid = """
         {
-          "versionSchema": 1,
+          "versionSchema": 2,
           "universe": "Fantasy",
           "parameters": [
-            { "key": "weapon", "entries": [
-              { "value": "axe", "fragment": "wielding a large battle axe" },
-              { "value": "spear", "fragment": "wielding a short spear" }
+            { "key": "weapon", "labels": { "en": "weapon", "fr": "weapon" }, "entries": [
+              { "value": "axe", "labels": { "en": "axe", "fr": "axe" }, "fragment": "wielding a large battle axe" },
+              { "value": "spear", "labels": { "en": "spear", "fr": "spear" }, "fragment": "wielding a short spear" }
             ]},
-            { "key": "armour", "entries": [
-              { "value": "leather", "fragment": "wearing leather scraps" }
+            { "key": "armour", "labels": { "en": "armour", "fr": "armour" }, "entries": [
+              { "value": "leather", "labels": { "en": "leather", "fr": "leather" }, "fragment": "wearing leather scraps" }
             ]}
           ]
         }
@@ -89,10 +89,10 @@ public class CatalogReaderTests
     {
         PromptFileException error = await Refuses("""
             {
-              "versionSchema": 1, "universe": "Fantasy",
+              "versionSchema": 2, "universe": "Fantasy",
               "parameters": [
-                { "key": "weapon", "entries": [] },
-                { "key": "weapon", "entries": [] }
+                { "key": "weapon", "labels": { "en": "weapon", "fr": "weapon" }, "entries": [] },
+                { "key": "weapon", "labels": { "en": "weapon", "fr": "weapon" }, "entries": [] }
               ]
             }
             """);
@@ -107,11 +107,11 @@ public class CatalogReaderTests
     {
         PromptFileException error = await Refuses("""
             {
-              "versionSchema": 1, "universe": "Fantasy",
+              "versionSchema": 2, "universe": "Fantasy",
               "parameters": [
-                { "key": "weapon", "entries": [
-                  { "value": "axe", "fragment": "one" },
-                  { "value": "axe", "fragment": "two" }
+                { "key": "weapon", "labels": { "en": "weapon", "fr": "weapon" }, "entries": [
+                  { "value": "axe", "labels": { "en": "axe", "fr": "axe" }, "fragment": "one" },
+                  { "value": "axe", "labels": { "en": "axe", "fr": "axe" }, "fragment": "two" }
                 ]}
               ]
             }
@@ -128,9 +128,9 @@ public class CatalogReaderTests
     {
         PromptFileException error = await Refuses("""
             {
-              "versionSchema": 1, "universe": "Fantasy",
+              "versionSchema": 2, "universe": "Fantasy",
               "parameters": [
-                { "key": "weapon", "entries": [ { "value": "axe", "fragment": "" } ] }
+                { "key": "weapon", "labels": { "en": "weapon", "fr": "weapon" }, "entries": [ { "value": "axe", "labels": { "en": "axe", "fr": "axe" }, "fragment": "" } ] }
               ]
             }
             """);
@@ -145,7 +145,7 @@ public class CatalogReaderTests
     public async Task ANewerSchemaIsRefusedAsTooRecent()
     {
         PromptFileException error = await Refuses("""
-            { "versionSchema": 2, "universe": "Fantasy", "parameters": [] }
+            { "versionSchema": 3, "universe": "Fantasy", "parameters": [] }
             """);
 
         error.Code.ShouldBe(PromptFileErrorCode.CatalogSchemaTooRecent);
@@ -172,7 +172,7 @@ public class CatalogReaderTests
         // The mismatch path itself is reachable only with a second member of
         // Universe; the check is in PromptDataFile.RequireUniverse.
         PromptFileException error = await Refuses("""
-            { "versionSchema": 1, "universe": "SciFi", "parameters": [] }
+            { "versionSchema": 2, "universe": "SciFi", "parameters": [] }
             """);
 
         error.Code.ShouldBe(PromptFileErrorCode.CatalogInvalid);
@@ -183,7 +183,7 @@ public class CatalogReaderTests
     public async Task AMissingUniverseIsRefused()
     {
         PromptFileException error = await Refuses("""
-            { "versionSchema": 1, "parameters": [] }
+            { "versionSchema": 2, "parameters": [] }
             """);
 
         error.Code.ShouldBe(PromptFileErrorCode.CatalogInvalid);
@@ -215,8 +215,8 @@ public class CatalogReaderTests
     public async Task AMissingFieldIsNamed()
     {
         PromptFileException error = await Refuses("""
-            { "versionSchema": 1, "universe": "Fantasy",
-              "parameters": [ { "key": "weapon" } ] }
+            { "versionSchema": 2, "universe": "Fantasy",
+              "parameters": [ { "key": "weapon", "labels": { "en": "weapon", "fr": "weapon" } } ] }
             """);
 
         error.Code.ShouldBe(PromptFileErrorCode.CatalogInvalid);
@@ -232,7 +232,7 @@ public class CatalogReaderTests
         Catalog catalog = await Read(workspace, """
             {
               // the vocabulary of my table
-              "versionSchema": 1,
+              "versionSchema": 2,
               "universe": "Fantasy",
               "note": "not a field the reader knows",
               "parameters": [],
@@ -240,6 +240,49 @@ public class CatalogReaderTests
             """);
 
         catalog.Parameters.ShouldBeEmpty();
+    }
+
+    // --- I.12 n° 1 : un libellé par culture (DEC-106) ----------------------
+
+    [Fact]
+    public async Task AnEntryWithoutAFrenchLabelIsRefusedAsCatalogInvalid()
+    {
+        PromptFileException error = await Refuses("""
+            {
+              "versionSchema": 2, "universe": "Fantasy",
+              "parameters": [
+                { "key": "weapon", "labels": { "en": "Weapon", "fr": "Arme" }, "entries": [
+                  { "value": "axe", "labels": { "en": "axe" }, "fragment": "wielding an axe" }
+                ]}
+              ]
+            }
+            """);
+
+        error.Code.ShouldBe(PromptFileErrorCode.CatalogInvalid);
+        error.Message.ShouldContain("'fr'");
+    }
+
+    [Fact]
+    public async Task AFirstVersionFileIsNoLongerRead()
+    {
+        PromptFileException error = await Refuses("""
+            { "versionSchema": 1, "universe": "Fantasy", "parameters": [] }
+            """);
+
+        error.Code.ShouldBe(PromptFileErrorCode.CatalogInvalid);
+    }
+
+    [Fact]
+    public async Task TheShippedCatalogueCarriesRaceAndClassListsInBothLanguages()
+    {
+        string path = Path.Combine(RepositoryRoot(), "config", "catalog.fantasy.json");
+
+        Catalog catalog = await CatalogReader.ReadAsync(path, Universe.Fantasy, CancellationToken.None);
+
+        catalog.TryGetFragment("race", "orc", out string orc).ShouldBeTrue();
+        orc.ShouldBe("an orc");
+        catalog.KnowsKey("characterClass").ShouldBeTrue();
+        catalog.Parameters.First(parameter => parameter.Key == "weapon").Labels["fr"].ShouldBe("Arme");
     }
 
     [Fact]

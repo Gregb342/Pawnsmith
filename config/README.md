@@ -1,6 +1,6 @@
 # `config/`
 
-Quatre fichiers de données, tous lus par l'application et jamais écrits par
+Cinq fichiers de données, tous lus par l'application et jamais écrits par
 elle. Ils se modifient à la main. Le lecteur tolère les commentaires `//` et
 les virgules finales, et **ignore les champs qu'il ne connaît pas** — on peut
 les annoter sans les casser (§C.6.3). Les fichiers livrés restent en JSON
@@ -27,7 +27,7 @@ par univers ; `fantasy` seul en v1.
 
 | Clé | Rôle |
 |---|---|
-| `subjectHead` | La tête de la clause. **Exactement deux jetons** y sont admis, `{race}` et `{characterClass}`, et les deux sont obligatoires. Un jeton inconnu fait rejeter le fichier en le nommant — `{taille}` ne partira jamais au modèle en texte littéral. |
+| `subjectHead` | La tête de la clause. **Exactement deux jetons** y sont admis, `{race}` et `{characterClass}`, et les deux sont obligatoires. Un jeton inconnu fait rejeter le fichier en le nommant — `{taille}` ne partira jamais au modèle en texte littéral. Chaque jeton reçoit le **fragment** de la valeur quand le catalogue a une liste pour ce champ : la tête livrée, `{race} {characterClass}`, donne « an orc warrior » (DEC-106). |
 | `optionalOrder` | Les clés d'`optionalParameters` dont les fragments viennent en premier, dans cet ordre. Les clés absentes de la liste suivent, en ordre ordinal. |
 | `unknownValueFragment` | Ce qu'on dit d'une valeur que le catalogue ne connaît pas. Seul jeton admis : `{value}`. |
 
@@ -39,9 +39,20 @@ Ce fichier a un grand rayon d'explosion — une faute y déforme la clause de
 
 ## `catalog.{univers}.json`
 
-Le **vocabulaire** d'un univers : les clés des paramètres optionnels, les
-valeurs que chacune peut prendre, et ce que chaque valeur dit dans un prompt
-(§D.4 du cahier T3).
+Le **vocabulaire** d'un univers : les listes de la race, de la classe et des
+paramètres optionnels, les valeurs que chacune peut prendre, ce que chaque
+valeur dit dans un prompt (§D.4 du cahier T3) et **comment elle s'affiche**
+dans chaque langue de l'interface (DEC-106). `versionSchema` vaut `2`.
+
+```json
+{ "key": "weapon", "labels": { "en": "Weapon", "fr": "Arme" }, "entries": [
+  { "value": "spear", "labels": { "en": "short spear", "fr": "lance courte" },
+    "fragment": "wielding a short spear held vertically against the body" } ] }
+```
+
+Deux clés sont réservées aux champs obligatoires : `race` et `characterClass`.
+Leurs fragments portent l'article — `"an orc"`, `"a goblin"` — pour que la tête
+n'ait pas à le deviner.
 
 **Chaque valeur porte un `fragment`, un groupe de mots complet inséré tel quel
 dans la clause** — pas un mot nu (DEC-064). `weapon: axe` ne donne pas « axe »
@@ -57,7 +68,12 @@ Règles :
 - l'ordre de `parameters` compte : c'est l'ordre de repli des fragments quand
   `optionalOrder` ne liste pas une clé ;
 - clés et valeurs sont comparées **exactement**, casse comprise ;
-- une clé ou une valeur répétée, ou un fragment vide, fait rejeter le fichier.
+- une clé ou une valeur répétée, un fragment vide, ou un libellé manquant pour
+  `en` ou `fr`, fait rejeter le fichier.
+
+Les objets que l'utilisateur ajoute depuis l'interface ne vont **pas** dans ce
+fichier : ils vont dans son catalogue personnel, sous le dossier utilisateur
+(DEC-107).
 
 **Le catalogue ne valide jamais un projet.** Un gabarit qui porte une valeur
 inconnue du catalogue se charge, se compose et s'exporte ; la valeur est
@@ -66,6 +82,36 @@ qui permet de partager un projet avec quelqu'un dont le catalogue diffère.
 
 Le contenu livré est un **point de départ**, à enrichir à l'usage. C'est du
 contenu, pas du code : l'améliorer ne demande aucune recompilation (DEC-010).
+
+## `styles.{univers}.json`
+
+La **bibliothèque de styles** livrée (DEC-110) : des points de départ que
+l'utilisateur choisit à l'étape Projet. Choisir un style le **copie** dans le
+projet ; modifier ce fichier ne change aucun projet existant.
+
+| Clé | Rôle |
+|---|---|
+| `versionSchema` | Vaut `1`. |
+| `styles[].id` | Identifiant stable, unique. |
+| `styles[].names` | Le nom affiché, **un par langue** de l'interface (`en`, `fr`). |
+| `styles[].styleClause` | La clause de style, en anglais. Une palette se dit ici : il n'y a pas d'autre champ pour elle. |
+| `styles[].negativeClause` | La clause négative ; peut être vide. Avec Krea 2 Turbo à CFG 1,0, elle est sans effet (DEC-077). |
+
+Les styles que l'utilisateur enregistre depuis l'interface vont dans le dossier
+utilisateur, au même format, jamais ici.
+
+## Le dossier utilisateur — `data/user/`
+
+Ce qui n'est **pas** dans `config/` : les fichiers que l'application écrit
+pour l'utilisateur, depuis l'interface (§I.4.2 du cahier T6 front). Réglage
+`Pawnsmith:UserDirectory`, `data/user` par défaut ; en conteneur, le volume
+`/app/data/user`. Aucune archive de projet ne les emporte.
+
+| Fichier | Contenu |
+|---|---|
+| `catalog.{univers}.json` | Les objets ajoutés au catalogue (DEC-107), au format du catalogue livré |
+| `styles.{univers}.json` | Les styles enregistrés (DEC-110), au format de la bibliothèque livrée |
+| `generator.json` | L'adresse du générateur choisie dans l'interface (DEC-108). **Elle l'emporte sur `Pawnsmith:Generator:Url`** ; supprimer ce fichier rend la main à la configuration |
 
 ## `workflow.comfyui.json` — et son exemple
 
