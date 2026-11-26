@@ -509,7 +509,9 @@ toi, DEC-100 à DEC-104.
 
 #### Pour le front de T6 — branche `claude/t6-front`, partie de `main`
 
-**Pas encore fusionnée.** La branche part de `main` après T5 (`e84a27b`),
+**Fusionnée dans `main` le 26 novembre 2026**, en commit de fusion, avec la
+suite du 25 novembre et la mise en service ; **la relecture intégrale reste à
+faire**. La branche part de `main` après T5 (`e84a27b`),
 quinze commits de tâche plus un correctif de relecture ; elle se relit d'une
 traite avec `git log --oneline e84a27b..`.
 
@@ -601,7 +603,7 @@ puisqu'une police utilisée dans un PDF y est redistribuée.
 
 #### Pour la suite du front — même branche, 25 novembre 2026
 
-**Pas fusionnée non plus.** Sept commits de plus sur `claude/t6-front`, après
+**Fusionnée avec elle.** Des commits de plus sur `claude/t6-front`, après
 la tâche 15, sur ta consigne « continue autant de dev que tu peux » ; ils se
 relisent avec `git log --oneline 38fd8f5..`. Les deux premiers réparent la
 compilation, les suivants sont les tâches 16 à 22 du §I.15 du cahier du front.
@@ -615,12 +617,12 @@ La plus engageante d'abord.
    commit : deux avis de sécurité visent `System.Security.Cryptography.Pkcs`
    8.0.1, que PDFsharp demande, et `TreatWarningsAsErrors` en fait des
    erreurs. La dépendance est relevée en **10.0.15** par une référence directe.
-   **`main` restera rouge tant que cette branche n'est pas fusionnée.**
+   `main` est redevenu vert à la fusion de cette branche.
 3. **Une branche `claude/fix-pkcs-advisory`, partie de `main`, porte le même
    correctif numéroté DEC-105** : je l'ai créée avant de voir cette branche,
-   dont DEC-105 est déjà un de tes libellés. **Ne la fusionne pas** ; elle est
-   à supprimer. J'avais aussi commencé à réécrire le front de zéro, sans voir
-   ce travail ; rien n'en a été poussé, sauf ce qui est repris ici.
+   dont DEC-105 est déjà un de tes libellés. Elle a été supprimée à la
+   fusion. J'avais aussi commencé à réécrire le front de zéro, sans voir ce
+   travail ; rien n'en a été poussé, sauf ce qui est repris ici.
 4. **La revue du chapitre 9 pour le front n'avait pas été faite** (DEC-116) :
    **MEN-012**, détournement de clic, et **MEN-013**, injection de contenu.
    Une politique de contenu et trois en-têtes sur toute réponse, et ESLint
