@@ -36,7 +36,9 @@ export interface CatalogDto { universe: Universe; parameters: CatalogParameterDt
 
 export interface StylePresetDto { id: string; names: Labels; styleClause: string; negativeClause: string; origin: Origin }
 
-export interface GeneratorDto { state: GeneratorState; code: string | null; address: string | null; framingClause: string | null }
+/** Where the workflow in force comes from (DEC-119). */
+export type WorkflowSource = 'Imported' | 'Configuration' | 'None';
+export interface GeneratorDto { state: GeneratorState; code: string | null; address: string | null; framingClause: string | null; workflowSource: WorkflowSource }
 
 export interface StyleDto { name: string; styleClause: string; negativeClause: string; palette: string }
 export interface OverridesDto { tabWidthMm: number | null; tabHeightMm: number | null }

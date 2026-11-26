@@ -83,6 +83,11 @@ public class TranslationTests
             .. Enum.GetNames<GeneratorAvailability>().Select(name => $"generator.states.{name}"),
             "generator.states.NotConfigured",
             "generator.states.Misconfigured",
+
+            // Where the workflow in force comes from (DEC-119), on the Generator page.
+            "generator.workflowSource.Imported",
+            "generator.workflowSource.Configuration",
+            "generator.workflowSource.None",
         ];
 
         return [.. keys];

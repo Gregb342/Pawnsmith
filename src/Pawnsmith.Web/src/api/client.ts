@@ -146,6 +146,12 @@ export const api = {
 
   generator: () => json<GeneratorDto>('GET', '/api/generator'),
   setGeneratorAddress: (address: string | null) => json<GeneratorDto>('PUT', '/api/generator', { address }),
+  /** The file as ComfyUI exported it, sent as it is: the server prepares it (DEC-120). */
+  importWorkflow: async (file: File) => {
+    const response = await send('PUT', '/api/generator/workflow', file, 'application/json');
+    return (await response.json()) as GeneratorDto;
+  },
+  removeWorkflow: () => json<GeneratorDto>('DELETE', '/api/generator/workflow'),
 
   projects: () => json<ProjectListingDto[]>('GET', '/api/projects'),
   createProject: (body: { name: string; universe: Universe; geometry: Geometry; paperFormat: string }) =>

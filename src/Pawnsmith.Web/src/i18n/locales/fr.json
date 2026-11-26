@@ -43,16 +43,23 @@
     "lead": "ComfyUI tourne à part, sur cette machine ou une autre du réseau local. Pawnsmith lui envoie les prompts et rapatrie les images.",
     "stateTitle": "État",
     "test": "Tester maintenant",
-    "workflow": "Workflow",
-    "workflowRead": "lu",
-    "workflowMissing": "absent",
-    "workflowHint": "Le workflow est l’export « Export (API) » de ComfyUI, posé dans config/ sur le serveur : voir config/README.md.",
+    "workflowHint": "Dans ComfyUI, ouvrez le workflow qui produit la planche recto/verso, puis menu Workflow → Export (API). Choisissez ce fichier ici : Pawnsmith y place lui-même le prompt et la graine, et y ajoute la clause de cadrage.",
     "address": "Adresse",
     "addressLabel": "Adresse de ComfyUI",
     "addressHint": "http ou https, sans identifiants. Enregistrée sur le serveur, elle l’emporte sur la configuration au prochain démarrage.",
     "saveAddress": "Enregistrer et tester",
     "clearAddress": "Retirer l’adresse",
-    "runningBatches": "Un lot déjà lancé garde l’adresse avec laquelle il est parti ; la nouvelle vaut pour les lots suivants."
+    "runningBatches": "Un lot déjà lancé garde l’adresse avec laquelle il est parti ; la nouvelle vaut pour les lots suivants.",
+    "workflowTitle": "Workflow ComfyUI",
+    "workflowSource": {
+      "Imported": "Importé depuis cette page",
+      "Configuration": "Fichier de la configuration du serveur",
+      "None": "Aucun : la génération est impossible"
+    },
+    "workflowImport": "Choisir le fichier exporté…",
+    "workflowImported": "Workflow importé.",
+    "workflowRemove": "Revenir au fichier de la configuration",
+    "workflowBatches": "Un lot déjà lancé garde le workflow avec lequel il est parti."
   },
   "projects": {
     "title": "Projets",

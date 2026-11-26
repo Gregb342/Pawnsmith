@@ -43,16 +43,23 @@
     "lead": "ComfyUI runs on its own, on this machine or another one of the local network. Pawnsmith sends it the prompts and brings the images back.",
     "stateTitle": "State",
     "test": "Test now",
-    "workflow": "Workflow",
-    "workflowRead": "read",
-    "workflowMissing": "missing",
-    "workflowHint": "The workflow is ComfyUI’s “Export (API)”, placed in config/ on the server: see config/README.md.",
+    "workflowHint": "In ComfyUI, open the workflow that produces the front/back sheet, then Workflow menu → Export (API). Choose that file here: Pawnsmith places the prompt and the seed itself, and adds the framing clause.",
     "address": "Address",
     "addressLabel": "ComfyUI address",
     "addressHint": "http or https, without credentials. Saved on the server, it wins over the configuration at the next start.",
     "saveAddress": "Save and test",
     "clearAddress": "Remove the address",
-    "runningBatches": "A batch already launched keeps the address it started with; the new one applies to the next batches."
+    "runningBatches": "A batch already launched keeps the address it started with; the new one applies to the next batches.",
+    "workflowTitle": "ComfyUI workflow",
+    "workflowSource": {
+      "Imported": "Imported from this page",
+      "Configuration": "The server's configuration file",
+      "None": "None: generation is impossible"
+    },
+    "workflowImport": "Choose the exported file…",
+    "workflowImported": "Workflow imported.",
+    "workflowRemove": "Go back to the configuration file",
+    "workflowBatches": "A batch already started keeps the workflow it started with."
   },
   "projects": {
     "title": "Projects",

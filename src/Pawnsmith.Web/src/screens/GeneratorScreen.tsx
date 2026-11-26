@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { api } from '../api/client';
+import type { GeneratorDto } from '../api/types';
 import { useAppData } from '../app/AppData';
 import { codeOf } from '../app/SaveStatus';
 import { ErrorNotice } from '../components/ErrorNotice';
@@ -13,9 +14,8 @@ import { useErrorText } from '../components/text';
  * and a test.
  *
  * The address is saved on the server, in the user directory, and wins over
- * the environment at the next start. The workflow stays a configuration
- * file — ComfyUI's export, not a setting of this screen — and its framing
- * clause is never shown (DEC-029): the page only says whether one is read.
+ * the environment at the next start. So does the workflow imported here
+ * (DEC-119); its framing clause is never shown (DEC-029).
  */
 export function GeneratorScreen() {
   const { t } = useTranslation();
@@ -73,11 +73,6 @@ export function GeneratorScreen() {
           {generator?.code !== null && generator?.code !== undefined ? (
             <p className="small">{errorText(generator.code)} <span className="mono muted">{generator.code}</span></p>
           ) : null}
-          <dl className="kv">
-            <dt>{t('generator.workflow')}</dt>
-            <dd>{generator?.framingClause !== null && generator?.framingClause !== undefined ? t('generator.workflowRead') : t('generator.workflowMissing')}</dd>
-          </dl>
-          <span className="hint">{t('generator.workflowHint')}</span>
         </section>
 
         <form className="panel" onSubmit={submit}>
@@ -95,6 +90,72 @@ export function GeneratorScreen() {
           <span className="hint">{t('generator.runningBatches')}</span>
         </form>
       </div>
+
+      <Workflow />
     </>
+  );
+}
+
+/**
+ * The workflow (§I.16, DEC-119): where the one in force comes from, the
+ * import of ComfyUI's export, and the way back to the configuration's file.
+ * The framing clause is never shown (DEC-029); the file goes to the server
+ * as it is, and the server prepares it (DEC-120).
+ */
+function Workflow() {
+  const { t } = useTranslation();
+  const { generator, setGenerator } = useAppData();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imported, setImported] = useState(false);
+  const source = generator?.workflowSource;
+
+  async function change(write: () => Promise<GeneratorDto>, done: boolean) {
+    setBusy(true);
+    try {
+      setGenerator(await write());
+      setError(null);
+      setImported(done);
+    } catch (failure) {
+      setError(codeOf(failure));
+      setImported(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function choose(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Emptied, so that choosing the same file again, once corrected, sends it again.
+    event.target.value = '';
+    if (file !== undefined) {
+      void change(() => api.importWorkflow(file), true);
+    }
+  }
+
+  return (
+    <section className="panel">
+      <h3>{t('generator.workflowTitle')}</h3>
+      {source !== undefined ? (
+        <span className="line">
+          <span className={`chip ${source === 'None' ? 'err' : 'ok'}`}>{t(`generator.workflowSource.${source}`)}</span>
+        </span>
+      ) : null}
+      <span className="hint">{t('generator.workflowHint')}</span>
+      <ErrorNotice code={error} />
+      {imported ? <div className="notice info">{t('generator.workflowImported')}</div> : null}
+      <div className="row">
+        <label className={`btn primary${busy ? ' disabled' : ''}`}>
+          {t('generator.workflowImport')}
+          <input type="file" accept=".json,application/json" hidden disabled={busy} onChange={choose} />
+        </label>
+        {source === 'Imported' ? (
+          <button type="button" className="btn" disabled={busy} onClick={() => void change(() => api.removeWorkflow(), false)}>
+            {t('generator.workflowRemove')}
+          </button>
+        ) : null}
+      </div>
+      <span className="hint">{t('generator.workflowBatches')}</span>
+    </section>
   );
 }

@@ -110,6 +110,19 @@ describe('requests', () => {
     expect(init?.body).toBe(archive);
   });
 
+  it('sends a workflow file as it is, as JSON (DEC-120)', async () => {
+    const fetch = stubFetch(() => Promise.resolve(json({ state: 'Unreachable', workflowSource: 'Imported' }, 200)));
+    const exported = new File(['{"9": {}}'], 'workflow_api.json');
+
+    await api.importWorkflow(exported);
+
+    const [path, init] = fetch.mock.calls[0]!;
+    expect(path).toBe('/api/generator/workflow');
+    expect(init?.method).toBe('PUT');
+    expect(init?.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(init?.body).toBe(exported);
+  });
+
   it('encodes every segment of a stored image path (DEC-088)', () => {
     expect(api.imageUrl('donjon', 'images/abc-front.png')).toBe('/api/projects/donjon/images/abc-front.png');
     expect(api.imageUrl('donjon', 'images/a b#1.png')).toBe('/api/projects/donjon/images/a%20b%231.png');
