@@ -27,6 +27,10 @@ conteneur, il faut en plus que ComfyUI écoute au-delà de la boucle locale
 
 ## 2. Récupérer le code
 
+Tout ce qui est décrit ici est dans `main` une fois la pull request
+Gregb342/Pawnsmith#6 fusionnée. Avant, prends la branche `claude/t6-front` à
+la place de `main`.
+
 ```powershell
 git fetch origin
 git checkout main

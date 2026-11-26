@@ -509,9 +509,9 @@ toi, DEC-100 à DEC-104.
 
 #### Pour le front de T6 — branche `claude/t6-front`, partie de `main`
 
-**Fusionnée dans `main` le 26 novembre 2026**, en commit de fusion, avec la
-suite du 25 novembre et la mise en service ; **la relecture intégrale reste à
-faire**. La branche part de `main` après T5 (`e84a27b`),
+**Proposée à la fusion dans `main`** par Gregb342/Pawnsmith#6 (26 novembre
+2026, CI verte), avec la suite du 25 novembre et la mise en service ; **la
+relecture intégrale reste à faire**. La branche part de `main` après T5 (`e84a27b`),
 quinze commits de tâche plus un correctif de relecture ; elle se relit d'une
 traite avec `git log --oneline e84a27b..`.
 
@@ -603,7 +603,7 @@ puisqu'une police utilisée dans un PDF y est redistribuée.
 
 #### Pour la suite du front — même branche, 25 novembre 2026
 
-**Fusionnée avec elle.** Des commits de plus sur `claude/t6-front`, après
+**Dans la même pull request.** Des commits de plus sur `claude/t6-front`, après
 la tâche 15, sur ta consigne « continue autant de dev que tu peux » ; ils se
 relisent avec `git log --oneline 38fd8f5..`. Les deux premiers réparent la
 compilation, les suivants sont les tâches 16 à 22 du §I.15 du cahier du front.
@@ -617,11 +617,11 @@ La plus engageante d'abord.
    commit : deux avis de sécurité visent `System.Security.Cryptography.Pkcs`
    8.0.1, que PDFsharp demande, et `TreatWarningsAsErrors` en fait des
    erreurs. La dépendance est relevée en **10.0.15** par une référence directe.
-   `main` est redevenu vert à la fusion de cette branche.
+   **`main` restera rouge tant que la pull request #6 n'est pas fusionnée.**
 3. **Une branche `claude/fix-pkcs-advisory`, partie de `main`, porte le même
    correctif numéroté DEC-105** : je l'ai créée avant de voir cette branche,
-   dont DEC-105 est déjà un de tes libellés. Elle a été supprimée à la
-   fusion. J'avais aussi commencé à réécrire le front de zéro, sans voir ce
+   dont DEC-105 est déjà un de tes libellés. **Ne la fusionne pas** ; elle
+   est à supprimer. J'avais aussi commencé à réécrire le front de zéro, sans voir ce
    travail ; rien n'en a été poussé, sauf ce qui est repris ici.
 4. **La revue du chapitre 9 pour le front n'avait pas été faite** (DEC-116) :
    **MEN-012**, détournement de clic, et **MEN-013**, injection de contenu.
@@ -694,8 +694,10 @@ DEC-119 à DEC-122. **Le point d'entrée est
    projet, gabarit, quatre propositions, une retenue, mise en page, PDF
    téléchargé puis rendu en image. Et en conteneur, par `docker compose`,
    contre un faux ComfyUI de l'hôte joint par `host.docker.internal`.
-7. **La branche est fusionnée dans `main`** (tâche 29), ce qui répare aussi sa
-   compilation (DEC-115).
+7. **La fusion dans `main` est proposée par Gregb342/Pawnsmith#6**, CI verte
+   et sans conflit (tâche 29). **Je n'ai pas pu la faire moi-même** : les
+   permissions de la session l'ont refusée. C'est à toi de la fusionner — elle
+   répare aussi la compilation de `main` (DEC-115).
 
 ### T2 — code terminé, 15 tâches sur 15
 
@@ -1317,7 +1319,7 @@ tâches sont le serveur que tes décisions demandaient ; les six suivantes, les
 | 26 | La page Générateur importe le workflow | ✅ |
 | 27 | Scripts de lancement, `docker-compose.yml` | ✅ |
 | 28 | Guide du premier essai ; documentation | ✅ |
-| 29 | Fusion dans `main` | ✅ |
+| 29 | Fusion dans `main` | ⏳ Gregb342/Pawnsmith#6 ouverte, à fusionner par toi |
 
 **Les 18 tests serveur de §I.12 et les 13 de §I.15.6 sont couverts.** Le
 dépôt porte **1 223 tests .NET verts** et **40 tests Vitest**. Une dépendance
