@@ -1,0 +1,26 @@
+{
+  "_readme": "Clause de cadrage donnée à un workflow importé depuis l'interface sous la forme de l'export brut de ComfyUI (DEC-120). C'est celle de T0a (DEC-043), la même que l'exemple de workflow. Un workflow préparé à la main garde la sienne.",
+  "versionSchema": 1,
+  "framingClause": [
+    "Character rotation sheet for a miniature reference: the exact same character",
+    "drawn twice in one single image, front view on the left and back view on the",
+    "right, side by side in one horizontal row, both figures resting on the same",
+    "horizontal ground line, exactly the same height and exactly the same scale,",
+    "each view occupying a tall narrow portrait panel.",
+    "Both views are the identical character: identical armour, identical clothing,",
+    "identical colour palette, identical weapon, identical proportions. The right",
+    "figure is that same character seen strictly from behind.",
+    "Full body from head to feet, the feet touching the bottom edge of the image,",
+    "nothing cropped.",
+    "Compact narrow silhouette: strict straight standing pose, arms hanging straight",
+    "down and held close against the sides, any weapon held vertically flat against",
+    "the body, any cape or cloak hanging straight down against the back. Nothing",
+    "extends sideways beyond the shoulders: no outstretched arms, no horizontal",
+    "weapon, no spread or flowing cape.",
+    "Flat uniform pale grey background, completely plain and even, no scenery, no",
+    "ground plane, no cast shadow, no drop shadow, soft even diffuse lighting, crisp",
+    "clean outlines suitable for automatic cutout. Clean digital illustration, clear",
+    "readable shapes.",
+    "Subject:"
+  ]
+}
