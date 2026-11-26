@@ -3,14 +3,16 @@
 | | |
 |---|---|
 | **Nom de code** | Pawnsmith |
-| **Version du document** | 0.21 |
-| **Date** | 25 novembre 2026 |
+| **Version du document** | 0.22 |
+| **Date** | 26 novembre 2026 |
 | **Statut** | Brouillon — évolutif |
 | **Porteur** | Grégoire |
 | **Licence visée** | Open source, permissive (MIT recommandé) |
  
 > **Comment lire ce document.** Il est vivant. Le chapitre 11 (journal des décisions) fait foi : quand une décision change, on ajoute une fiche, on ne réécrit pas l'ancienne. Les valeurs marquées `À CALIBRER` sont volontairement absentes tant que la tranche T0 n'a pas été menée — ne pas les inventer.
  
+> **Changements depuis la v0.21** — La mise en service (§I.16 du cahier T6 front, v1.3), écrite sans arbitrage du porteur. **DEC-119** : le workflow s'importe depuis l'interface et l'emporte sur celui de la configuration, **ce qui précise DEC-029** sur le seul point d'accès au cadrage. **DEC-120** : l'export brut de ComfyUI est préparé par l'application, en suivant les liens du graphe ; l'ambigu est refusé. **DEC-121** : des scripts de lancement sans Docker, et un fichier Compose. **DEC-122** : un guide du premier essai.
+
 > **Changements depuis la v0.20** — La suite du front de T6 (§I.15 du cahier T6 front, v1.2), écrite sans arbitrage du porteur. **DEC-116** : la revue du chapitre 9 pour le front, qui manquait — **MEN-012** (détournement de clic) et **MEN-013** (injection de contenu) entrent au chapitre 9, tenues par une politique de contenu et des en-têtes posés sur toute réponse. **DEC-117** : une route de capacités par taille, qui nomme une capacité nulle sans toucher DEC-084. **DEC-118** : Vitest, sur les modules purs du front, **précise DEC-114**.
 
 > **Changements depuis la v0.19** — **DEC-115** : PDFsharp reste épinglé sur **6.2.4**, la dernière version sous MIT — à partir de 6.5.0 (14 octobre 2026), il est publié sous **AGPL-3.0-only**. Sa dépendance transitive `System.Security.Cryptography.Pkcs` 8.0.1, frappée de deux avis de sécurité qui cassaient la compilation, est relevée en 10.0.15 par une référence directe.
@@ -1189,6 +1191,22 @@ Conséquence : le §15.4 veut qu'une capacité nulle nomme sa taille, son format
 **DEC-118 — Le front a des tests : Vitest, sur les modules purs.**
 Choix : Vitest (MIT), dépendance de développement, en environnement Node. Ce qui a de la logique dans le front est extrait en fonction pure et testé — routage, lecture des erreurs, nom d'un téléchargement, adresse d'une image, liste des projets, capacités nulles. Aucune bibliothèque de test de composants. La CI lance `npm test` entre le lint et la construction.
 Conséquence : ferme le « trou connu » du §I.12 du cahier T6 front. **Précise DEC-114**, qui refusait toute dépendance nouvelle au front : la règle visait ce qui part dans l'image, et Vitest n'y part pas. Testing Library et jsdom restent écartés : ils doubleraient la chaîne de dépendances pour des composants qui, par construction, ne portent pas de règle.
+
+**DEC-119 — Le workflow s'importe depuis l'interface, et l'emporte sur celui de la configuration.**
+Choix : la page Générateur reçoit un fichier de workflow, l'enregistre dans le dossier utilisateur et l'applique sans redémarrage. Au démarrage, ce fichier l'emporte sur `Pawnsmith:Generator:WorkflowFile` ; un bouton y revient. Un lot en file garde le générateur avec lequel il a été accepté.
+Conséquence : en conteneur, `config/workflow.comfyui.json` n'est pas dans l'image (il est ignoré par git, parce qu'il nomme les fichiers de modèles de la machine) ; sans import, la génération y était impossible. **Précise DEC-029** : la clause de cadrage n'est toujours exposée nulle part dans l'interface, mais un fichier qui la porte peut désormais arriver par elle — comme l'adresse depuis DEC-108. C'est le même raisonnement : sur une application mono-utilisateur publiée sur la boucle locale, celui qui choisit le fichier est celui qui tient la machine.
+
+**DEC-120 — L'export brut de ComfyUI est préparé par l'application, en suivant les liens du graphe.**
+Choix : la graine est l'unique entrée `seed` ou `noise_seed` numérique ; le positif est le texte où mène l'entrée `positive` de l'échantillonneur, ou `conditioning` d'un guide, en remontant les entrées `conditioning` ; le négatif de même, s'il mène à un texte distinct ; la sortie est l'unique `SaveImage`. La clause de cadrage d'un export brut est celle de `config/framing-clause.json`. Tout cas ambigu est refusé avec un code, jamais deviné. Cinq codes `WORKFLOW_IMPORT_*`, en `422`.
+Conséquence : le porteur n'a plus à placer trois jetons à la main dans un graphe de quelques centaines de lignes. La règle ne lit que la structure du graphe — ni nom de modèle, ni texte —, ce qui la rend relisible et testable sur des graphes construits à la main. Le prix : un graphe exotique est refusé, et se prépare alors à la main comme avant (§E.5).
+
+**DEC-121 — L'application se lance pour un essai par un script, ou par Docker Compose.**
+Choix : `scripts/start.ps1` et `scripts/start.sh` compilent le front, le déposent dans le `wwwroot` de l'API et la lancent sur `127.0.0.1:8080`. `docker-compose.yml` publie le port sur la boucle locale seulement, monte trois volumes et règle l'adresse du générateur sur `host.docker.internal`.
+Conséquence : un essai ne demande plus de connaître l'organisation du dépôt. Le chemin sans Docker est recommandé pour le premier essai : ComfyUI y est joignable sur `127.0.0.1` sans réglage, alors qu'un ComfyUI atteint depuis un conteneur doit écouter au-delà de la boucle locale.
+
+**DEC-122 — Un guide du premier essai, en français, pas à pas.**
+Choix : `docs/guide-premier-essai.md` mène du lancement à la planche imprimée, écran par écran, et dit quoi regarder à chaque étape.
+Conséquence : c'est le document que le porteur ouvre pour essayer ; le README y renvoie dès sa première section.
 
 ---
  

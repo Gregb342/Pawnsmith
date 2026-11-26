@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Version** | 1.2 |
-| **Date** | 25 novembre 2026 |
-| **Document parent** | `pawnsmith-bible.md` v0.21 — chapitres 2, 10, 12 et 15 en particulier |
+| **Version** | 1.3 |
+| **Date** | 26 novembre 2026 |
+| **Document parent** | `pawnsmith-bible.md` v0.22 — chapitres 2, 10, 12 et 15 en particulier |
 | **Documents frères** | le cahier T6 (l'API), dont ce document est la suite |
 | **Portée** | Les neuf décisions de la revue de maquette (D1 à D9), ce qu'elles demandent à l'API, et le front React |
+
+> **Changements depuis la v1.2** — Ajout du §I.16, **la mise en service** : ce qu'il manquait pour que le porteur essaie l'application chez lui, de bout en bout, contre son ComfyUI. Le workflow s'importe depuis l'interface, **à partir de l'export brut** de ComfyUI, que l'application prépare elle-même (DEC-119, DEC-120) ; deux scripts lancent l'application sans Docker, un fichier Compose la lance avec (DEC-121) ; un guide du premier essai dit tout, pas à pas (DEC-122).
 
 > **Changements depuis la v1.1** — Ajout du §I.15, la suite écrite le 25 novembre 2026 sans arbitrage du porteur, sur la consigne « continue autant de dev que tu peux ». La revue du chapitre 9 pour le front, qui manquait : **MEN-012** (détournement de clic) et **MEN-013** (injection de contenu), tenues par des en-têtes posés sur toute réponse (DEC-116). Une capacité nulle nomme enfin sa taille (DEC-117). **Le front a des tests automatisés**, Vitest sur les modules purs (DEC-118), ce qui ferme le « trou connu » du §I.12. Un rechargement raté ne remplace plus l'écran ; les cotes du format bordent l'aperçu ; les diagnostics d'un projet s'affichent enfin.
 
@@ -446,3 +448,80 @@ Le script de parité vérifie que `fr.json` et `en.json` ont les mêmes clés. I
 | 20 | Vitest, et les tests des modules purs ; la CI les lance |
 | 21 | Les quatre reprises du §I.15.5 |
 | 22 | `CLAUDE.md`, README |
+
+---
+
+## I.16 La mise en service, du 26 novembre 2026
+
+> **Régime.** Écrite sans arbitrage du porteur, sur la consigne « avance le dev jusqu'à une version utilisable que je puisse tester, sans me demander mon avis ».
+
+Le front est complet (I.14, I.15). **Il ne s'essaie pourtant pas** : trois obstacles séparent le porteur d'un premier lot.
+
+1. **Le workflow est un fichier à retoucher à la main**, puis à déposer dans `config/`. Il faut exporter le graphe, y placer trois jetons, l'envelopper dans un schéma (§E.5 du cahier T4). En conteneur, c'est pire : `config/workflow.comfyui.json` est ignoré par git, donc absent de l'image, et la génération y est **impossible** sans monter un fichier.
+2. **Rien ne dit comment lancer l'application pour l'essayer** : le README décrit le développement (deux processus), le conteneur, et le harnais en ligne de commande.
+3. **Rien ne dit comment brancher son ComfyUI** : quelle adresse depuis un conteneur, quel port selon l'édition de ComfyUI.
+
+### I.16.1 Le workflow s'importe depuis l'interface (DEC-119)
+
+La page Générateur reçoit le fichier : **soit l'export brut** de ComfyUI (*Export (API)*), **soit un fichier déjà préparé** au schéma du §E.5. Il est vérifié, enregistré dans le dossier utilisateur (`workflow.comfyui.json`), et appliqué sans redémarrage. **Le fichier importé l'emporte sur celui de la configuration**, comme l'adresse (DEC-108). Un bouton revient au fichier de la configuration.
+
+Un lot déjà en file garde le workflow avec lequel il a été accepté, comme il garde son adresse (§I.5.2) : le générateur est reconstruit, l'ancien reste vivant pour lui.
+
+### I.16.2 L'export brut est préparé par l'application (DEC-120)
+
+Placer trois jetons dans un graphe de quelques centaines de lignes est exactement le travail qu'une machine fait mieux qu'une personne. **L'application suit les liens du graphe**, et rien d'autre — aucune heuristique sur les noms des modèles ni sur le texte :
+
+| Jeton | Où il va |
+|---|---|
+| `{{SEED}}` | L'unique entrée `seed` ou `noise_seed` du graphe dont la valeur est un **nombre** (et non un lien) |
+| `{{POSITIVE}}` | Le texte où mène l'entrée `positive` de l'échantillonneur — ou l'entrée `conditioning` d'un guide (`BasicGuider`) —, en remontant les nœuds intermédiaires par leur entrée `conditioning` (`FluxGuidance`, par exemple), jusqu'à un nœud qui porte une entrée `text` ou `prompt` de type texte |
+| `{{NEGATIVE}}` | De même depuis l'entrée `negative`, **s'il y a un texte au bout**. Un négatif fait d'un `ConditioningZeroOut`, ou qui remonte au même texte que le positif, n'en reçoit pas : il n'y a rien à remplacer |
+| `outputNodeId` | L'unique nœud `SaveImage` |
+
+La clause de cadrage d'un export brut est celle que livre l'application, `config/framing-clause.json` — le cadrage de T0a (DEC-043), le même que l'exemple de workflow. Un fichier déjà préparé garde la sienne.
+
+**Ce qui est ambigu est refusé, jamais deviné.** Deux nœuds `SaveImage`, deux graines, un encodeur à deux textes (`CLIPTextEncodeFlux`, qui en porte deux), un positif qui ne mène à aucun texte : l'import est refusé avec son code, et le guide dit comment préparer le fichier à la main dans ce cas. Cinq codes, tous en `422` — un fichier choisi par l'utilisateur est une saisie, pas une faute de déploiement :
+
+| Code | Cas |
+|---|---|
+| `WORKFLOW_IMPORT_INVALID` | Pas du JSON, l'export « ordinaire » (`nodes`, `links`) au lieu d'*Export (API)*, ou un fichier préparé que le §E.5 refuse |
+| `WORKFLOW_IMPORT_NO_OUTPUT` | Aucun nœud `SaveImage` |
+| `WORKFLOW_IMPORT_NO_SEED` | Aucune graine numérique |
+| `WORKFLOW_IMPORT_NO_PROMPT` | Le positif ne mène à aucun texte |
+| `WORKFLOW_IMPORT_AMBIGUOUS` | Plusieurs candidats pour une même place |
+
+Routes : `PUT /api/generator/workflow` (le fichier, en `application/json`) et `DELETE /api/generator/workflow` (retour au fichier de la configuration). Toutes deux rendent l'état du générateur, qui dit désormais **d'où vient son workflow** : `Imported`, `Configuration`, ou `None`.
+
+### I.16.3 Lancer l'application pour l'essayer (DEC-121)
+
+- **Sans Docker**, un script par système, `scripts/start.ps1` (Windows) et `scripts/start.sh` : il compile le front, le dépose dans le `wwwroot` de l'API, et lance l'API sur `http://127.0.0.1:8080`, données dans `data/` à la racine du dépôt. C'est le chemin recommandé pour le premier essai : ComfyUI tourne sur la même machine, et `127.0.0.1` l'atteint sans réglage.
+- **Avec Docker**, un `docker-compose.yml` : port publié sur la boucle locale seulement (MEN-004), trois volumes nommés, et l'adresse du générateur réglée par défaut sur `http://host.docker.internal:8188` — l'hôte vu depuis le conteneur.
+
+### I.16.4 Le guide du premier essai (DEC-122)
+
+`docs/guide-premier-essai.md` : prérequis, lancement, branchement de ComfyUI (ports 8188 pour l'édition portable, 8000 pour l'application de bureau ; `--listen` quand l'application est en conteneur), import du workflow, puis le parcours du §D.3 écran par écran, et ce qu'il faut regarder à chaque étape. En français, pour le porteur.
+
+### I.16.5 Tests attendus
+
+| # | Ce qu'il vérifie | Où |
+|---|---|---|
+| 1 | L'exemple de workflow privé de ses jetons est préparé avec les trois jetons à leur place, et le `SaveImage` comme sortie | .NET |
+| 2 | Un graphe de type Flux — `RandomNoise`, `BasicGuider`, `FluxGuidance`, `SamplerCustomAdvanced` — est préparé sans négatif | .NET |
+| 3 | Un négatif `ConditioningZeroOut` ne reçoit pas de jeton | .NET |
+| 4 | L'export ordinaire, deux `SaveImage`, deux graines, un encodeur à deux textes, aucun texte : chacun son code | .NET |
+| 5 | Un fichier déjà préparé passe tel quel, sa clause de cadrage comprise | .NET |
+| 6 | `PUT …/workflow` rend un générateur configuré, et un redémarrage relit le fichier importé avant la configuration | .NET |
+| 7 | Un import refusé n'écrit rien et ne change rien | .NET |
+| 8 | `DELETE …/workflow` revient au fichier de la configuration | .NET |
+
+### I.16.6 Découpage
+
+| # | Tâche |
+|---|---|
+| 23 | Documentation : ce §I.16, DEC-119 à DEC-122, bible v0.22 |
+| 24 | La préparation de l'export brut, `config/framing-clause.json` |
+| 25 | L'import par l'API : routes, fichier utilisateur, générateur reconstruit |
+| 26 | La page Générateur importe le workflow |
+| 27 | Scripts de lancement et `docker-compose.yml` |
+| 28 | Guide du premier essai ; `CLAUDE.md`, README ; parcours complet éprouvé dans l'interface |
+| 29 | Fusion dans `main` |
